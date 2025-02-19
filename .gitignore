@@ -1,0 +1,44 @@
+# General ignores
+bin/
+obj/
+[Bb]uild/
+[Bb]uildOutput/
+_PublishedWebsites/
+*.log
+*.tmp
+*.vspscc
+*.suo
+*.user
+*.opentest
+*.testsettings
+
+# Visual Studio ignores
+.vs/
+*.csproj.user
+*.pfx
+*.asax.designer.cs
+*.aspx.designer.cs
+*.config
+*.dll
+*.exe
+*.idb
+*.pdb
+/Properties/PublishProfiles/*
+[Pp]ublish/
+
+# Rider ignores
+.idea/
+*.iml
+/contentModel.xml
+/modules.xml
+/projectSettingsUpdater.xml
+
+# VS Code ignores
+.vscode/
+*.code-workspace
+
+# NuGet Packages
+packages/
+
+# Other
+*.DS_Store
