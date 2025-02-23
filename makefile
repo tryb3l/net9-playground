@@ -1,7 +1,7 @@
 .PHONY: all run build clean publish docker-up docker-down migrate add-migration
 
 COMPOSE_FILE := docker-compose.yml
-APP_PROJECT := WebApplication1.csproj
+APP_PROJECT := ./WebApplication1/WebApplication1.csproj
 
 # Default target: run the app
 all: run
@@ -41,3 +41,7 @@ docker-up:
 # Bring down Docker containers
 docker-down:
 	docker-compose -f $(COMPOSE_FILE) down
+
+# Prune all Docker volumes
+docker-prune:
+	docker system prune -a --volumes
