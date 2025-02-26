@@ -1,14 +1,16 @@
-using System;
-using WebApplication1.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using WebApplication1.Models;
 
 namespace WebApplication1.Data;
 
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext : IdentityDbContext<User>
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        : base(options)
     {
     }
+
     public DbSet<Post> Posts { get; set; }
     public DbSet<Tag> Tags { get; set; }
     public DbSet<PostTag> PostTags { get; set; }
@@ -16,8 +18,9 @@ public class ApplicationDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
         modelBuilder.Entity<PostTag>()
-        .HasKey(pt => new { pt.PostId, pt.TagId });
+            .HasKey(pt => new { pt.PostId, pt.TagId });
 
         modelBuilder.Entity<PostTag>()
             .HasOne(pt => pt.Post)
@@ -28,9 +31,10 @@ public class ApplicationDbContext : DbContext
             .HasOne(pt => pt.Tag)
             .WithMany(t => t.PostTags)
             .HasForeignKey(pt => pt.TagId);
+
         modelBuilder.Entity<Post>()
-       .HasOne(p => p.Author)
-       .WithMany(u => u.Posts)
-       .HasForeignKey(p => p.AuthorId);
+            .HasOne(p => p.Author)
+            .WithMany(u => u.Posts)
+            .HasForeignKey(p => p.AuthorId);
     }
 }
