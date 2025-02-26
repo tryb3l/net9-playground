@@ -1,8 +1,8 @@
 services:
   web:
     build:
-      context: ./WebApplication1
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: WebApplication1/Dockerfile
     ports:
       - "5008:8080"
       - "7024:443"
