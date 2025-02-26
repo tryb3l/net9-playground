@@ -11,8 +11,6 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=net9playground;Username=postgres;Password=yourpassword
-    volumes:
-      - ./WebApplication1:/src
 
   postgres:
     image: postgres:17-alpine
@@ -21,7 +19,6 @@ services:
       POSTGRES_DB: net9playground
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: yourpassword
-
     volumes:
       - pgdata:/var/lib/postgresql/data
 
