@@ -1,10 +1,10 @@
-.PHONY: all run build clean publish docker-up docker-down migrate add-migration
+.PHONY: all run build clean publish docker-up docker-down migrate add-migration container-migrate
 
 COMPOSE_FILE := docker-compose.yml
 APP_PROJECT := ./WebApplication1/WebApplication1.csproj
 
 # Default target: run the app
-all: run
+all: docker-up
 
 # Build the project
 build:
@@ -26,41 +26,25 @@ publish:
 migrate-local:
 	dotnet ef database update --project $(APP_PROJECT) --startup-project $(APP_PROJECT)
 
-# Start PostgreSQL in container & update db
-migrate: docker-postgres wait-postgres
-	dotnet ef database update --project $(APP_PROJECT) --startup-project $(APP_PROJECT)
-
-# Apply migrations only, no seeding
-migrations-only:
-	docker-compose -f $(COMPOSE_FILE) run --rm web dotnet ef database update --project WebApplication1.csproj
-
 # Add a new migration passing the migration name as a parameter
 add-migration:
 	@if [ -z $(name) ]; then \
 		echo "Please provide a migration name: make add-migration name=<migration_name>"; \
 	else \
-		dotnet ef migrations add $(name) --project $(APP_PROJECT) --startup-project $(APP_PROJECT); \
+		dotnet ef migrations add $(name) --project $(APP_PROJECT) --startup-project $(APP_PROJECT) -o Data/Migrations; \
 	fi
 
 # Bring up Docker containers (app + Postgres)
 docker-up:
 	docker-compose -f $(COMPOSE_FILE) up --build
 
-# Start only the PostgreSQL container
-docker-postgres:
-	docker-compose -f $(COMPOSE_FILE) up -d postgres
-
 # Bring down Docker containers
 docker-down:
-	docker-compose -f $(COMPOSE_FILE) down
+	docker-compose -f $(COMPOSE_FILE) down --volumes
 
 # Prune all Docker volumes
 docker-prune:
 	docker system prune -a --volumes
-
-# Migration in Docker container
-container-migrate:
-	docker-compose -f $(COMPOSE_FILE) run --rm web dotnet ef database update
 
 # Start postgres with port mapping to localhost (for development)
 docker-postgres-local:
@@ -93,8 +77,4 @@ drop-database:
 	fi
 
 # Full reset: drop DB, apply migrations, and seed data
-reset-db: drop-database migrate
-
-# Run app with Docker Compose environment variable for container detection
-run-docker-env:
-	DOCKER_COMPOSE=true dotnet run --project $(APP_PROJECT)
+reset-db: drop-database migrate-local
