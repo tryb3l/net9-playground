@@ -5,16 +5,14 @@ using WebApplication1.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-if (builder.Environment.IsDevelopment() && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DOCKER_COMPOSE")))
-{
-    builder.Configuration["ConnectionStrings:DefaultConnection"] =
-        "Host=postgres;Port=5432;Database=net9playground;Username=postgres;Password=yourpassword";
-}
+// Get connection string from environment or configuration
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
+// Add services to the container.
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connectionString));
 
 builder.Services.AddIdentity<User, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -42,33 +40,26 @@ builder.Services.AddAuthentication()
 
 var app = builder.Build();
 
+// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    // Seed data *only* in development.
     using (var scope = app.Services.CreateScope())
     {
         var services = scope.ServiceProvider;
         try
         {
             var context = services.GetRequiredService<ApplicationDbContext>();
-
-            Console.WriteLine("Applying migrations...");
-            context.Database.Migrate();
-            Console.WriteLine("Migrations applied successfully.");
-
-            Console.WriteLine("Seeding data...");
             await SeedData.Initialize(services);
-            Console.WriteLine("Seeding completed.");
         }
         catch (Exception ex)
         {
             var logger = services.GetRequiredService<ILogger<Program>>();
-            logger.LogError(ex, "An error occurred while migrating or seeding the database.");
-            Console.WriteLine($"Error during database setup: {ex.Message}");
+            logger.LogError(ex, "An error occurred seeding the DB.");
         }
     }
 }
-
-if (!app.Environment.IsDevelopment())
+else
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
