@@ -1,0 +1,35 @@
+﻿@model IEnumerable<WebApplication1.Areas.Admin.ViewModels.TagViewModel>
+
+@{
+    ViewData["Title"] = "Manage Tags";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2>Tag Management</h2>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">Create New Tag</a>
+</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Tag Name</th>
+            <th>Posts Count</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.PostCount</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Edit</a> |
+                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
