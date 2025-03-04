@@ -14,6 +14,7 @@ public class ApplicationDbContext : IdentityDbContext<User>
     public DbSet<Post> Posts { get; set; }
     public DbSet<Tag> Tags { get; set; }
     public DbSet<PostTag> PostTags { get; set; }
+    public DbSet<Category> Categories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -36,5 +37,10 @@ public class ApplicationDbContext : IdentityDbContext<User>
             .HasOne(p => p.Author)
             .WithMany(u => u.Posts)
             .HasForeignKey(p => p.AuthorId);
+
+        modelBuilder.Entity<Post>()
+            .HasOne(p => p.Category)
+            .WithMany(c => c.Posts)
+            .HasForeignKey(p => p.CategoryId);
     }
 }
