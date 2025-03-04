@@ -7,5 +7,4 @@ public class User : IdentityUser
 {
     public string? DisplayName { get; set; }
     public ICollection<Post> Posts { get; set; } = new List<Post>();
-
 }
