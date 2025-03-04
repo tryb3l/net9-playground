@@ -1,7 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace WebApplication1.Areas.Admin.ViewModels;
+namespace WebApplication1.Areas.Admin.ViewModels.Tags;
 
 public class EditTagViewModel
 {
