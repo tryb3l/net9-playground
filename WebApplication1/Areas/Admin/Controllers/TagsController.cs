@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using WebApplication1.Areas.Admin.ViewModels;
+using WebApplication1.Areas.Admin.ViewModels.Tags;
 using WebApplication1.Data;
 using WebApplication1.Models;
 
