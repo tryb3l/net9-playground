@@ -1,6 +1,5 @@
-using System;
 
-namespace WebApplication1.Areas.Admin.Views.Posts;
+namespace WebApplication1.Areas.Admin.ViewModels.Posts;
 
 public class PostViewModel
 {
