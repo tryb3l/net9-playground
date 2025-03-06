@@ -1,0 +1,56 @@
+﻿@model WebApplication1.Models.Post
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Post content-->
+            <article>
+                <!-- Post header-->
+                <header class="mb-4">
+                    <!-- Post title-->
+                    <h1 class="fw-bolder mb-1">@Model.Title</h1>
+                    <!-- Post meta content-->
+                    <div class="text-muted fst-italic mb-2">
+                        Posted on @Model.PublishedDate?.ToString("MMMM dd, yyyy") by
+                        @(Model.Author?.DisplayName ?? Model.Author?.UserName ?? "Unknown")
+                    </div>
+                    <!-- Post categories-->
+                    @if (Model.Category != null)
+                    {
+                        <a asp-action="Index" asp-route-category="@Model.Category.Slug"
+                            class="badge bg-secondary text-decoration-none link-light">@Model.Category.Name</a>
+                    }
+                    @foreach (var postTag in Model.PostTags)
+                    {
+                        <a asp-action="Index" asp-route-tag="@postTag.Tag?.Name"
+                            class="badge bg-secondary text-decoration-none link-light">@postTag.Tag?.Name</a>
+                    }
+                </header>
+
+                <!-- Post content-->
+                <section class="mb-5">
+                    <p class="fs-5 mb-4">@Html.Raw(Model.Content)</p>
+                </section>
+            </article>
+
+            <!-- Back button -->
+            <a asp-action="Index" class="btn btn-primary">&larr; Back to Blog</a>
+        </div>
+
+        <!-- Side widgets-->
+        <div class="col-lg-4">
+            <!-- Author info -->
+            <div class="card mb-4">
+                <div class="card-header">About the Author</div>
+                <div class="card-body">
+                    <p>@(Model.Author?.DisplayName ?? Model.Author?.UserName ?? "Unknown")</p>
+                </div>
+            </div>
+
+            <!-- Related posts can go here -->
+        </div>
+    </div>
+</div>
