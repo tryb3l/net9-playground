@@ -1,4 +1,5 @@
 using System;
+using WebApplication1.Areas.Admin.ViewModels.Tags;
 using WebApplication1.Interfaces;
 using WebApplication1.Models;
 
@@ -48,5 +49,22 @@ public class TagService : ITagService
     public async Task<IEnumerable<Tag>> GetAllTagsAsync()
     {
         return await _tagRepository.GetAllAsync();
+    }
+
+    public async Task<IEnumerable<TagViewModel>> GetAllTagsWithCountAsync()
+    {
+        var tags = await _tagRepository.GetAllAsync();
+        return tags.Select(t => new TagViewModel
+        {
+            Id = t.Id,
+            Name = t.Name,
+            PostCount = t.PostTags?.Count ?? 0
+        });
+    }
+
+    public async Task<bool> TagExistsAsync(int id)
+    {
+        var tag = await _tagRepository.GetByIdAsync(id);
+        return tag != null;
     }
 }
