@@ -1,9 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using WebApplication1.Areas.Admin.ViewModels.Tags;
-using WebApplication1.Data;
-using WebApplication1.Models;
+using WebApplication1.Interfaces;
 
 namespace WebApplication1.Areas.Admin.Controllers;
 
@@ -11,23 +9,17 @@ namespace WebApplication1.Areas.Admin.Controllers;
 [Authorize(Roles = "Admin")]
 public class TagsController : Controller
 {
-    private readonly ApplicationDbContext _context;
+    private readonly ITagService _tagService;
 
-    public TagsController(ApplicationDbContext context)
+    public TagsController(ITagService tagService)
     {
-        _context = context;
+        _tagService = tagService;
     }
 
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var tags = await _context.Tags
-            .Select(t => new TagViewModel
-            {
-                Id = t.Id,
-                Name = t.Name,
-                PostCount = t.PostTags.Count
-            }).ToListAsync();
+        var tags = await _tagService.GetAllTagsWithCountAsync();
         return View(tags);
     }
 
@@ -43,12 +35,9 @@ public class TagsController : Controller
     {
         if (ModelState.IsValid)
         {
-            var tag = new Tag { Name = viewModel.Name };
-            _context.Add(tag);
-            await _context.SaveChangesAsync();
+            await _tagService.CreateTagAsync(new Models.Tag { Name = viewModel.Name });
             return RedirectToAction(nameof(Index));
         }
-
         return View(viewModel);
     }
 
@@ -60,19 +49,17 @@ public class TagsController : Controller
             return NotFound();
         }
 
-        var tag = await _context.Tags.FindAsync(id);
+        var tag = await _tagService.GetTagByIdAsync(id.Value);
         if (tag == null)
         {
             return NotFound();
         }
 
-        var viewModel = new EditTagViewModel
+        return View(new EditTagViewModel
         {
             Id = tag.Id,
             Name = tag.Name
-        };
-
-        return View(viewModel);
+        });
     }
 
     [HttpPost]
@@ -88,25 +75,22 @@ public class TagsController : Controller
         {
             try
             {
-                var tag = await _context.Tags.FindAsync(id);
+                var tag = await _tagService.GetTagByIdAsync(id);
                 if (tag == null)
                 {
                     return NotFound();
                 }
+
                 tag.Name = viewModel.Name;
-                _context.Update(tag);
-                await _context.SaveChangesAsync();
+                await _tagService.UpdateTagAsync(tag);
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception)
             {
-                if (!TagExists(viewModel.Id))
+                if (!await _tagService.TagExistsAsync(viewModel.Id))
                 {
                     return NotFound();
                 }
-                else
-                {
-                    throw;
-                }
+                throw;
             }
             return RedirectToAction(nameof(Index));
         }
@@ -121,7 +105,7 @@ public class TagsController : Controller
             return NotFound();
         }
 
-        var tag = await _context.Tags.FirstOrDefaultAsync(m => m.Id == id);
+        var tag = await _tagService.GetTagByIdAsync(id.Value);
         if (tag == null)
         {
             return NotFound();
@@ -133,17 +117,7 @@ public class TagsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
-        var tag = await _context.Tags.FindAsync(id);
-        if (tag != null)
-        {
-            _context.Tags.Remove(tag);
-            await _context.SaveChangesAsync();
-        }
+        await _tagService.DeleteTagAsync(id);
         return RedirectToAction(nameof(Index));
-    }
-
-    private bool TagExists(int id)
-    {
-        return _context.Tags.Any(e => e.Id == id);
     }
 }
