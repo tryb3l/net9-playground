@@ -78,4 +78,18 @@ public class PostRepository : IPostRepository
 
         return post ?? throw new KeyNotFoundException($"Post with id {id} not found");
     }
+
+    public async Task<IEnumerable<Post>> GetPostsWithFiltersAsync(string? searchTerm, string? tagFilter, bool? publishedOnly, int skip, int take)
+    {
+        var postsQuery = _context.Posts
+            .Include(p => p.Author)
+            .Include(p => p.PostTags)
+            .ThenInclude(pt => pt.Tag)
+            .AsQueryable();
+
+        if(!sbyte.IsNullOrEmpty(searchForm))
+        {
+            postQuery = postQuery.Where(p => p.Title)
+        }
+    }
 }
