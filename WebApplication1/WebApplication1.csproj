@@ -24,7 +24,8 @@
 
     <ItemGroup>
       <Folder Include="Areas/Admin/ViewModels/Tags/" />
-      <Folder Include="ViewModels/" />
+      <Folder Include="Areas/Admin/Views/Posts/" />
+      <Folder Include="Middleware/" />
     </ItemGroup>
 
 </Project>
