@@ -11,4 +11,7 @@ public interface IPostRepository : IRepository<Post>
     Task<IEnumerable<Post>> GetPostsWithFiltersAsync(string? searchTerm, string? tagFilter, bool? publishedOnly, int skip, int take);
     Task<int> CountPostsWithFiltersAsync(string? searchTerm, string? tagFilter, bool? publishedOnly);
     Task DeletePostTagsAsync(IEnumerable<PostTag> postTags);
+    Task<bool> PostExistsAsync(int id);
+    Task<IEnumerable<Tag>> GetAllTagsAsync();
+    Task AddPostTagAsync(PostTag postTag);
 }

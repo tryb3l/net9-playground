@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
 using WebApplication1.Areas.Admin.ViewModels.Posts;
-using WebApplication1.Data;
 using WebApplication1.Interfaces;
 using WebApplication1.Models;
 using WebApplication1.Utils;
@@ -14,18 +12,15 @@ public class PostService : IPostService
     private readonly IPostRepository _postRepository;
     private readonly ICategoryRepository _categoryRepository;
     private readonly ITagRepository _tagRepository;
-    private readonly ApplicationDbContext _context;
 
     public PostService(
         IPostRepository postRepository,
         ICategoryRepository categoryRepository,
-        ITagRepository tagRepository,
-        ApplicationDbContext context)
+        ITagRepository tagRepository)
     {
         _postRepository = postRepository;
         _categoryRepository = categoryRepository;
         _tagRepository = tagRepository;
-        _context = context;
     }
 
     public async Task<BlogIndexViewModel> GetBlogIndexViewModelAsync(int page, string? category, string? tag)
@@ -59,46 +54,24 @@ public class PostService : IPostService
     public async Task<PostListViewModel> GetPostListAsync(int page, string? searchTerm, string? tagFilter, bool? publishedOnly)
     {
         int pageSize = 10;
-        var postsQuery = _context.Posts
-            .Include(p => p.Author)
-            .Include(p => p.PostTags)
-            .ThenInclude(pt => pt.Tag)
-            .AsQueryable();
+        int skip = (page - 1) * pageSize;
 
-        if (!string.IsNullOrEmpty(searchTerm))
+        var posts = await _postRepository.GetPostsWithFiltersAsync(searchTerm, tagFilter, publishedOnly, skip, pageSize);
+        var totalPosts = await _postRepository.CountPostsWithFiltersAsync(searchTerm, tagFilter, publishedOnly);
+
+        var postSummaries = posts.Select(p => new PostSummaryViewModel
         {
-            postsQuery = postsQuery.Where(p => p.Title.Contains(searchTerm) || p.Content!.Contains(searchTerm));
-        }
-
-        if (!string.IsNullOrEmpty(tagFilter))
-        {
-            postsQuery = postsQuery.Where(p => p.PostTags.Any(pt => pt.Tag!.Name == tagFilter));
-        }
-
-        if (publishedOnly.HasValue && publishedOnly.Value)
-        {
-            postsQuery = postsQuery.Where(p => p.IsPublished);
-        }
-
-        int totalPosts = await postsQuery.CountAsync();
-
-        var posts = await postsQuery
-            .OrderByDescending(p => p.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(p => new PostSummaryViewModel
-            {
-                Id = p.Id,
-                Title = p.Title,
-                CreatedAt = p.CreatedAt,
-                IsPublished = p.IsPublished,
-                AuthorName = p.Author!.DisplayName ?? p.Author.UserName ?? "Unknown",
-                Tags = p.PostTags.Select(pt => pt.Tag!.Name).ToList()
-            }).ToListAsync();
+            Id = p.Id,
+            Title = p.Title,
+            CreatedAt = p.CreatedAt,
+            IsPublished = p.IsPublished,
+            AuthorName = p.Author!.DisplayName ?? p.Author.UserName ?? "Unknown",
+            Tags = p.PostTags.Select(pt => pt.Tag!.Name).ToList()
+        }).ToList();
 
         return new PostListViewModel
         {
-            Posts = posts,
+            Posts = postSummaries,
             TotalPosts = totalPosts,
             CurrentPage = page,
             PageSize = pageSize,
@@ -109,14 +82,7 @@ public class PostService : IPostService
 
     public async Task<PostViewModel?> GetPostViewModelAsync(int id)
     {
-        var post = await _context.Posts
-            .Include(p => p.Author)
-            .Include(p => p.PostTags)
-            .ThenInclude(pt => pt.Tag)
-            .FirstOrDefaultAsync(p => p.Id == id);
-
-        if (post == null)
-            return null;
+        var post = await _postRepository.GetPostWithDetailsAsync(id);
 
         return new PostViewModel
         {
@@ -134,12 +100,7 @@ public class PostService : IPostService
 
     public async Task<EditPostViewModel?> GetPostForEditAsync(int id)
     {
-        var post = await _context.Posts
-            .Include(p => p.PostTags)
-            .FirstOrDefaultAsync(p => p.Id == id);
-
-        if (post == null)
-            return null;
+        var post = await _postRepository.GetPostWithDetailsAsync(id);
 
         return new EditPostViewModel
         {
@@ -176,13 +137,13 @@ public class PostService : IPostService
         {
             foreach (var tagId in viewModel.SelectedTagIds)
             {
-                _context.PostTags.Add(new PostTag
+                await _postRepository.AddPostTagAsync(new PostTag
                 {
                     PostId = post.Id,
                     TagId = tagId
                 });
             }
-            await _context.SaveChangesAsync();
+            await _postRepository.SaveChangesAsync();
         }
 
         return post;
@@ -190,12 +151,7 @@ public class PostService : IPostService
 
     public async Task UpdatePostAsync(int id, EditPostViewModel viewModel)
     {
-        var post = await _context.Posts
-            .Include(p => p.PostTags)
-            .FirstOrDefaultAsync(p => p.Id == id);
-
-        if (post == null)
-            throw new KeyNotFoundException($"Post with ID {id} not found");
+        var post = await _postRepository.GetPostWithDetailsAsync(id);
 
         if (post.Title != viewModel.Title)
         {
@@ -212,13 +168,13 @@ public class PostService : IPostService
         }
         post.IsPublished = viewModel.IsPublished;
 
-        _context.PostTags.RemoveRange(post.PostTags);
+        await _postRepository.DeletePostTagsAsync(post.PostTags);
 
         if (viewModel.SelectedTagIds.Any())
         {
             foreach (var tagId in viewModel.SelectedTagIds)
             {
-                _context.PostTags.Add(new PostTag
+                await _postRepository.AddPostTagAsync(new PostTag
                 {
                     PostId = post.Id,
                     TagId = tagId
@@ -226,49 +182,46 @@ public class PostService : IPostService
             }
         }
 
-        await _context.SaveChangesAsync();
+        await _postRepository.UpdateAsync(post);
+        await _postRepository.SaveChangesAsync();
     }
 
     public async Task DeletePostAsync(int id)
     {
-        var post = await _context.Posts
-            .Include(p => p.PostTags)
-            .FirstOrDefaultAsync(p => p.Id == id);
-
-        if (post == null)
-            return;
-
-        _context.PostTags.RemoveRange(post.PostTags);
-        _context.Posts.Remove(post);
-        await _context.SaveChangesAsync();
+        var post = await _postRepository.GetPostWithDetailsAsync(id);
+        await _postRepository.DeletePostTagsAsync(post.PostTags);
+        await _postRepository.DeleteAsync(post);
+        await _postRepository.SaveChangesAsync();
     }
 
     public async Task<bool> PostExistsAsync(int id)
     {
-        return await _context.Posts.AnyAsync(e => e.Id == id);
+        return await _postRepository.PostExistsAsync(id);
     }
 
     public async Task<List<SelectListItem>> GetAvailableTagsAsync()
     {
-        return await _context.Tags
-            .OrderBy(t => t.Name)
+        var tags = await _tagRepository.GetAllAsync();
+        return tags
             .Select(t => new SelectListItem
             {
                 Value = t.Id.ToString(),
                 Text = t.Name
-            }).ToListAsync();
+            }).ToList();
     }
 
     private async Task<string> EnsureUniqueSlugAsync(string slug, int? postId = null)
     {
         var originalSlug = slug;
         var counter = 1;
+        var posts = await _postRepository.GetAllAsync();
+        var matchingPosts = posts.Where(p => p.Slug == slug && (!postId.HasValue || p.Id != postId));
 
-        while (await _context.Posts.AnyAsync(p =>
-            p.Slug == slug && (!postId.HasValue || p.Id != postId)))
+        while (matchingPosts.Any())
         {
             slug = $"{originalSlug}-{counter}";
             counter++;
+            matchingPosts = posts.Where(p => p.Slug == slug && (!postId.HasValue || p.Id != postId));
         }
 
         return slug;
@@ -276,7 +229,7 @@ public class PostService : IPostService
 
     public async Task PublishPostAsync(int id)
     {
-        var post = await _context.Posts.FindAsync(id);
+        var post = await _postRepository.GetByIdAsync(id);
 
         if (post == null)
             throw new KeyNotFoundException($"Post with ID {id} not found");
@@ -284,20 +237,20 @@ public class PostService : IPostService
         post.IsPublished = true;
         post.PublishedDate = DateTime.UtcNow;
 
-        _context.Update(post);
-        await _context.SaveChangesAsync();
+        await _postRepository.UpdateAsync(post);
+        await _postRepository.SaveChangesAsync();
     }
 
     public async Task UnpublishPostAsync(int id)
     {
-        var post = await _context.Posts.FindAsync(id);
+        var post = await _postRepository.GetByIdAsync(id);
 
         if (post == null)
             throw new KeyNotFoundException($"Post with ID {id} not found");
 
         post.IsPublished = false;
 
-        _context.Update(post);
-        await _context.SaveChangesAsync();
+        await _postRepository.UpdateAsync(post);
+        await _postRepository.SaveChangesAsync();
     }
 }

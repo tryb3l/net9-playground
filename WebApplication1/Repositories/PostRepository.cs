@@ -87,9 +87,67 @@ public class PostRepository : IPostRepository
             .ThenInclude(pt => pt.Tag)
             .AsQueryable();
 
-        if(!sbyte.IsNullOrEmpty(searchForm))
+        if (!string.IsNullOrEmpty(searchTerm))
         {
-            postQuery = postQuery.Where(p => p.Title)
+            postsQuery = postsQuery.Where(p => p.Title.Contains(searchTerm) || p.Content!.Contains(searchTerm));
         }
+
+        if (!string.IsNullOrEmpty(tagFilter))
+        {
+            postsQuery = postsQuery.Where(p => p.PostTags.Any(pt => pt.Tag!.Name == tagFilter));
+        }
+
+        if (publishedOnly.HasValue && publishedOnly.Value)
+        {
+            postsQuery = postsQuery.Where(p => p.IsPublished);
+        }
+
+        return await postsQuery
+            .OrderByDescending(p => p.CreatedAt)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync();
+    }
+
+    public async Task<int> CountPostsWithFiltersAsync(string? searchTerm, string? tagFilter, bool? publishedOnly)
+    {
+        var postsQuery = _context.Posts.AsQueryable();
+
+        if (!string.IsNullOrEmpty(searchTerm))
+        {
+            postsQuery = postsQuery.Where(p => p.Title.Contains(searchTerm) || p.Content!.Contains(searchTerm));
+        }
+
+        if (!string.IsNullOrEmpty(tagFilter))
+        {
+            postsQuery = postsQuery.Where(p => p.PostTags.Any(pt => pt.Tag!.Name == tagFilter));
+        }
+
+        if (publishedOnly.HasValue && publishedOnly.Value)
+        {
+            postsQuery = postsQuery.Where(p => p.IsPublished);
+        }
+        return await postsQuery.CountAsync();
+    }
+
+    public Task DeletePostTagsAsync(IEnumerable<PostTag> postTags)
+    {
+        _context.PostTags.RemoveRange(postTags);
+        return Task.CompletedTask;
+    }
+
+    public async Task<bool> PostExistsAsync(int id)
+    {
+        return await _context.Posts.AnyAsync(p => p.Id == id);
+    }
+
+    public async Task<IEnumerable<Tag>> GetAllTagsAsync()
+    {
+        return await _context.Tags.OrderBy(t => t.Name).ToListAsync();
+    }
+
+    public async Task AddPostTagAsync(PostTag postTag)
+    {
+        await _context.PostTags.AddAsync(postTag);
     }
 }
