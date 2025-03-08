@@ -154,6 +154,29 @@ namespace WebApplication1.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("WebApplication1.Models.Category", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Slug")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Categories");
+                });
+
             modelBuilder.Entity("WebApplication1.Models.Post", b =>
                 {
                     b.Property<int>("Id")
@@ -164,6 +187,9 @@ namespace WebApplication1.Data.Migrations
 
                     b.Property<string>("AuthorId")
                         .HasColumnType("text");
+
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Content")
                         .HasColumnType("text");
@@ -177,6 +203,9 @@ namespace WebApplication1.Data.Migrations
                     b.Property<DateTime?>("PublishedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Slug")
+                        .HasColumnType("text");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("text");
@@ -184,6 +213,8 @@ namespace WebApplication1.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AuthorId");
+
+                    b.HasIndex("CategoryId");
 
                     b.ToTable("Posts");
                 });
@@ -344,7 +375,13 @@ namespace WebApplication1.Data.Migrations
                         .WithMany("Posts")
                         .HasForeignKey("AuthorId");
 
+                    b.HasOne("WebApplication1.Models.Category", "Category")
+                        .WithMany("Posts")
+                        .HasForeignKey("CategoryId");
+
                     b.Navigation("Author");
+
+                    b.Navigation("Category");
                 });
 
             modelBuilder.Entity("WebApplication1.Models.PostTag", b =>
@@ -364,6 +401,11 @@ namespace WebApplication1.Data.Migrations
                     b.Navigation("Post");
 
                     b.Navigation("Tag");
+                });
+
+            modelBuilder.Entity("WebApplication1.Models.Category", b =>
+                {
+                    b.Navigation("Posts");
                 });
 
             modelBuilder.Entity("WebApplication1.Models.Post", b =>
