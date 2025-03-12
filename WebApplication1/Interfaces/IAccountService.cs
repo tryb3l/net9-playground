@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using WebApplication1.ViewModels;
 
@@ -11,4 +12,5 @@ public interface IAccountService
     Task<ExternalLoginInfo> GetExternalLoginInfoAsync();
     Task<SignInResult> ExternalLoginSignInAsync(string loginProvider, string providerKey, bool isPersistent);
     Task<IdentityResult> CreateUserWithExternalLoginAsync(ExternalLoginInfo info);
+    AuthenticationProperties ConfigureExternalAuthenticationProperties(string provider, string redirectUrl);
 }
