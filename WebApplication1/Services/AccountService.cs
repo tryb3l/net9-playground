@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using WebApplication1.Interfaces;
 using WebApplication1.Models;
@@ -95,5 +96,10 @@ public class AccountService : IAccountService
     public async Task<SignInResult> ExternalLoginSignInAsync(string loginProvider, string providerKey, bool isPersistent)
     {
         return await _signInManager.ExternalLoginSignInAsync(loginProvider, providerKey, isPersistent);
+    }
+
+    public AuthenticationProperties ConfigureExternalAuthenticationProperties(string provider, string redirectUrl)
+    {
+        return _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
     }
 }
