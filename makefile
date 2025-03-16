@@ -35,7 +35,7 @@ add-migration:
 	fi
 
 # Bring up Docker containers (app + Postgres)
-docker-up:
+docker-up du:
 	docker-compose -f $(COMPOSE_FILE) up --build
 
 # Bring down Docker containers
@@ -43,7 +43,7 @@ docker-down:
 	docker-compose -f $(COMPOSE_FILE) down --volumes
 
 # Prune all Docker volumes
-docker-prune:
+docker-prune drm:
 	docker system prune -a --volumes
 
 # Start postgres with port mapping to localhost (for development)
