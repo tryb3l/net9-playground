@@ -1,162 +1,164 @@
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using WebApplication1.Interfaces;
-using WebApplication1.ViewModels;
+//TODO: Consider removing this class
 
-namespace WebApplication1.Controllers;
+// using Microsoft.AspNetCore.Authentication;
+// using Microsoft.AspNetCore.Identity;
+// using Microsoft.AspNetCore.Mvc;
+// using WebApplication1.Interfaces;
+// using WebApplication1.ViewModels;
 
-public class AccountController : Controller
-{
-    private readonly IAccountService _accountService;
-    private readonly ILogger<AccountController> _logger;
+// namespace WebApplication1.Controllers;
 
-    public AccountController(IAccountService accountService, ILogger<AccountController> logger)
-    {
-        _accountService = accountService;
-        _logger = logger;
-    }
+// public class AccountController : Controller
+// {
+//     private readonly IAccountService _accountService;
+//     private readonly ILogger<AccountController> _logger;
 
-    [HttpGet]
-    public async Task<IActionResult> Login(string? returnUrl = null)
-    {
-        await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+//     public AccountController(IAccountService accountService, ILogger<AccountController> logger)
+//     {
+//         _accountService = accountService;
+//         _logger = logger;
+//     }
 
-        ViewData["ReturnUrl"] = returnUrl;
-        return View();
-    }
+//     [HttpGet]
+//     public async Task<IActionResult> Login(string? returnUrl = null)
+//     {
+//         await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Login(LoginViewModel model, string returnUrl = null)
-    {
-        ViewData["ReturnUrl"] = returnUrl;
-        if (ModelState.IsValid)
-        {
-            var result = await _accountService.SignInUserAsync(model.Email, model.Password, model.RememberMe);
-            if (result.Succeeded)
-            {
-                _logger.LogInformation("User logged in.");
-                return RedirectToLocal(returnUrl);
-            }
-            if (result.IsLockedOut)
-            {
-                _logger.LogWarning("User account is locked out.");
-                ModelState.AddModelError(string.Empty, "Account locked out. Please try again later.");
-                return View(model);
-            }
+//         ViewData["ReturnUrl"] = returnUrl;
+//         return View();
+//     }
 
-            ModelState.AddModelError(string.Empty, "Invalid login attempt.");
-            return View(model);
-        }
-        return View(model);
-    }
+//     [HttpPost]
+//     [ValidateAntiForgeryToken]
+//     public async Task<IActionResult> Login(LoginViewModel model, string returnUrl = null)
+//     {
+//         ViewData["ReturnUrl"] = returnUrl;
+//         if (ModelState.IsValid)
+//         {
+//             var result = await _accountService.SignInUserAsync(model.Email, model.Password, model.RememberMe);
+//             if (result.Succeeded)
+//             {
+//                 _logger.LogInformation("User logged in.");
+//                 return RedirectToLocal(returnUrl);
+//             }
+//             if (result.IsLockedOut)
+//             {
+//                 _logger.LogWarning("User account is locked out.");
+//                 ModelState.AddModelError(string.Empty, "Account locked out. Please try again later.");
+//                 return View(model);
+//             }
 
-    [HttpGet]
-    public IActionResult Register(string? returnUrl = null)
-    {
-        ViewData["ReturnUrl"] = returnUrl;
-        return View();
-    }
+//             ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+//             return View(model);
+//         }
+//         return View(model);
+//     }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Register(RegisterViewModel model, string returnUrl = null)
-    {
-        ViewData["ReturnUrl"] = returnUrl;
-        if (ModelState.IsValid)
-        {
-            var result = await _accountService.RegisterUserAsync(model);
+//     [HttpGet]
+//     public IActionResult Register(string? returnUrl = null)
+//     {
+//         ViewData["ReturnUrl"] = returnUrl;
+//         return View();
+//     }
 
-            if (result.Succeeded)
-            {
-                _logger.LogInformation("User created a new account with password.");
-                return RedirectToLocal(returnUrl);
-            }
+//     [HttpPost]
+//     [ValidateAntiForgeryToken]
+//     public async Task<IActionResult> Register(RegisterViewModel model, string returnUrl = null)
+//     {
+//         ViewData["ReturnUrl"] = returnUrl;
+//         if (ModelState.IsValid)
+//         {
+//             var result = await _accountService.RegisterUserAsync(model);
 
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Description);
-            }
-        }
+//             if (result.Succeeded)
+//             {
+//                 _logger.LogInformation("User created a new account with password.");
+//                 return RedirectToLocal(returnUrl);
+//             }
 
-        return View(model);
-    }
+//             foreach (var error in result.Errors)
+//             {
+//                 ModelState.AddModelError(string.Empty, error.Description);
+//             }
+//         }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Logout()
-    {
-        await _accountService.SignOutAsync();
-        _logger.LogInformation("User logged out.");
-        return RedirectToAction(nameof(HomeController.Index), "Home");
-    }
+//         return View(model);
+//     }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public IActionResult ExternalLogin(string provider, string returnUrl = null)
-    {
-        // Request a redirect to the external login provider
-        var redirectUrl = Url.Action(nameof(ExternalLoginCallback), "Account", new { ReturnUrl = returnUrl });
+//     [HttpPost]
+//     [ValidateAntiForgeryToken]
+//     public async Task<IActionResult> Logout()
+//     {
+//         await _accountService.SignOutAsync();
+//         _logger.LogInformation("User logged out.");
+//         return RedirectToAction(nameof(HomeController.Index), "Home");
+//     }
 
-        // Add this method to IAccountService
-        var properties = _accountService.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
-        return Challenge(properties, provider);
-    }
+//     [HttpPost]
+//     [ValidateAntiForgeryToken]
+//     public IActionResult ExternalLogin(string provider, string returnUrl = null)
+//     {
+//         // Request a redirect to the external login provider
+//         var redirectUrl = Url.Action(nameof(ExternalLoginCallback), "Account", new { ReturnUrl = returnUrl });
 
-    [HttpGet]
-    public async Task<IActionResult> ExternalLoginCallback(string returnUrl = null, string remoteError = null)
-    {
-        if (remoteError != null)
-        {
-            ModelState.AddModelError(string.Empty, $"Error from external provider: {remoteError}");
-            return RedirectToAction(nameof(Login));
-        }
+//         // Add this method to IAccountService
+//         var properties = _accountService.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
+//         return Challenge(properties, provider);
+//     }
 
-        var info = await _accountService.GetExternalLoginInfoAsync();
-        if (info == null)
-        {
-            return RedirectToAction(nameof(Login));
-        }
+//     [HttpGet]
+//     public async Task<IActionResult> ExternalLoginCallback(string returnUrl = null, string remoteError = null)
+//     {
+//         if (remoteError != null)
+//         {
+//             ModelState.AddModelError(string.Empty, $"Error from external provider: {remoteError}");
+//             return RedirectToAction(nameof(Login));
+//         }
 
-        var result = await _accountService.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false);
-        if (result.Succeeded)
-        {
-            _logger.LogInformation("User logged in with {Name} provider.", info.LoginProvider);
-            return RedirectToLocal(returnUrl);
-        }
+//         var info = await _accountService.GetExternalLoginInfoAsync();
+//         if (info == null)
+//         {
+//             return RedirectToAction(nameof(Login));
+//         }
 
-        var createResult = await _accountService.CreateUserWithExternalLoginAsync(info);
-        if (createResult.Succeeded)
-        {
-            _logger.LogInformation("User created an account using {Name} provider.", info.LoginProvider);
-            return RedirectToLocal(returnUrl);
-        }
-        else
-        {
-            foreach (var error in createResult.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Description);
-            }
-            return RedirectToAction(nameof(Login));
-        }
-    }
+//         var result = await _accountService.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false);
+//         if (result.Succeeded)
+//         {
+//             _logger.LogInformation("User logged in with {Name} provider.", info.LoginProvider);
+//             return RedirectToLocal(returnUrl);
+//         }
 
-    [HttpGet]
-    public IActionResult AccessDenied()
-    {
-        return View();
-    }
+//         var createResult = await _accountService.CreateUserWithExternalLoginAsync(info);
+//         if (createResult.Succeeded)
+//         {
+//             _logger.LogInformation("User created an account using {Name} provider.", info.LoginProvider);
+//             return RedirectToLocal(returnUrl);
+//         }
+//         else
+//         {
+//             foreach (var error in createResult.Errors)
+//             {
+//                 ModelState.AddModelError(string.Empty, error.Description);
+//             }
+//             return RedirectToAction(nameof(Login));
+//         }
+//     }
 
-    private IActionResult RedirectToLocal(string returnUrl)
-    {
-        if (Url.IsLocalUrl(returnUrl))
-        {
-            return Redirect(returnUrl);
-        }
-        else
-        {
-            return RedirectToAction(nameof(HomeController.Index), "Home");
-        }
-    }
-}
+//     [HttpGet]
+//     public IActionResult AccessDenied()
+//     {
+//         return View();
+//     }
+
+//     private IActionResult RedirectToLocal(string returnUrl)
+//     {
+//         if (Url.IsLocalUrl(returnUrl))
+//         {
+//             return Redirect(returnUrl);
+//         }
+//         else
+//         {
+//             return RedirectToAction(nameof(HomeController.Index), "Home");
+//         }
+//     }
+// }
