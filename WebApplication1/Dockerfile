@@ -30,7 +30,10 @@ COPY --from=build /app/publish .
 COPY WebApplication1/entrypoint.sh /app/
 RUN chmod +x /app/entrypoint.sh
 
-ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 80
+EXPOSE 443
+
+ENV ASPNETCORE_URLS=https://+:443;http://+:80
 ENV ASPNETCORE_ENVIRONMENT=Development
 
 ENTRYPOINT ["/app/entrypoint.sh"]
