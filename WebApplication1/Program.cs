@@ -72,6 +72,7 @@ if (app.Environment.IsDevelopment())
         try
         {
             var context = services.GetRequiredService<ApplicationDbContext>();
+            context.Database.Migrate();
             await SeedData.Initialize(services);
         }
         catch (Exception ex)
