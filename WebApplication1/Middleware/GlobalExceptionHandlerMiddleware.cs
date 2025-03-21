@@ -3,7 +3,6 @@ using System.Text.Json;
 
 namespace WebApplication1.Middleware;
 
-
 public class GlobalExceptionHandlerMiddleware : IMiddleware
 {
     private readonly ILogger<GlobalExceptionHandlerMiddleware> _logger;
