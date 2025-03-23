@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using WebApplication1.Models;
+using WebApplication1.Utils;
 
 namespace WebApplication1.Data;
 
@@ -9,6 +10,23 @@ public class SeedData
 {
     public static async Task Initialize(IServiceProvider serviceProvider)
     {
+        var root = Directory.GetCurrentDirectory();
+        var envFile = Path.Combine(root, ".dev.env");
+        DotEnv.Load(envFile);
+
+        var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL") ??
+        throw new InvalidOperationException("Admin email not found in environment or configuration.");
+        var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PWORD") ??
+        throw new InvalidOperationException("Admin password not found in environment or configuration.");
+        var adminUsername = Environment.GetEnvironmentVariable("ADMIN_USERNAME") ??
+        throw new InvalidOperationException("Admin username not found in environment or configuration.");
+        var regularUserName = Environment.GetEnvironmentVariable("USERNAME") ??
+        throw new InvalidOperationException("Regular user name not found in environment or configuration.");
+        var regularEmail = Environment.GetEnvironmentVariable("EMAIL") ??
+        throw new InvalidOperationException("Regular user email not found in environment or configuration.");
+        var regularPassword = Environment.GetEnvironmentVariable("PWORD") ??
+        throw new InvalidOperationException("Regular user password not found in environment or configuration.");
+
         try
         {
             using (var context = new ApplicationDbContext(
@@ -18,14 +36,11 @@ public class SeedData
 
                 try
                 {
-
                     if (context.Users.Any())
                     {
                         Console.WriteLine("Database already seeded with users.");
                         return;
                     }
-
-                    Console.WriteLine("Seeding database...");
 
                     var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
                     var userManager = serviceProvider.GetRequiredService<UserManager<User>>();
@@ -33,32 +48,28 @@ public class SeedData
                     if (!await roleManager.RoleExistsAsync("Admin"))
                     {
                         await roleManager.CreateAsync(new IdentityRole("Admin"));
-                        Console.WriteLine("Admin role created.");
                     }
 
                     if (!await roleManager.RoleExistsAsync("User"))
                     {
                         await roleManager.CreateAsync(new IdentityRole("User"));
-                        Console.WriteLine("User role created.");
                     }
 
                     var adminUser = new User
                     {
-                        UserName = "admin@example.com",
-                        Email = "admin@example.com",
+                        UserName = adminUsername,
+                        Email = adminEmail,
                         EmailConfirmed = true,
                         DisplayName = "Admin User"
                     };
 
-                    var result = await userManager.CreateAsync(adminUser, "AdminPassword123!");
+                    var result = await userManager.CreateAsync(adminUser, adminPassword);
                     if (result.Succeeded)
                     {
                         await userManager.AddToRoleAsync(adminUser, "Admin");
-                        Console.WriteLine("Admin user created and assigned to Admin role.");
                     }
                     else
                     {
-                        Console.WriteLine("Failed to create admin user:");
                         foreach (var error in result.Errors)
                         {
                             Console.WriteLine($"- {error.Description}");
@@ -67,17 +78,16 @@ public class SeedData
 
                     var regularUser = new User
                     {
-                        UserName = "user@example.com",
-                        Email = "user@example.com",
+                        UserName = regularUserName,
+                        Email = regularEmail,
                         EmailConfirmed = true,
                         DisplayName = "Regular User"
                     };
 
-                    result = await userManager.CreateAsync(regularUser, "UserPassword123!");
+                    result = await userManager.CreateAsync(regularUser, regularPassword);
                     if (result.Succeeded)
                     {
                         await userManager.AddToRoleAsync(regularUser, "User");
-                        Console.WriteLine("Regular user created and assigned to User role.");
 
                         var post1 = new Post
                         {
@@ -118,7 +128,6 @@ public class SeedData
                     }
                     else
                     {
-                        Console.WriteLine("Failed to create regular user:");
                         foreach (var error in result.Errors)
                         {
                             Console.WriteLine($"- {error.Description}");
@@ -127,7 +136,7 @@ public class SeedData
                 }
                 catch (PostgresException ex) when (ex.SqlState == "42P01")
                 {
-                    Console.WriteLine("Error: Tables don't exist yet. Apply migrations first.");
+                    throw new Exception("Error: Tables don't exist yet. Apply migrations first.");
                 }
             }
         }
@@ -137,7 +146,7 @@ public class SeedData
 
             if (ex.InnerException != null)
             {
-                Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
+                throw new Exception("Inner exception occurred. Check the console for details." + ex.InnerException.Message);
             }
         }
     }
