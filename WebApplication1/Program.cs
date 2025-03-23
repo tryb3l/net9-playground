@@ -6,11 +6,22 @@ using WebApplication1.Middleware;
 using WebApplication1.Models;
 using WebApplication1.Repositories;
 using WebApplication1.Services;
+using WebApplication1.Utils;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Get connection string from environment or configuration
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var root = Directory.GetCurrentDirectory();
+var envFile = Path.Combine(root, ".dev.env");
+DotEnv.Load(envFile);
+
+var connectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING") ??
+                       throw new InvalidOperationException("Connection string not found in environment or configuration.");
+
+var googleClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID") ??
+throw new InvalidOperationException("Connection string not found in environment or configuration.");
+
+var googleClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET") ??
+throw new InvalidOperationException("Connection string not found in environment or configuration.");
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -29,11 +40,6 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LoginPath = "/Identity/Account/Login";
     options.AccessDeniedPath = "/Identity/Account/AccessDenied";
 });
-
-string googleClientId = builder.Configuration["Authentication:Google:ClientId"] ??
-    throw new InvalidOperationException("Google ClientId not found.");
-string googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ??
-    throw new InvalidOperationException("Google ClientSecret not found.");
 
 builder.Services.AddAuthentication()
     .AddGoogle(googleOptions =>
