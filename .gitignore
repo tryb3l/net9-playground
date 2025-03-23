@@ -11,6 +11,7 @@ _PublishedWebsites/
 *.user
 *.opentest
 *.testsettings
+*.*env
 
 # Visual Studio ignores
 .vs/
