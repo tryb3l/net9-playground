@@ -1,6 +1,10 @@
+using HealthChecks.UI.Client;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Http;
 using WebApplication1.Data;
+using WebApplication1.HealthChecks;
 using WebApplication1.Interfaces;
 using WebApplication1.Middleware;
 using WebApplication1.Models;
@@ -65,18 +69,36 @@ builder.Services.AddScoped<IAccountService, AccountService>();
 
 builder.Services.AddHttpContextAccessor();
 
+builder.Services.AddSingleton<DbMigrationService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<DbMigrationService>());
+builder.Services.AddHealthChecks()
+    .AddCheck<DbMigrationHealthChecks>("database_migrations", tags: new[] { "database" });
+
+builder.Services.AddHealthChecksUI(options =>
+{
+    options.SetEvaluationTimeInSeconds(5);
+    options.MaximumHistoryEntriesPerEndpoint(50);
+    options.AddHealthCheckEndpoint("API", "http://web/health");
+})
+.AddInMemoryStorage();
+
+builder.Services.ConfigureAll<HttpClientFactoryOptions>(options =>
+{
+    options.HttpMessageHandlerBuilderActions.Add(builder =>
+    {
+        builder.PrimaryHandler = new HttpClientHandler
+        {
+            ServerCertificateCustomValidationCallback =
+                (sender, certificate, chain, sslPolicyErrors) => true
+        };
+    });
+});
+
 var app = builder.Build();
 
 app.UseGlobalExceptionHandler();
 
-if (app.Environment.IsDevelopment())
-{
-    using (var scope = app.Services.CreateScope())
-    {
-        await DbMigrationService.MigrateAndSeedAsync(scope.ServiceProvider);
-    }
-}
-else
+if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
@@ -89,6 +111,17 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapStaticAssets();
+
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
+
+app.MapHealthChecksUI(options =>
+{
+    options.UIPath = "/health-ui";
+    options.ApiPath = "/health-api";
+});
 
 app.MapControllerRoute(
     name: "admin",
