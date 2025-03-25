@@ -72,7 +72,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<DbMigrationService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<DbMigrationService>());
 builder.Services.AddHealthChecks()
-    .AddCheck<DbMigrationHealthChecks>("database_migrations", tags: new[] { "database" });
+    .AddCheck<DbMigrationHealthChecks>("database_migrations", tags: ["database"]);
 
 builder.Services.AddHealthChecksUI(options =>
 {
@@ -115,7 +115,7 @@ app.MapStaticAssets();
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
     ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
-});
+}).DisableHttpMetrics();
 
 app.MapHealthChecksUI(options =>
 {
