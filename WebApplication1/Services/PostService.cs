@@ -253,4 +253,32 @@ public class PostService : IPostService
         await _postRepository.UpdateAsync(post);
         await _postRepository.SaveChangesAsync();
     }
+
+    public async Task SoftDeletePostAsync(int id)
+    {
+        var post = await _postRepository.GetByIdAsync(id);
+
+        if (post == null)
+            throw new KeyNotFoundException($"Post with ID {id} not found");
+
+        post.IsDeleted = true;
+        post.DeletedAt = DateTime.UtcNow;
+
+        await _postRepository.UpdateAsync(post);
+        await _postRepository.SaveChangesAsync();
+    }
+
+    public async Task RestorePostAsync(int id)
+    {
+        var post = await _postRepository.GetByIdAsync(id);
+
+        if (post == null)
+            throw new KeyNotFoundException($"Post with ID {id} not found");
+
+        post.IsDeleted = false;
+        post.DeletedAt = null;
+
+        await _postRepository.UpdateAsync(post);
+        await _postRepository.SaveChangesAsync();
+    }
 }

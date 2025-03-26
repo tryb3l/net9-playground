@@ -26,12 +26,33 @@ publish:
 migrate-local:
 	dotnet ef database update --project $(APP_PROJECT) --startup-project $(APP_PROJECT)
 
+export-env:
+	@echo "Exporting environment variables from .dev.env"
+	@export $$(grep -v '^#' ./WebApplication1/.dev.env | xargs) && \
+	echo "Environment variables exported. Use in current shell session."
+	@echo "CONNECTION_STRING=$${CONNECTION_STRING}"
+
 # Add a new migration passing the migration name as a parameter
 add-migration:
 	@if [ -z $(name) ]; then \
 		echo "Please provide a migration name: make add-migration name=<migration_name>"; \
 	else \
-		dotnet ef migrations add $(name) --project $(APP_PROJECT) --startup-project $(APP_PROJECT) -o Data/Migrations; \
+		read -p "Connection string (leave empty to use .dev.env): " conn_str; \
+		if [ -z "$$conn_str" ]; then \
+			export $$(grep -v '^#' ./WebApplication1/.dev.env | xargs) && \
+			echo "Using CONNECTION_STRING: $${CONNECTION_STRING}" && \
+			dotnet ef migrations add $(name) --project $(APP_PROJECT) --startup-project $(APP_PROJECT) -o Data/Migrations; \
+		else \
+			CONNECTION_STRING="$$conn_str" dotnet ef migrations add $(name) --project $(APP_PROJECT) --startup-project $(APP_PROJECT) -o Data/Migrations; \
+		fi \
+	fi
+
+# Add a migration using Docker container
+add-migration-docker:
+	@if [ -z $(name) ]; then \
+		echo "Please provide a migration name: make add-migration-docker name=<migration_name>"; \
+	else \
+		docker-compose exec web dotnet ef migrations add $(name) -o Data/Migrations; \
 	fi
 
 # Bring up Docker containers (app + Postgres)
@@ -62,10 +83,16 @@ wait-postgres:
 
 # Run migrations using local database connection
 migrate-local-mapped: docker-postgres-local wait-postgres
-	PGPASSWORD=yourpassword dotnet ef database update \
+	@echo "Creating temporary connection string for local migration..."
+	@export $$(grep -v '^#' ./WebApplication1/.dev.env | xargs) && \
+	DB_NAME=$$(echo "$${CONNECTION_STRING}" | grep -o 'Database=[^;]*' | cut -d'=' -f2) && \
+	USERNAME=$$(echo "$${CONNECTION_STRING}" | grep -o 'Username=[^;]*' | cut -d'=' -f2) && \
+	PASSWORD=$$(echo "$${CONNECTION_STRING}" | grep -o 'Password=[^;]*' | cut -d'=' -f2) && \
+	echo "Running database migrations to $$DB_NAME..." && \
+	CONNECTION_STRING="Host=localhost;Port=5432;Database=$$DB_NAME;Username=$$USERNAME;Password=$$PASSWORD" \
+	dotnet ef database update \
 		--project $(APP_PROJECT) \
-		--startup-project $(APP_PROJECT) \
-		-- --connection "Host=localhost;Port=5432;Database=net9playground;Username=postgres;Password=yourpassword"
+		--startup-project $(APP_PROJECT)
 
 # Drop database (CAUTION!)
 drop-database:

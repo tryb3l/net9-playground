@@ -135,6 +135,21 @@ public class PostController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SoftDelete(int id)
+    {
+        try
+        {
+            await _postService.SoftDeletePostAsync(id);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Publish(int id)
     {
         try
