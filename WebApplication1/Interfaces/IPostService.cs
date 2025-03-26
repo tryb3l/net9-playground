@@ -19,4 +19,6 @@ public interface IPostService
     Task<List<SelectListItem>> GetAvailableTagsAsync();
     Task PublishPostAsync(int id);
     Task UnpublishPostAsync(int id);
+    Task SoftDeletePostAsync(int id);
+    Task RestorePostAsync(int id);
 }
