@@ -8,9 +8,12 @@ namespace WebApplication1.Data;
 
 public class ApplicationDbContext : IdentityDbContext<User>
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    private readonly IServiceProvider _serviceProvider;
+
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IServiceProvider serviceProvider = null)
         : base(options)
     {
+        _serviceProvider = serviceProvider;
     }
 
     public DbSet<Post> Posts { get; set; }
@@ -46,5 +49,24 @@ public class ApplicationDbContext : IdentityDbContext<User>
             .HasForeignKey(p => p.CategoryId);
 
         modelBuilder.SetQueryFilterOnAllEntities<ISoftDelete>(e => !e.IsDeleted);
+    }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        base.OnConfiguring(optionsBuilder);
+
+        optionsBuilder
+            .UseSeeding((context, seedingData) =>
+            {
+                var serviceProvider = ((ApplicationDbContext)context)._serviceProvider;
+                if (serviceProvider != null)
+                    SeedData.SeedSync((ApplicationDbContext)context, serviceProvider);
+            })
+            .UseAsyncSeeding(async (context, seedingData, cancellationToken) =>
+            {
+                var serviceProvider = ((ApplicationDbContext)context)._serviceProvider;
+                if (serviceProvider != null)
+                    await SeedData.SeedAsync((ApplicationDbContext)context, serviceProvider, cancellationToken);
+            });
     }
 }
