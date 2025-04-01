@@ -19,13 +19,13 @@ var envFile = Path.Combine(root, ".dev.env");
 DotEnv.Load(envFile);
 
 var connectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING") ??
-                       throw new InvalidOperationException("Connection string not found in environment or configuration.");
+throw new InvalidOperationException("CONNECTION_STRING environment variable not found.");
 
 var googleClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID") ??
-throw new InvalidOperationException("Connection string not found in environment or configuration.");
+throw new InvalidOperationException("GOOGLE_CLIENT_ID environment variable not found.");
 
 var googleClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET") ??
-throw new InvalidOperationException("Connection string not found in environment or configuration.");
+throw new InvalidOperationException("GOOGLE_CLIENT_SECRET environment variable not found.");
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -74,25 +74,40 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<DbMigrationService
 builder.Services.AddHealthChecks()
     .AddCheck<DbMigrationHealthChecks>("database_migrations", tags: ["database"]);
 
-builder.Services.AddHealthChecksUI(options =>
+if (builder.Environment.IsDevelopment())
 {
-    options.SetEvaluationTimeInSeconds(5);
-    options.MaximumHistoryEntriesPerEndpoint(50);
-    options.AddHealthCheckEndpoint("API", "http://web/health");
-})
-.AddInMemoryStorage();
-
-builder.Services.ConfigureAll<HttpClientFactoryOptions>(options =>
-{
-    options.HttpMessageHandlerBuilderActions.Add(builder =>
+    builder.Services.AddHttpClient("HealthChecksClient", client =>
     {
-        builder.PrimaryHandler = new HttpClientHandler
-        {
-            ServerCertificateCustomValidationCallback =
-                (sender, certificate, chain, sslPolicyErrors) => true
-        };
+        client.BaseAddress = new Uri("http://web/");
+    })
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+    {
+        ServerCertificateCustomValidationCallback =
+            (sender, certificate, chain, sslPolicyErrors) => true
     });
-});
+
+    builder.Services.AddHealthChecksUI(options =>
+    {
+        options.SetEvaluationTimeInSeconds(5);
+        options.MaximumHistoryEntriesPerEndpoint(50);
+        options.AddHealthCheckEndpoint("API", "http://web/health");
+        options.UseApiEndpointHttpMessageHandler(sp =>
+            new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback =
+                    (sender, certificate, chain, sslPolicyErrors) => true
+            });
+    }).AddInMemoryStorage();
+}
+else
+{
+    builder.Services.AddHealthChecksUI(options =>
+    {
+        options.SetEvaluationTimeInSeconds(5);
+        options.MaximumHistoryEntriesPerEndpoint(50);
+        options.AddHealthCheckEndpoint("API", "http://web/health");
+    }).AddInMemoryStorage();
+}
 
 var app = builder.Build();
 
