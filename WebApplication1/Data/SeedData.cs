@@ -98,8 +98,7 @@ public static class SeedData
         }
     }
 
-    public static async Task SeedAsync(ApplicationDbContext context, IServiceProvider serviceProvider,
-                                    CancellationToken cancellationToken = default)
+    public static async Task SeedAsync(ApplicationDbContext context, IServiceProvider serviceProvider, CancellationToken cancellationToken = default)
     {
         if (serviceProvider == null)
             throw new ArgumentNullException(nameof(serviceProvider));

@@ -35,6 +35,12 @@ public class PostController : Controller
             return NotFound();
         }
 
+        var post = await _postService.GetPostByIdAsync(id.Value, includeUnpublished: true);
+        if (post == null)
+        {
+            return NotFound();
+        }
+
         var viewModel = await _postService.GetPostViewModelAsync(id.Value);
         if (viewModel == null)
         {

@@ -20,7 +20,7 @@ public class BlogController : Controller
 
     public async Task<IActionResult> Post(int id, string? slug)
     {
-        var post = await _postService.GetPostByIdAsync(id);
+        var post = await _postService.GetPostByIdAsync(id, includeUnpublished: false);
 
         if (post == null)
         {

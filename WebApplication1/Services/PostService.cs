@@ -1,3 +1,4 @@
+using Ganss.Xss;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using WebApplication1.Areas.Admin.ViewModels.Posts;
 using WebApplication1.Interfaces;
@@ -46,8 +47,14 @@ public class PostService : IPostService
         };
     }
 
-    public async Task<Post?> GetPostByIdAsync(int id)
+    public async Task<Post?> GetPostByIdAsync(int id, bool includeUnpublished = false)
     {
+        var post = await _postRepository.GetPostWithDetailsAsync(id);
+        if (post != null && !includeUnpublished && !post.IsPublished)
+        {
+            return null;
+        }
+
         return await _postRepository.GetPostWithDetailsAsync(id);
     }
 
@@ -115,12 +122,45 @@ public class PostService : IPostService
         };
     }
 
+    private string SanitizeContent(string? content)
+    {
+        if (string.IsNullOrEmpty(content))
+            return string.Empty;
+
+        var sanitizer = new HtmlSanitizer();
+
+        sanitizer.AllowedTags.Clear();
+        sanitizer.AllowedTags.Add("h1");
+        sanitizer.AllowedTags.Add("h2");
+        sanitizer.AllowedTags.Add("h3");
+        sanitizer.AllowedTags.Add("h4");
+        sanitizer.AllowedTags.Add("p");
+        sanitizer.AllowedTags.Add("a");
+        sanitizer.AllowedTags.Add("ul");
+        sanitizer.AllowedTags.Add("ol");
+        sanitizer.AllowedTags.Add("li");
+        sanitizer.AllowedTags.Add("strong");
+        sanitizer.AllowedTags.Add("em");
+        sanitizer.AllowedTags.Add("blockquote");
+        sanitizer.AllowedTags.Add("code");
+        sanitizer.AllowedTags.Add("img");
+        sanitizer.AllowedTags.Add("br");
+
+        sanitizer.AllowedAttributes.Clear();
+        sanitizer.AllowedAttributes.Add("href");
+        sanitizer.AllowedAttributes.Add("src");
+        sanitizer.AllowedAttributes.Add("alt");
+        sanitizer.AllowedAttributes.Add("title");
+
+        return sanitizer.Sanitize(content);
+    }
+
     public async Task<Post> CreatePostAsync(CreatePostViewModel viewModel, string userId)
     {
         var post = new Post
         {
             Title = viewModel.Title,
-            Content = viewModel.Content,
+            Content = SanitizeContent(viewModel.Content),
             CreatedAt = DateTime.UtcNow,
             IsPublished = viewModel.PublishNow,
             PublishedDate = viewModel.PublishNow ? DateTime.UtcNow : null,
@@ -160,7 +200,7 @@ public class PostService : IPostService
         }
 
         post.Title = viewModel.Title;
-        post.Content = viewModel.Content;
+        post.Content = SanitizeContent(viewModel.Content);
 
         if (!post.IsPublished && viewModel.IsPublished)
         {

@@ -8,7 +8,7 @@ namespace WebApplication1.Interfaces;
 public interface IPostService
 {
     Task<BlogIndexViewModel> GetBlogIndexViewModelAsync(int page, string? category, string? tag);
-    Task<Post?> GetPostByIdAsync(int id);
+    Task<Post?> GetPostByIdAsync(int id, bool includeUnpublished = false);
     Task<PostListViewModel> GetPostListAsync(int page, string? searchTerm, string? tagFilter, bool? publishedOnly);
     Task<PostViewModel?> GetPostViewModelAsync(int id);
     Task<EditPostViewModel?> GetPostForEditAsync(int id);
