@@ -2,7 +2,6 @@ using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Http;
 using WebApplication1.Data;
 using WebApplication1.HealthChecks;
 using WebApplication1.Interfaces;
@@ -11,6 +10,8 @@ using WebApplication1.Models;
 using WebApplication1.Repositories;
 using WebApplication1.Services;
 using WebApplication1.Utils;
+
+//TODO: add CSP, CORS, Headers,
 
 var builder = WebApplication.CreateBuilder(args);
 
