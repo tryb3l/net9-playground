@@ -11,8 +11,6 @@ using WebApplication1.Repositories;
 using WebApplication1.Services;
 using WebApplication1.Utils;
 
-//TODO: add CSP, CORS, Headers,
-
 var builder = WebApplication.CreateBuilder(args);
 
 var root = Directory.GetCurrentDirectory();
@@ -123,6 +121,30 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Append("X-Frame-Options", "SAMEORIGIN");
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+
+    string csp = "default-src 'self'; " +
+                 "script-src 'self'; " +
+                 "style-src 'self' 'unsafe-inline'; " +
+                 "img-src 'self' data:; " +
+                 "font-src 'self'; " +
+                 "connect-src 'self'; " +
+                 "frame-src 'self'; " +
+                 "object-src 'none'; " +
+                 "base-uri 'self'; " +
+                 "form-action 'self'; " +
+                 "frame-ancestors 'self';";
+    context.Response.Headers.Append("Content-Security-Policy", csp);
+
+    context.Response.Headers.Append("Permissions-Policy", "camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()");
+
+    await next();
+});
 
 app.UseAuthentication();
 app.UseAuthorization();
