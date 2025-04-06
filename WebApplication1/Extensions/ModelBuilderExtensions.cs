@@ -32,7 +32,6 @@ public static class ExpressionExtensions
             _parameters = VisitAndConvert(node.Parameters, "VisitLambda");
             return Expression.Lambda(Visit(node.Body), _parameters);
         }
-
     }
 }
 
