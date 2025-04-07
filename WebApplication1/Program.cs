@@ -129,10 +129,10 @@ app.Use(async (context, next) =>
     context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
 
     string csp = "default-src 'self'; " +
-                 "script-src 'self'; " +
+                 "script-src 'self' 'sha256-V5ld3fn8GVclauMRqI82QiZ10Q9Y3gzkMrZheQtM4mA='; " +
                  "style-src 'self' 'unsafe-inline'; " +
-                 "img-src 'self' data:; " +
-                 "font-src 'self'; " +
+                 "img-src 'self' data: https://avatars3.githubusercontent.com; " +
+                 "font-src 'self' data:; " +
                  "connect-src 'self'; " +
                  "frame-src 'self'; " +
                  "object-src 'none'; " +
