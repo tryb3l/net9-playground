@@ -2,7 +2,74 @@
     ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<!-- New Header Section -->
+<header class="mb-4">
+    <div class="container-fluid p-0">
+        <div class="row g-0">
+            <div class="col-lg-6 bg-light p-5">
+                <h1 class="display-5 fw-bold">My Personal Blog</h1>
+                <p class="fs-4">Sharing insights and projects.</p>
+            </div>
+            <div class="col-lg-6"
+                style="background-image: url('https://lh3.googleusercontent.com/CSs8h0xzc2FRYLSo3cbDz0x13TnEI8LUMhGHjgtJugnNSDSLwZ6u_SDijj69p20Dfe4UqyDM38gHMGkqJhlugaMYHBitDnpWlrfs6n7MOfx_owjFT84=w1200-rj'); background-size: cover; background-position: center; min-height: 300px;">
+                <!-- Image block - Replace with your actual image path -->
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- About Me Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm rounded-4">
+            <div class="card-body p-4">
+                <h2 class="card-title">About Me</h2>
+                <p class="card-text">
+                    Welcome to my corner of the internet! I'm passionate about building scalable
+                    web applications, solving complex problems, and writing clean code.
+                    With experience in .NET, C#, ASP.NET Core, and Cloud Technologies, I
+                    enjoy creating solutions that are both efficient and user-friendly.
+                </p>
+                <p class="card-text">
+                    This website serves as a platform to document my journey, share technical articles, and showcase
+                    projects I'm working on.
+                </p>
+                <a asp-controller="Home" asp-action="About" class="btn btn-primary">Learn More About Me</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Placeholder Sections (Optional) -->
+<div class="row text-center">
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 shadow-sm rounded-4">
+            <div class="card-body">
+                <h5 class="card-title">Skills & Expertise</h5>
+                <p class="card-text">Highlighting key technical skills and areas of expertise. (e.g., Backend
+                    Development, Cloud Architecture, DevOps).</p>
+                @* <a href="#" class="btn btn-outline-secondary">Learn More</a> *@
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 shadow-sm rounded-4">
+            <div class="card-body">
+                <h5 class="card-title">Projects</h5>
+                <p class="card-text">Showcasing personal or professional projects. Links could go to blog posts or
+                    dedicated pages.</p>
+                <a asp-controller="Blog" asp-action="Index" class="btn btn-outline-secondary">See Blog Posts</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 shadow-sm rounded-4">
+            <div class="card-body">
+                <h5 class="card-title">Get In Touch</h5>
+                <p class="card-text">Information on how visitors can connect or contact you (e.g., LinkedIn, GitHub,
+                    Contact Form page).</p>
+                @* <a href="#" class="btn btn-outline-secondary">Contact Me</a> *@
+            </div>
+        </div>
+    </div>
 </div>
