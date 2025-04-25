@@ -150,4 +150,15 @@ public class PostRepository : IPostRepository
     {
         await _context.PostTags.AddAsync(postTag);
     }
+
+    public async Task<bool> SlugExistsAsync(string slug, int? excludePostId = null)
+    {
+        var query = _context.Posts.Where(p => p.Slug == slug);
+        if (excludePostId.HasValue)
+        {
+            query = query.Where(p => p.Id != excludePostId.Value);
+        }
+
+        return await query.AnyAsync();
+    }
 }
