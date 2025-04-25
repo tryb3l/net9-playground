@@ -17,7 +17,7 @@ public static class ExpressionExtensions
         return (Expression<Func<TTarget, bool>>)visitor.Visit(root);
     }
 
-    class ParameterTypeVisitor<TSource, TTarget> : ExpressionVisitor
+    private class ParameterTypeVisitor<TSource, TTarget> : ExpressionVisitor
     {
         private ReadOnlyCollection<ParameterExpression>? _parameters;
 
@@ -37,7 +37,7 @@ public static class ExpressionExtensions
 
 public static class ModelBuilderExtensions
 {
-    static readonly MethodInfo SetQueryFilterMethod = typeof(ModelBuilderExtensions)
+    private static readonly MethodInfo SetQueryFilterMethod = typeof(ModelBuilderExtensions)
         .GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
         .Single(t => t.IsGenericMethod && t.Name == nameof(SetQueryFilter));
 
@@ -88,7 +88,7 @@ public static class ModelBuilderExtensions
             expression.Parameters.Single(), parameterType, expression.Body
         );
 
-        if (entityTypeBuilder.Metadata.GetQueryFilter() is LambdaExpression currentQueryFilter)
+        if (entityTypeBuilder.Metadata.GetQueryFilter() is { } currentQueryFilter)
         {
             var currentExpressionFilter = ReplacingExpressionVisitor.Replace(
                 currentQueryFilter.Parameters.Single(), parameterType, currentQueryFilter.Body
