@@ -14,4 +14,6 @@ public interface IPostRepository : IRepository<Post>
     Task<bool> PostExistsAsync(int id);
     Task<IEnumerable<Tag>> GetAllTagsAsync();
     Task AddPostTagAsync(PostTag postTag);
+    Task<bool> SlugExistsAsync(string slug, int? excludePostId = null);
+
 }
