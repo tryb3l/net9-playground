@@ -29,7 +29,7 @@ public static class SeedData
 
         try
         {
-            using var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
+            await using var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
             await context.Database.EnsureCreatedAsync();
 
             await SeedCoreDataAsync(
@@ -100,8 +100,7 @@ public static class SeedData
 
     public static async Task SeedAsync(ApplicationDbContext context, IServiceProvider serviceProvider, CancellationToken cancellationToken = default)
     {
-        if (serviceProvider == null)
-            throw new ArgumentNullException(nameof(serviceProvider));
+        ArgumentNullException.ThrowIfNull(serviceProvider);
 
         try
         {

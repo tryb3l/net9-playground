@@ -12,21 +12,19 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Applicatio
         Console.WriteLine($"Current directory: {root}");
 
         // Try multiple possible locations for the .dev.env file
-        string[] possiblePaths = new[] {
+        var possiblePaths = new[] {
             Path.Combine(root, ".dev.env"),
             Path.Combine(root, "WebApplication1", ".dev.env"),
             Path.Combine(root, "..", ".dev.env"),
             Path.Combine(root, "WebApplication1/.dev.env")
         };
 
-        bool loaded = false;
         foreach (var path in possiblePaths)
         {
             if (File.Exists(path))
             {
                 Console.WriteLine($"Found .dev.env at: {path}");
                 DotEnv.Load(path);
-                loaded = true;
                 break;
             }
             else
