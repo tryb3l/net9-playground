@@ -49,19 +49,25 @@ public class PostService : IPostService
 
     public async Task<Post?> GetPostByIdAsync(int id, bool includeUnpublished = false)
     {
-        var post = await _postRepository.GetPostWithDetailsAsync(id);
-        if (post != null && !includeUnpublished && !post.IsPublished)
+        try
+        {
+            var post = await _postRepository.GetPostWithDetailsAsync(id);
+            if (!includeUnpublished && !post.IsPublished)
+            {
+                return null;
+            }
+            return post;
+        }
+        catch (KeyNotFoundException)
         {
             return null;
         }
-
-        return await _postRepository.GetPostWithDetailsAsync(id);
     }
 
     public async Task<PostListViewModel> GetPostListAsync(int page, string? searchTerm, string? tagFilter, bool? publishedOnly)
     {
-        int pageSize = 10;
-        int skip = (page - 1) * pageSize;
+        const int pageSize = 10;
+        var skip = (page - 1) * pageSize;
 
         var posts = await _postRepository.GetPostsWithFiltersAsync(searchTerm, tagFilter, publishedOnly, skip, pageSize);
         var totalPosts = await _postRepository.CountPostsWithFiltersAsync(searchTerm, tagFilter, publishedOnly);
@@ -122,7 +128,7 @@ public class PostService : IPostService
         };
     }
 
-    private string SanitizeContent(string? content)
+    private static string SanitizeContent(string? content)
     {
         if (string.IsNullOrEmpty(content))
             return string.Empty;
@@ -210,7 +216,7 @@ public class PostService : IPostService
 
         await _postRepository.DeletePostTagsAsync(post.PostTags);
 
-        if (viewModel.SelectedTagIds.Any())
+        if (viewModel.SelectedTagIds.Count != 0)
         {
             foreach (var tagId in viewModel.SelectedTagIds)
             {
@@ -253,18 +259,16 @@ public class PostService : IPostService
     private async Task<string> EnsureUniqueSlugAsync(string slug, int? postId = null)
     {
         var originalSlug = slug;
+        var currentSlug = slug;
         var counter = 1;
-        var posts = await _postRepository.GetAllAsync();
-        var matchingPosts = posts.Where(p => p.Slug == slug && (!postId.HasValue || p.Id != postId));
 
-        while (matchingPosts.Any())
+        while (await _postRepository.SlugExistsAsync(currentSlug, postId))
         {
-            slug = $"{originalSlug}-{counter}";
+            currentSlug = $"{originalSlug}-{counter}";
             counter++;
-            matchingPosts = posts.Where(p => p.Slug == slug && (!postId.HasValue || p.Id != postId));
         }
 
-        return slug;
+        return currentSlug;
     }
 
     public async Task PublishPostAsync(int id)
