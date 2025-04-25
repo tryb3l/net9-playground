@@ -13,7 +13,7 @@ public class DbMigrationService : BackgroundService
     private readonly ActivitySource _activitySource = new("Database.Migrations");
 
     public new Task ExecuteTask => _executeTask?.Task ?? Task.CompletedTask;
-    private TaskCompletionSource? _executeTask;
+    private readonly TaskCompletionSource? _executeTask;
 
     public DbMigrationService(
         IServiceProvider serviceProvider,
@@ -123,22 +123,20 @@ public class DbMigrationService : BackgroundService
             var id = migration.Migration!.Id;
             var applied = await context.Database.GetAppliedMigrationsAsync();
 
-            if (!applied.Contains(id))
+            if (applied.Contains(id)) continue;
+            logger.LogInformation("Marking migration {Id} as applied", id);
+
+            var version = migration.Type.Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "9.0.0";
+            if (version.Length > 32)
             {
-                logger.LogInformation("Marking migration {Id} as applied", id);
-
-                var version = migration.Type.Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "9.0.0";
-                if (version.Length > 32)
-                {
-                    // Only keep the first part without commit hash
-                    version = version.Split('+')[0];
-                }
-
-                await context.Database.ExecuteSqlRawAsync(
-                    "INSERT INTO \"__EFMigrationsHistory\" (\"MigrationId\", \"ProductVersion\") VALUES ({0}, {1})",
-                    id,
-                    version);
+                // Only keep the first part without commit hash
+                version = version.Split('+')[0];
             }
+
+            await context.Database.ExecuteSqlRawAsync(
+                "INSERT INTO \"__EFMigrationsHistory\" (\"MigrationId\", \"ProductVersion\") VALUES ({0}, {1})",
+                id,
+                version);
         }
     }
 }
