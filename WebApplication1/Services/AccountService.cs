@@ -54,7 +54,7 @@ public class AccountService : IAccountService
         await _signInManager.SignOutAsync();
     }
 
-    public async Task<ExternalLoginInfo> GetExternalLoginInfoAsync()
+    public async Task<ExternalLoginInfo?> GetExternalLoginInfoAsync()
     {
         return await _signInManager.GetExternalLoginInfoAsync();
     }
