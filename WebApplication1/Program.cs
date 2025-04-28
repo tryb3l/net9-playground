@@ -130,9 +130,9 @@ app.Use(async (context, next) =>
 
     string csp = "default-src 'self'; " +
                  "script-src 'self' 'sha256-V5ld3fn8GVclauMRqI82QiZ10Q9Y3gzkMrZheQtM4mA='; " +
-                 "style-src 'self' 'unsafe-inline'; " +
+                 "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net/npm/; " +
                  "img-src 'self' data: https://avatars3.githubusercontent.com https://ui-avatars.com https://lh3.googleusercontent.com; " +
-                 "font-src 'self' data:; " +
+                 "font-src 'self' data: https://cdn.jsdelivr.net/npm/; " +
                  "connect-src 'self'; " +
                  "frame-src 'self'; " +
                  "object-src 'none'; " +
