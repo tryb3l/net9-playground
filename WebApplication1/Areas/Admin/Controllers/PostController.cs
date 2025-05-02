@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using WebApplication1.Areas.Admin.ViewModels.Posts;
+using WebApplication1.Areas.Admin.ViewModels.Post;
 using WebApplication1.Interfaces;
 using WebApplication1.Models;
 
@@ -12,11 +12,15 @@ namespace WebApplication1.Areas.Admin.Controllers;
 public class PostController : Controller
 {
     private readonly IPostService _postService;
+    private readonly ICategoryService _categoryService;
+    private readonly ITagService _tagService;
     private readonly UserManager<User> _userManager;
 
-    public PostController(IPostService postService, UserManager<User> userManager)
+    public PostController(IPostService postService, ICategoryService categoryService, ITagService tagService, UserManager<User> userManager)
     {
         _postService = postService;
+        _categoryService = categoryService;
+        _tagService = tagService;
         _userManager = userManager;
     }
 
@@ -54,7 +58,8 @@ public class PostController : Controller
     {
         var viewModel = new CreatePostViewModel
         {
-            AvailableTags = await _postService.GetAvailableTagsAsync()
+            AvailableTags = await _tagService.GetAvailableTagsAsync(),
+            AvailableCategories = await _categoryService.GetAvailableCategoriesAsync()
         };
         return View(viewModel);
     }
@@ -69,7 +74,8 @@ public class PostController : Controller
             await _postService.CreatePostAsync(viewModel, currentUser?.Id ?? string.Empty);
             return RedirectToAction(nameof(Index));
         }
-        viewModel.AvailableTags = await _postService.GetAvailableTagsAsync();
+        viewModel.AvailableTags = await _tagService.GetAvailableTagsAsync();
+        viewModel.AvailableCategories = await _categoryService.GetAvailableCategoriesAsync();
         return View(viewModel);
     }
 
@@ -111,7 +117,8 @@ public class PostController : Controller
             return RedirectToAction(nameof(Index));
         }
 
-        viewModel.AvailableTags = await _postService.GetAvailableTagsAsync();
+        viewModel.AvailableTags = await _tagService.GetAvailableTagsAsync();
+        viewModel.AvailableCateogries = await _categoryService.GetAvailableCategoriesAsync();
         return View(viewModel);
     }
 
