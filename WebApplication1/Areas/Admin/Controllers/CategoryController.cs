@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using WebApplication1.Areas.Admin.ViewModels.Categories;
+using WebApplication1.Areas.Admin.ViewModels.Category;
 using WebApplication1.Interfaces;
 
 namespace WebApplication1.Areas.Admin.Controllers;
