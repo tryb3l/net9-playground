@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc.Rendering;
-using WebApplication1.Areas.Admin.ViewModels.Posts;
+using WebApplication1.Areas.Admin.ViewModels.Post;
 using WebApplication1.Models;
 using WebApplication1.ViewModels;
 

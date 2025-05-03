@@ -1,23 +1,25 @@
-﻿@model WebApplication1.Areas.Admin.ViewModels.Tags.CreateTagViewModel
+﻿@model WebApplication1.Areas.Admin.ViewModels.Tag.EditTagViewModel
+
 @{
-    ViewData["Title"] = "Create Tag";
+    ViewData["Title"] = "Edit Tag";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Create New Tag</h2>
+<h2>Edit Tag</h2>
 <hr />
 
 <div class="row">
     <div class="col-md-6">
-        <form asp-action="Create">
+        <form asp-action="Edit">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Id" />
             <div class="form-group mb-3">
                 <label asp-for="Name" class="control-label"></label>
                 <input asp-for="Name" class="form-control" />
                 <span asp-validation-for="Name" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
+                <input type="submit" value="Save" class="btn btn-primary" />
                 <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
             </div>
         </form>
