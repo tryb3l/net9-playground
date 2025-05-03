@@ -1,5 +1,5 @@
 
-namespace WebApplication1.Areas.Admin.ViewModels.Categories;
+namespace WebApplication1.Areas.Admin.ViewModels.Category;
 
 public class CategoryViewModel
 {

@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace WebApplication1.Areas.Admin.ViewModels.Tags;
+namespace WebApplication1.Areas.Admin.ViewModels.Tag;
 
 public class CreateTagViewModel
 {

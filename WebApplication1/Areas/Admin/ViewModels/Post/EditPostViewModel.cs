@@ -2,7 +2,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
-namespace WebApplication1.Areas.Admin.ViewModels.Posts;
+namespace WebApplication1.Areas.Admin.ViewModels.Post;
 
 public class EditPostViewModel
 {
@@ -28,4 +28,5 @@ public class EditPostViewModel
     public List<int> SelectedTagIds { get; set; } = new List<int>();
 
     public List<SelectListItem> AvailableTags { get; set; } = new List<SelectListItem>();
+    public List<SelectListItem> AvailableCateogries { get; set; } = new List<SelectListItem>();
 }

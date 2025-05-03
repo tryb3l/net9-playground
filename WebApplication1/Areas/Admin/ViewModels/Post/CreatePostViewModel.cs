@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
-namespace WebApplication1.Areas.Admin.ViewModels.Posts;
+namespace WebApplication1.Areas.Admin.ViewModels.Post;
 
 public class CreatePostViewModel
 {
@@ -12,11 +12,14 @@ public class CreatePostViewModel
     [Display(Name = "Content")]
     public string? Content { get; set; }
 
+    [Display(Name = "Category")]
+    public int? CategoryId { get; set; }
+
     [Display(Name = "Publish now")]
     public bool PublishNow { get; set; }
 
     [Display(Name = "Tags")]
     public List<int> SelectedTagIds { get; set; } = new List<int>();
-
     public List<SelectListItem> AvailableTags { get; set; } = new List<SelectListItem>();
+    public List<SelectListItem> AvailableCategories { get; set; } = new List<SelectListItem>();
 }
