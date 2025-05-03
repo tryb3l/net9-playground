@@ -1,5 +1,6 @@
 using System;
-using WebApplication1.Areas.Admin.ViewModels.Tags;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using WebApplication1.Areas.Admin.ViewModels.Tag;
 using WebApplication1.Interfaces;
 using WebApplication1.Models;
 
@@ -66,5 +67,16 @@ public class TagService : ITagService
     {
         var tag = await _tagRepository.GetByIdAsync(id);
         return tag != null;
+    }
+
+    public async Task<List<SelectListItem>> GetAvailableTagsAsync()
+    {
+        var tags = await _tagRepository.GetAllAsync();
+        return tags
+                .Select(c => new SelectListItem
+                {
+                    Value = c.Id.ToString(),
+                    Text = c.Name
+                }).ToList();
     }
 }

@@ -1,4 +1,5 @@
-using WebApplication1.Areas.Admin.ViewModels.Categories;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using WebApplication1.Areas.Admin.ViewModels.Category;
 using WebApplication1.Interfaces;
 using WebApplication1.Models;
 using WebApplication1.Utils;
@@ -93,5 +94,16 @@ public class CategoryService : ICategoryService
 
         await _categoryRepository.AddAsync(category);
         await _categoryRepository.SaveChangesAsync();
+    }
+
+    public async Task<List<SelectListItem>> GetAvailableCategoriesAsync()
+    {
+        var categories = await _categoryRepository.GetAllAsync();
+        return categories
+            .Select(c => new SelectListItem
+            {
+                Value = c.Id.ToString(),
+                Text = c.Name
+            }).ToList();
     }
 }
