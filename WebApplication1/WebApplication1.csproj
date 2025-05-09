@@ -28,8 +28,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Areas/Admin/ViewModels/Tags/" />
-      <Folder Include="Areas/Admin/Views/Posts/" />
+      <Folder Include="Areas/Admin/ViewModels/Tag/" />
       <Folder Include="Areas/Identity/" />
       <Folder Include="Areas/Identity/Pages/" />
       <Folder Include="Areas/Identity/Pages/Account/" />
