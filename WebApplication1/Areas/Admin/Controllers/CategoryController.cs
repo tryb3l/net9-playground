@@ -35,8 +35,16 @@ public class CategoryController : Controller
     {
         if (ModelState.IsValid)
         {
-            await _categoryService.CreateCategoryAsync(viewModel);
-            return RedirectToAction(nameof(Index));
+            var result = await _categoryService.CreateCategoryAsync(viewModel);
+            if (result.Succeeded)
+            {
+                TempData["SuccessMessage"] = "Category created successfully.";
+                return RedirectToAction("Index");
+            }
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError("", error);
+            }
         }
         return View(viewModel);
     }
