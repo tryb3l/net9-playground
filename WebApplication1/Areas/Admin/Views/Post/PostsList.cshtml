@@ -1,0 +1,168 @@
+﻿@model WebApplication1.Areas.Admin.ViewModels.Post.PostListViewModel
+@{
+    ViewData["Title"] = "Manage Posts";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">All Posts</h1>
+        <a href="@Url.Action("Create", "Post", new { area = "Admin" })"
+            onclick="window.location='@Url.Action("Create", "Post", new { area = "Admin" })'; return false;"
+            class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Create New Post
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-funnel"></i> Filter Posts
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <input type="text" name="searchTerm" class="form-control"
+                            placeholder="Search by title or content..." value="@Model.SearchTerm">
+                        <button class="btn btn-outline-secondary" type="submit">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="publishedOnly" name="publishedOnly"
+                            value="true" @(Model.ShowPublishedOnly ? "checked" : "")>
+                        <label class="form-check-label" for="publishedOnly">
+                            Published posts only
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Posts Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Created</th>
+                            <th>Status</th>
+                            <th>Tags</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Posts.Any())
+                        {
+                            @foreach (var post in Model.Posts)
+                            {
+                                <tr>
+                                    <td>
+                                        <a asp-action="Edit" asp-route-id="@post.Id">@post.Title</a>
+                                    </td>
+                                    <td>@post.AuthorName</td>
+                                    <td>@post.CreatedAt.ToString("yyyy-MM-dd")</td>
+                                    <td>
+                                        @if (post.IsPublished)
+                                        {
+                                            <span class="badge bg-success">Published</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Draft</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @foreach (var tag in post.Tags)
+                                        {
+                                            <span class="badge bg-info me-1">@tag</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a asp-action="Edit" asp-route-id="@post.Id" class="btn btn-sm btn-outline-primary"
+                                                title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a asp-action="Details" asp-route-id="@post.Id" class="btn btn-sm btn-outline-info"
+                                                title="View">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            @if (post.IsPublished)
+                                            {
+                                                <form asp-action="Unpublish" asp-route-id="@post.Id" method="post"
+                                                    style="display:inline;">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-sm btn-outline-warning" title="Unpublish">
+                                                        <i class="bi bi-file-earmark-minus"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <form asp-action="Publish" asp-route-id="@post.Id" method="post"
+                                                    style="display:inline;">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Publish">
+                                                        <i class="bi bi-file-earmark-check"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                            <form asp-action="Delete" asp-route-id="@post.Id" method="post"
+                                                style="display:inline;">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete"
+                                                    onclick="return confirm('Are you sure you want to delete this post?');">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center">No posts found.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            @if (Model.TotalPosts > Model.PageSize)
+            {
+                <div class="d-flex justify-content-center mt-4">
+                    <nav>
+                        <ul class="pagination">
+                            @{
+                                int totalPages = (int)Math.Ceiling(Model.TotalPosts / (double)Model.PageSize);
+                                for (int i = 1; i <= totalPages; i++)
+                                {
+                                    <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                        <a class="page-link" asp-action="Index" asp-route-page="@i"
+                                            asp-route-searchTerm="@Model.SearchTerm" asp-route-tagFilter="@Model.TagFilter"
+                                            asp-route-publishedOnly="@Model.ShowPublishedOnly">@i</a>
+                                    </li>
+                                }
+                            }
+                        </ul>
+                    </nav>
+                </div>
+            }
+        </div>
+    </div>
+</div>
