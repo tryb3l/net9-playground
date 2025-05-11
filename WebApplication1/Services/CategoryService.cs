@@ -83,17 +83,25 @@ public class CategoryService : ICategoryService
         return category != null;
     }
 
-    public async Task CreateCategoryAsync(CreateCategoryViewModel model)
+    public async Task<ServiceResult> CreateCategoryAsync(CreateCategoryViewModel model)
     {
-        var category = new Category
+        try
         {
-            Name = model.Name,
-            Description = model.Description,
-            Slug = SlugHelper.GenerateSlug(model.Name)
-        };
+            var category = new Category
+            {
+                Name = model.Name,
+                Description = model.Description,
+                Slug = SlugHelper.GenerateSlug(model.Name)
+            };
 
-        await _categoryRepository.AddAsync(category);
-        await _categoryRepository.SaveChangesAsync();
+            await _categoryRepository.AddAsync(category);
+            await _categoryRepository.SaveChangesAsync();
+            return ServiceResult.Success();
+        }
+        catch (Exception ex)
+        {
+            return ServiceResult.Failure($"Error creating category: {ex.Message}");
+        }
     }
 
     public async Task<List<SelectListItem>> GetAvailableCategoriesAsync()
