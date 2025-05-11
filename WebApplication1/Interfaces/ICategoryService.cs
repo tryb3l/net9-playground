@@ -10,7 +10,7 @@ public interface ICategoryService
     Task<Category?> GetCategoryByIdAsync(int id);
     Task<List<SelectListItem>> GetAvailableCategoriesAsync();
     Task<CategoryViewModel?> GetCategoryViewModelByIdAsync(int id);
-    Task CreateCategoryAsync(CreateCategoryViewModel viewModel);
+    Task<ServiceResult> CreateCategoryAsync(CreateCategoryViewModel viewModel);
     Task UpdateCategoryAsync(EditCategoryViewModel viewModel);
     Task DeleteCategoryAsync(int id);
     Task<bool> CategoryExistingAsync(int id);
