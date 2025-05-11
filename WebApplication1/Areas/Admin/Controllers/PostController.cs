@@ -29,7 +29,7 @@ public class PostController : Controller
         bool? publishedOnly = null)
     {
         var viewModel = await _postService.GetPostListAsync(page, searchTerm, tagFilter, publishedOnly);
-        return View(viewModel);
+        return View("PostsList", viewModel);
     }
 
     public async Task<IActionResult> Details(int? id)
