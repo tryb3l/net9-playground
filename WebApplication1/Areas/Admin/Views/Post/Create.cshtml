@@ -7,13 +7,16 @@
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col">
-            <a asp-area="Admin" asp-controller="Post" asp-action="Index" class="btn btn-outline-secondary">
+            <a href="@Url.Action("Index", "Post", new { area = "Admin" })"
+                onclick="window.location='@Url.Action("Index", "Post", new { area = "Admin" })'; return false;"
+                class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> Back to Posts
             </a>
         </div>
     </div>
 
     <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
         <div class="row mb-3">
@@ -30,8 +33,12 @@
             <div class="col-md-6">
                 <div class="form-group">
                     <label asp-for="CategoryId" class="form-label">Category</label>
-                    <select asp-for="CategoryId" asp-items="Model.AvailableCategories" class="form-select">
+                    <select asp-for="CategoryId" class="form-select category-select">
                         <option value="">-- Select Category --</option>
+                        @foreach (var category in Model.AvailableCategories)
+                        {
+                            <option value="@category.Value">@category.Text</option>
+                        }
                     </select>
                     <span asp-validation-for="CategoryId" class="text-danger"></span>
                 </div>
@@ -40,7 +47,12 @@
             <div class="col-md-6">
                 <div class="form-group">
                     <label asp-for="SelectedTagIds" class="form-label">Tags</label>
-                    <select asp-for="SelectedTagIds" asp-items="Model.AvailableTags" class="form-select" multiple>
+                    <select asp-for="SelectedTagIds" class="form-select tag-select" multiple>
+                        <option value="">-- Select Tags --</option>
+                        @foreach (var tag in Model.AvailableTags)
+                        {
+                            <option value="@tag.Value">@tag.Text</option>
+                        }
                     </select>
                     <span asp-validation-for="SelectedTagIds" class="text-danger"></span>
                     <small class="form-text text-muted">Hold Ctrl (or Command on Mac) to select multiple tags.</small>
@@ -72,7 +84,9 @@
                 <button type="submit" class="btn btn-primary">
                     <i class="bi bi-save"></i> Save Post
                 </button>
-                <a asp-area="Admin" asp-controller="Post" asp-action="Index" class="btn btn-outline-secondary ms-2">
+                <a href="@Url.Action("Index", "Post", new { area = "Admin" })"
+                    onclick="window.location='@Url.Action("Index", "Post", new { area = "Admin" })'; return false;"
+                    class="btn btn-outline-secondary ms-2">
                     Cancel
                 </a>
             </div>
@@ -82,18 +96,5 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // You could enhance the editor with a rich text editor
-            // like TinyMCE, CKEditor, or Summernote if desired
-
-            // Example if you want to add TinyMCE (requires adding the library):
-            // tinymce.init({
-            //     selector: '#postEditor',
-            //     plugins: 'link image code table lists',
-            //     toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter alignright | bullist numlist | link image | code'
-            // });
-        });
-    </script>
+    <script src="~/js/post-editor.js" asp-append-version="true"></script>
 }
