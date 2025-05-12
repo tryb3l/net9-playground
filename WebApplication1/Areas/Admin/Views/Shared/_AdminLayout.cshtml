@@ -1,0 +1,193 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Admin Panel</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/WebApplication1.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+</head>
+
+<body>
+    <div class="admin-container d-flex">
+        <!-- Sidebar -->
+        <div id="adminSidebar" class="sidebar">
+            <div class="sidebar-header d-flex align-items-center justify-content-between">
+                <a class="sidebar-brand" asp-area="Admin" asp-controller="Admin" asp-action="Index">
+                    <span class="sidebar-brand-text">Admin Panel</span>
+                </a>
+                <button id="sidebarCollapseBtn" class="btn sidebar-toggle d-none d-md-flex">
+                    <i class="bi bi-list"></i>
+                </button>
+            </div>
+            <div class="sidebar-content">
+                <ul class="nav flex-column">
+                    <!-- Dashboard -->
+                    <li class="nav-item">
+                        <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Admin" ? "active" : "")"
+                            asp-area="Admin" asp-controller="Admin" asp-action="Index">
+                            <i class="bi bi-house-door"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+
+                    <!-- Posts Menu with Sub-items -->
+                    <li class="nav-item">
+                        <a class="nav-link has-submenu @(ViewContext.RouteData.Values["controller"]?.ToString() == "Post" ? "active" : "")"
+                            href="#postsSubmenu" data-bs-toggle="collapse" aria-expanded="false">
+                            <i class="bi bi-file-earmark-text"></i>
+                            <span>Posts</span>
+                            <i class="bi bi-chevron-down toggle-icon ms-auto"></i>
+                        </a>
+                        <div class="collapse @(ViewContext.RouteData.Values["controller"]?.ToString() == "Post" ? "show" : "")"
+                            id="postsSubmenu">
+                            <ul class="nav submenu">
+                                <li class="nav-item">
+                                    <a class="nav-link d-flex align-items-center"
+                                        href="@Url.Action("Index", "Post", new { area = "Admin" })"
+                                        onclick="window.location='@Url.Action("Index", "Post", new { area = "Admin" })'; return false;">
+                                        <i class="bi bi-list"></i>
+                                        <span>All Posts</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link d-flex align-items-center"
+                                        href="@Url.Action("Create", "Post", new { area = "Admin" })"
+                                        onclick="window.location='@Url.Action("Create", "Post", new { area = "Admin" })'; return false;">
+                                        <i class="bi bi-plus-circle"></i>
+                                        <span>Add New</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+
+                    <!-- Categories -->
+                    <li class="nav-item">
+                        <a class="nav-link has-submenu @(ViewContext.RouteData.Values["controller"]?.ToString() == "Category" ? "active" : "")"
+                            href="#categoriesSubmenu" data-bs-toggle="collapse" aria-expanded="false">
+                            <i class="bi bi-folder"></i>
+                            <span>Categories</span>
+                            <i class="bi bi-chevron-down toggle-icon ms-auto"></i>
+                        </a>
+                        <div class="collapse @(ViewContext.RouteData.Values["controller"]?.ToString() == "Category" ? "show" : "")"
+                            id="categoriesSubmenu">
+                            <ul class="nav submenu">
+                                <li class="nav-item">
+                                    <a class="nav-link d-flex align-items-center"
+                                        href="@Url.Action("Index", "Category", new { area = "Admin" })"
+                                        onclick="window.location='@Url.Action("Index", "Category", new { area = "Admin" })'; return false;">
+                                        <i class="bi bi-list"></i>
+                                        <span>All Categories</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link d-flex align-items-center"
+                                        href="@Url.Action("Create", "Category", new { area = "Admin" })"
+                                        onclick="window.location='@Url.Action("Create", "Category", new { area = "Admin" })'; return false;">
+                                        <i class="bi bi-plus-circle"></i>
+                                        <span>Add New</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+
+                    <!-- Tags -->
+                    <li class="nav-item">
+                        <a class="nav-link has-submenu @(ViewContext.RouteData.Values["controller"]?.ToString() == "Tags" ? "active" : "")"
+                            href="#tagsSubmenu" data-bs-toggle="collapse" aria-expanded="false">
+                            <i class="bi bi-tags"></i>
+                            <span>Tags</span>
+                            <i class="bi bi-chevron-down toggle-icon ms-auto"></i>
+                        </a>
+                        <div class="collapse @(ViewContext.RouteData.Values["controller"]?.ToString() == "Tags" ? "show" : "")"
+                            id="tagsSubmenu">
+                            <ul class="nav submenu">
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="Admin" asp-controller="Tags" asp-action="Index">
+                                        <i class="bi bi-list"></i>
+                                        <span>All Tags</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="Admin" asp-controller="Tags" asp-action="Create">
+                                        <i class="bi bi-plus-circle"></i>
+                                        <span>Add New</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+
+                    <!-- Divider -->
+                    <li class="nav-divider"></li>
+
+                    <!-- Back to Site -->
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center"
+                            href="@Url.Action("Index", "Home", new { area = "" })"
+                            onclick="window.location='@Url.Action("Index", "Home", new { area = "" })'; return false;">
+                            <i class="bi bi-arrow-left-circle me-2"></i>
+                            <span>Back to Site</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Main Content Wrapper -->
+        <div class="main-wrapper">
+            <!-- Top Navbar -->
+            <nav class="navbar navbar-expand admin-navbar">
+                <div class="container-fluid">
+                    <!-- Mobile Toggle Button -->
+                    <button id="mobileSidebarToggle" class="navbar-toggler d-md-none" type="button">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <form class="d-none d-md-block ms-3 me-auto" role="search">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Search..." aria-label="Search">
+                            <button class="btn btn-outline-secondary" type="button">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Right Side Nav Items -->
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <partial name="_LoginPartial" />
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Page Content -->
+            <div class="content-area p-3 p-md-4">
+                <div class="content-header mb-4">
+                    <h1 class="h2">@ViewData["Title"]</h1>
+                </div>
+                @RenderBody()
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div id="tempDataSuccessMessage" data-message="@TempData["SuccessMessage"]" style="display:none;"></div>
+    }
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/admin-sidebar.js" asp-append-version="true"></script>
+    <script src="~/js/admin-notifications.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+
+</html>
