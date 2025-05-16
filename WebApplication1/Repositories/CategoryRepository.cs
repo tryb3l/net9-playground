@@ -28,12 +28,12 @@ public class CategoryRepository : ICategoryRepository
 
     public async Task<IEnumerable<Category>> GetAllAsync()
     {
-        return await _context.Categories.ToListAsync();
+        return await _context.Categories.Include(c => c.Posts).ToListAsync();
     }
 
-    public async Task<Category?> GetByIdAsync(int id) 
+    public async Task<Category?> GetByIdAsync(int id)
     {
-        return await _context.Categories.FindAsync(id);
+        return await _context.Categories.Include(c => c.Posts).FirstOrDefaultAsync(c => c.Id == id);
     }
 
     public async Task SaveChangesAsync()
@@ -45,5 +45,10 @@ public class CategoryRepository : ICategoryRepository
     {
         _context.Categories.Update(entity);
         return Task.CompletedTask;
+    }
+
+    public async Task<bool> ExistingAsync(int id)
+    {
+        return await _context.Categories.AnyAsync(c => c.Id == id);
     }
 }
