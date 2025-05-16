@@ -79,8 +79,7 @@ public class CategoryService : ICategoryService
 
     public async Task<bool> CategoryExistingAsync(int id)
     {
-        var category = await _categoryRepository.GetByIdAsync(id);
-        return category != null;
+        return await _categoryRepository.ExistingAsync(id);
     }
 
     public async Task<ServiceResult> CreateCategoryAsync(CreateCategoryViewModel model)
