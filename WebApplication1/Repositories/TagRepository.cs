@@ -21,7 +21,7 @@ public class TagRepository : ITagRepository
 
     public async Task<IEnumerable<Tag>> GetAllAsync()
     {
-        return await _context.Tags.ToListAsync();
+        return await _context.Tags.Include(t => t.PostTags).ToListAsync();
     }
 
     public async Task AddAsync(Tag entity)
@@ -49,6 +49,7 @@ public class TagRepository : ITagRepository
     public async Task<IEnumerable<Tag>> GetPopularTagsAsync(int count)
     {
         return await _context.Tags
+            .Include(t => t.PostTags)
             .OrderByDescending(t => t.PostTags.Count)
             .Take(count)
             .ToListAsync();
