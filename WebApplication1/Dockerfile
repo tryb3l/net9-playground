@@ -2,7 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 
 WORKDIR /src
 
-RUN dotnet tool install --global dotnet-ef --version 9.0.5 || dotnet tool update --global dotnet-ef --version 9.0.5
+RUN dotnet tool install --global dotnet-ef --version 9.0.3 || dotnet tool update --global dotnet-ef --version 9.0.3
 
 COPY ["WebApplication1/WebApplication1.csproj", "WebApplication1/"]
 COPY ["NuGet.Config", "."]
