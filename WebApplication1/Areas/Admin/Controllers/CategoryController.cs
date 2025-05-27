@@ -108,7 +108,8 @@ public class CategoryController : Controller
         {
             return NotFound();
         }
-        return View(category);
+        
+        return Json(category);
     }
 
     [HttpPost, ActionName("Delete")]
