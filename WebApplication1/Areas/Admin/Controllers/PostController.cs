@@ -29,7 +29,7 @@ public class PostController : Controller
         bool? publishedOnly = null)
     {
         var viewModel = await _postService.GetPostListAsync(page, searchTerm, tagFilter, publishedOnly);
-        return View("PostsList", viewModel);
+        return View();
     }
 
     public async Task<IActionResult> Details(int? id)
@@ -135,7 +135,7 @@ public class PostController : Controller
             return NotFound();
         }
 
-        return View(viewModel);
+        return Ok(viewModel);
     }
 
     [HttpPost, ActionName("Delete")]
