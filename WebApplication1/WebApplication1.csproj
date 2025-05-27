@@ -13,6 +13,7 @@
       <PackageReference Include="HtmlSanitizer" Version="9.0.884" />
       <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="9.0.5" />
       <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.5" />
+      <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="9.0.5" />
       <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="4.14.0" PrivateAssets="all" />
       <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="9.0.5" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.5">
@@ -28,12 +29,12 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Areas/Admin/ViewModels/Tags/" />
-      <Folder Include="Areas/Admin/Views/Posts/" />
-      <Folder Include="Areas/Identity/" />
-      <Folder Include="Areas/Identity/Pages/" />
-      <Folder Include="Areas/Identity/Pages/Account/" />
-      <Folder Include="Middleware/" />
+      <Content Update="Areas/**/*.cshtml">
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </Content>
+      <Content Update="Views/**/*.cshtml">
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </Content>
     </ItemGroup>
 
 </Project>
