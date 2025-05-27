@@ -27,7 +27,9 @@ var googleClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRE
 throw new InvalidOperationException("GOOGLE_CLIENT_SECRET environment variable not found.");
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews()
+    .AddRazorRuntimeCompilation();
+
 builder.Services.AddRazorPages();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
