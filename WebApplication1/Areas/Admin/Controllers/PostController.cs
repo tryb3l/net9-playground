@@ -24,12 +24,10 @@ public class PostController : Controller
         _userManager = userManager;
     }
 
-    public async Task<IActionResult> Index(int page = 1,
-        string? searchTerm = null, string? tagFilter = null,
-        bool? publishedOnly = null)
+    public async Task<IActionResult> Index(int page = 1, string? searchTerm = null, string? tagFilter = null, bool? publishedOnly = null)
     {
         var viewModel = await _postService.GetPostListAsync(page, searchTerm, tagFilter, publishedOnly);
-        return View();
+        return View("PostsList", viewModel);
     }
 
     public async Task<IActionResult> Details(int? id)
