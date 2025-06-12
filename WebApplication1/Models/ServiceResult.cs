@@ -1,28 +1,21 @@
-using System;
-
 namespace WebApplication1.Models;
 
 public class ServiceResult
 {
-    public bool Succeeded { get; private set; }
-    public List<string> Errors { get; } = new List<string>();
+    public bool Succeeded { get; set; }
+    public List<string> Errors { get; set; } = new();
 
-    public static ServiceResult Success()
-    {
-        return new ServiceResult { Succeeded = true };
-    }
+    public static ServiceResult Success() => new() { Succeeded = true };
 
-    public static ServiceResult Failure(string error)
+    public static ServiceResult Failure(string error) => new()
     {
-        var result = new ServiceResult { Succeeded = false };
-        result.Errors.Add(error);
-        return result;
-    }
+        Succeeded = false,
+        Errors = [error]
+    };
 
-    public static ServiceResult Failure(IEnumerable<string> errors)
+    public static ServiceResult Failure(List<string> errors) => new()
     {
-        var result = new ServiceResult { Succeeded = false };
-        result.Errors.AddRange(errors);
-        return result;
-    }
+        Succeeded = false,
+        Errors = errors
+    };
 }
