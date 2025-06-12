@@ -72,11 +72,10 @@ public class TagService : ITagService
     public async Task<List<SelectListItem>> GetAvailableTagsAsync()
     {
         var tags = await _tagRepository.GetAllAsync();
-        return tags
-                .Select(c => new SelectListItem
-                {
-                    Value = c.Id.ToString(),
-                    Text = c.Name
-                }).ToList();
+        return [.. tags.Select(t => new SelectListItem
+        {
+            Value = t.Id.ToString(),
+            Text = t.Name
+        })];
     }
 }
