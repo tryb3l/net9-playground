@@ -26,7 +26,6 @@ throw new InvalidOperationException("GOOGLE_CLIENT_ID environment variable not f
 var googleClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET") ??
 throw new InvalidOperationException("GOOGLE_CLIENT_SECRET environment variable not found.");
 
-// Add services to the container.
 builder.Services.AddControllersWithViews()
     .AddRazorRuntimeCompilation();
 
@@ -54,7 +53,7 @@ builder.Services.AddAuthentication()
         googleOptions.CallbackPath = "/signin-google";
     });
 
-// Add global error handling
+// Global error handling
 builder.Services.AddTransient<GlobalExceptionHandlerMiddleware>();
 
 // Repository registrations
@@ -130,17 +129,17 @@ app.Use(async (context, next) =>
     context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
     context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
 
-    string csp = "default-src 'self'; " +
-                 "script-src 'self' 'sha256-V5ld3fn8GVclauMRqI82QiZ10Q9Y3gzkMrZheQtM4mA='; " +
-                 "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net/npm/; " +
-                 "img-src 'self' data: https://avatars3.githubusercontent.com https://ui-avatars.com https://lh3.googleusercontent.com; " +
-                 "font-src 'self' data: https://cdn.jsdelivr.net/npm/; " +
-                 "connect-src 'self'; " +
-                 "frame-src 'self'; " +
-                 "object-src 'none'; " +
-                 "base-uri 'self'; " +
-                 "form-action 'self'; " +
-                 "frame-ancestors 'self';";
+    const string csp = "default-src 'self'; " +
+                       "script-src 'self' 'sha256-V5ld3fn8GVclauMRqI82QiZ10Q9Y3gzkMrZheQtM4mA='; " +
+                       "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net/npm/; " +
+                       "img-src 'self' data: https://avatars3.githubusercontent.com https://ui-avatars.com https://lh3.googleusercontent.com; " +
+                       "font-src 'self' data: https://cdn.jsdelivr.net/npm/; " +
+                       "connect-src 'self'; " +
+                       "frame-src 'self'; " +
+                       "object-src 'none'; " +
+                       "base-uri 'self'; " +
+                       "form-action 'self'; " +
+                       "frame-ancestors 'self';";
     context.Response.Headers.Append("Content-Security-Policy", csp);
 
     context.Response.Headers.Append("Permissions-Policy", "camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()");
