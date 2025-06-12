@@ -26,8 +26,8 @@ public class PostService : IPostService
 
     public async Task<BlogIndexViewModel> GetBlogIndexViewModelAsync(int page, string? category, string? tag)
     {
-        int pageSize = 5;
-        int skip = (page - 1) * pageSize;
+        const int pageSize = 5;
+        var skip = (page - 1) * pageSize;
 
         var posts = await _postRepository.GetPublishedPostsAsync(skip, pageSize);
         var totalPosts = await _postRepository.CountPublishedPostsAsync();
@@ -171,7 +171,8 @@ public class PostService : IPostService
             IsPublished = viewModel.PublishNow,
             PublishedDate = viewModel.PublishNow ? DateTime.UtcNow : null,
             AuthorId = userId,
-            Slug = SlugHelper.GenerateSlug(viewModel.Title)
+            Slug = SlugHelper.GenerateSlug(viewModel.Title),
+            CategoryId = viewModel.CategoryId
         };
 
         post.Slug = await EnsureUniqueSlugAsync(post.Slug);
@@ -179,18 +180,16 @@ public class PostService : IPostService
         await _postRepository.AddAsync(post);
         await _postRepository.SaveChangesAsync();
 
-        if (viewModel.SelectedTagIds.Any())
+        if (viewModel.SelectedTagIds.Count == 0) return post;
+        foreach (var tagId in viewModel.SelectedTagIds)
         {
-            foreach (var tagId in viewModel.SelectedTagIds)
+            await _postRepository.AddPostTagAsync(new PostTag
             {
-                await _postRepository.AddPostTagAsync(new PostTag
-                {
-                    PostId = post.Id,
-                    TagId = tagId
-                });
-            }
-            await _postRepository.SaveChangesAsync();
+                PostId = post.Id,
+                TagId = tagId
+            });
         }
+        await _postRepository.SaveChangesAsync();
 
         return post;
     }
