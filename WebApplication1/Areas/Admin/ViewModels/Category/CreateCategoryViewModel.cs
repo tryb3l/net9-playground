@@ -4,13 +4,10 @@ namespace WebApplication1.Areas.Admin.ViewModels.Category;
 
 public class CreateCategoryViewModel
 {
-    public int Id { get; set; }
+    [Required(ErrorMessage = "Category name is required")]
+    [StringLength(100, ErrorMessage = "Name cannot exceed 100 characters")]
+    public string Name { get; init; } = string.Empty;
 
-    [Required]
-    [StringLength(100)]
-    public string Name { get; set; } = string.Empty;
-
-    [StringLength(500)]
-    public string? Description { get; set; }
-
+    [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters")]
+    public string? Description { get; init; }
 }
