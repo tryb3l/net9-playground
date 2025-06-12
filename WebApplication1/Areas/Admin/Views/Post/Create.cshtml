@@ -7,91 +7,71 @@
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col">
-            <a href="@Url.Action("Index", "Post", new { area = "Admin" })"
-                onclick="window.location='@Url.Action("Index", "Post", new { area = "Admin" })'; return false;"
-                class="btn btn-outline-secondary">
+            <a asp-action="Index" asp-controller="Post" asp-area="Admin" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> Back to Posts
             </a>
         </div>
     </div>
 
-    <form asp-action="Create" method="post">
-        @Html.AntiForgeryToken()
-        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Create New Post</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-        <div class="row mb-3">
-            <div class="col-md-12">
-                <div class="form-group">
-                    <label asp-for="Title" class="form-label">Post Title</label>
+                <div class="mb-3">
+                    <label asp-for="Title" class="form-label"></label>
                     <input asp-for="Title" class="form-control" placeholder="Enter post title" />
                     <span asp-validation-for="Title" class="text-danger"></span>
                 </div>
-            </div>
-        </div>
 
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <div class="form-group">
-                    <label asp-for="CategoryId" class="form-label">Category</label>
-                    <select asp-for="CategoryId" class="form-select category-select">
-                        <option value="">-- Select Category --</option>
-                        @foreach (var category in Model.AvailableCategories)
-                        {
-                            <option value="@category.Value">@category.Text</option>
-                        }
-                    </select>
-                    <span asp-validation-for="CategoryId" class="text-danger"></span>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="CategoryId" class="form-label"></label>
+                            <select asp-for="CategoryId" class="form-select category-select" asp-items="@(new SelectList(Model.AvailableCategories, "Value", "Text"))">
+                                <option value="">-- Select Category --</option>
+                            </select>
+                            <span asp-validation-for="CategoryId" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="SelectedTagIds" class="form-label"></label>
+                            <select asp-for="SelectedTagIds" class="form-select tag-select" multiple asp-items="@(new SelectList(Model.AvailableTags, "Value", "Text"))">
+                                @* The asp-items will populate this, no need for a default empty option for multi-select unless desired *@
+                            </select>
+                            <span asp-validation-for="SelectedTagIds" class="text-danger"></span>
+                            <small class="form-text text-muted">Hold Ctrl (or Command on Mac) to select multiple tags.</small>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <div class="col-md-6">
-                <div class="form-group">
-                    <label asp-for="SelectedTagIds" class="form-label">Tags</label>
-                    <select asp-for="SelectedTagIds" class="form-select tag-select" multiple>
-                        <option value="">-- Select Tags --</option>
-                        @foreach (var tag in Model.AvailableTags)
-                        {
-                            <option value="@tag.Value">@tag.Text</option>
-                        }
-                    </select>
-                    <span asp-validation-for="SelectedTagIds" class="text-danger"></span>
-                    <small class="form-text text-muted">Hold Ctrl (or Command on Mac) to select multiple tags.</small>
-                </div>
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <div class="col-md-12">
-                <div class="form-group">
-                    <label asp-for="Content" class="form-label">Content</label>
-                    <textarea asp-for="Content" class="form-control" rows="15" id="postEditor"></textarea>
+                <div class="mb-3">
+                    <label asp-for="Content" class="form-label"></label>
+                    <textarea asp-for="Content" class="form-control" rows="10" id="postEditor" placeholder="Write your post content here..."></textarea>
                     <span asp-validation-for="Content" class="text-danger"></span>
                 </div>
-            </div>
-        </div>
 
-        <div class="row mb-3">
-            <div class="col-md-12">
-                <div class="form-check">
+                <div class="mb-3 form-check">
                     <input asp-for="PublishNow" class="form-check-input" />
-                    <label asp-for="PublishNow" class="form-check-label">Publish immediately</label>
+                    <label asp-for="PublishNow" class="form-check-label"></label>
                 </div>
-            </div>
-        </div>
 
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-save"></i> Save Post
-                </button>
-                <a href="@Url.Action("Index", "Post", new { area = "Admin" })"
-                    onclick="window.location='@Url.Action("Index", "Post", new { area = "Admin" })'; return false;"
-                    class="btn btn-outline-secondary ms-2">
-                    Cancel
-                </a>
-            </div>
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Save Post
+                    </button>
+                    <a asp-action="Index" asp-controller="Post" asp-area="Admin" class="btn btn-outline-secondary ms-2">
+                        Cancel
+                    </a>
+                </div>
+            </form>
         </div>
-    </form>
+    </div>
 </div>
 
 @section Scripts {

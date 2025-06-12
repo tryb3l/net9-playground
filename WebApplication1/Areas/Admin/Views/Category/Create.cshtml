@@ -5,53 +5,26 @@
 }
 
 <div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col">
-            <a href="@Url.Action("Index", "Category", new { area = "Admin" })"
-                onclick="window.location='@Url.Action("Index", "Category", new { area = "Admin" })'; return false;"
-                class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left"></i> Back to Categories
-            </a>
-        </div>
-    </div>
-
     <div class="card">
         <div class="card-header">
             <h5 class="card-title mb-0">Create New Category</h5>
         </div>
         <div class="card-body">
-            <form asp-action="Create" method="post">
+            <form method="post" action="/Admin/Category/Create">
                 @Html.AntiForgeryToken()
-                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
                 <div class="mb-3">
-                    <label asp-for="Name" class="form-label">Category Name</label>
-                    <input asp-for="Name" class="form-control" placeholder="Enter category name" />
-                    <span asp-validation-for="Name" class="text-danger"></span>
+                    <label for="Name">Category Name:</label>
+                    <input type="text" id="Name" name="Name" class="form-control" required />
                 </div>
 
                 <div class="mb-3">
-                    <label asp-for="Description" class="form-label">Description</label>
-                    <textarea asp-for="Description" class="form-control" rows="3"
-                        placeholder="Enter category description"></textarea>
-                    <span asp-validation-for="Description" class="text-danger"></span>
+                    <label for="Description">Description:</label>
+                    <textarea id="Description" name="Description" class="form-control"></textarea>
                 </div>
 
-                <div class="mt-4">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save"></i> Save Category
-                    </button>
-                    <a href="@Url.Action("Index", "Category", new { area = "Admin" })"
-                        onclick="window.location='@Url.Action("Index", "Category", new { area = "Admin" })'; return false;"
-                        class="btn btn-outline-secondary ms-2">
-                        Cancel
-                    </a>
-                </div>
+                <button type="submit" class="btn btn-primary">Create Category</button>
             </form>
         </div>
     </div>
 </div>
-
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}
