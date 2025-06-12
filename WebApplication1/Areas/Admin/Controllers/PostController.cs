@@ -15,13 +15,15 @@ public class PostController : Controller
     private readonly ICategoryService _categoryService;
     private readonly ITagService _tagService;
     private readonly UserManager<User> _userManager;
+    private readonly ILogger<PostController> _logger;
 
-    public PostController(IPostService postService, ICategoryService categoryService, ITagService tagService, UserManager<User> userManager)
+    public PostController(IPostService postService, ICategoryService categoryService, ITagService tagService, UserManager<User> userManager, ILogger<PostController> logger)
     {
         _postService = postService;
         _categoryService = categoryService;
         _tagService = tagService;
         _userManager = userManager;
+        _logger = logger;
     }
 
     public async Task<IActionResult> Index(int page = 1, string? searchTerm = null, string? tagFilter = null, bool? publishedOnly = null)
@@ -69,9 +71,26 @@ public class PostController : Controller
         if (ModelState.IsValid)
         {
             var currentUser = await _userManager.GetUserAsync(User);
-            await _postService.CreatePostAsync(viewModel, currentUser?.Id ?? string.Empty);
-            return RedirectToAction(nameof(Index));
+            if (currentUser == null)
+            {
+                ModelState.AddModelError("", "Unable to identify current user. Please log in again");
+                viewModel.AvailableTags = await _tagService.GetAvailableTagsAsync();
+                viewModel.AvailableCategories = await _categoryService.GetAvailableCategoriesAsync();
+                return View(viewModel);
+            }
+            try
+            {
+                await _postService.CreatePostAsync(viewModel, currentUser.Id);
+                TempData["SuccessMessage"] = "Post created successfully.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating post for user {UserId}, ViewModel: {@ViewModel}", currentUser.Id, viewModel);
+                ModelState.AddModelError("", $"An unexpected error occurred while creating the post. Please try again.");
+            }
         }
+
         viewModel.AvailableTags = await _tagService.GetAvailableTagsAsync();
         viewModel.AvailableCategories = await _categoryService.GetAvailableCategoriesAsync();
         return View(viewModel);
@@ -116,7 +135,7 @@ public class PostController : Controller
         }
 
         viewModel.AvailableTags = await _tagService.GetAvailableTagsAsync();
-        viewModel.AvailableCateogries = await _categoryService.GetAvailableCategoriesAsync();
+        viewModel.AvailableCategories = await _categoryService.GetAvailableCategoriesAsync();
         return View(viewModel);
     }
 
