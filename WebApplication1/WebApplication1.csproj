@@ -10,17 +10,17 @@
       <PackageReference Include="AspNetCore.HealthChecks.UI" Version="9.0.0" />
       <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
       <PackageReference Include="AspNetCore.HealthChecks.UI.InMemory.Storage" Version="9.0.0" />
-      <PackageReference Include="HtmlSanitizer" Version="9.0.884" />
-      <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="9.0.5" />
-      <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.5" />
-      <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="9.0.5" />
+      <PackageReference Include="HtmlSanitizer" Version="9.0.886" />
+      <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="9.0.6" />
+      <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.6" />
+      <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="9.0.6" />
       <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="4.14.0" PrivateAssets="all" />
-      <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="9.0.5" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.5">
+      <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="9.0.6" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.6">
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         <PrivateAssets>all</PrivateAssets>
       </PackageReference>
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.5">
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.6">
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         <PrivateAssets>all</PrivateAssets>
       </PackageReference>
