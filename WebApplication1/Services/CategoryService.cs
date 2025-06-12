@@ -82,19 +82,20 @@ public class CategoryService : ICategoryService
         return await _categoryRepository.ExistingAsync(id);
     }
 
-    public async Task<ServiceResult> CreateCategoryAsync(CreateCategoryViewModel model)
+    public async Task<ServiceResult> CreateCategoryAsync(CreateCategoryViewModel viewModel)
     {
         try
         {
             var category = new Category
             {
-                Name = model.Name,
-                Description = model.Description,
-                Slug = SlugHelper.GenerateSlug(model.Name)
+                Name = viewModel.Name,
+                Description = viewModel.Description,
+                Slug = SlugHelper.GenerateSlug(viewModel.Name)
             };
 
             await _categoryRepository.AddAsync(category);
             await _categoryRepository.SaveChangesAsync();
+
             return ServiceResult.Success();
         }
         catch (Exception ex)

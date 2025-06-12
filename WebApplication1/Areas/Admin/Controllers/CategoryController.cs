@@ -10,10 +10,12 @@ namespace WebApplication1.Areas.Admin.Controllers;
 public class CategoryController : Controller
 {
     private readonly ICategoryService _categoryService;
+    private readonly ILogger<CategoryController> _logger;
 
-    public CategoryController(ICategoryService categoryService)
+    public CategoryController(ICategoryService categoryService, ILogger<CategoryController> logger)
     {
         _categoryService = categoryService;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -33,19 +35,34 @@ public class CategoryController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CreateCategoryViewModel viewModel)
     {
-        if (ModelState.IsValid)
+        _logger.LogInformation("Create POST called with Name: {Name}, Description: {Description}",
+            viewModel.Name, viewModel.Description);
+
+        if (!ModelState.IsValid)
         {
-            var result = await _categoryService.CreateCategoryAsync(viewModel);
-            if (result.Succeeded)
+            _logger.LogWarning("ModelState is invalid");
+            foreach (var error in ModelState)
             {
-                TempData["SuccessMessage"] = "Category created successfully.";
-                return RedirectToAction("Index");
+                _logger.LogWarning("Key: {Key}, Errors: {Errors}",
+                    error.Key, string.Join(", ", error.Value.Errors.Select(e => e.ErrorMessage)));
             }
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError("", error);
-            }
+            return View(viewModel);
         }
+
+        var result = await _categoryService.CreateCategoryAsync(viewModel);
+        if (result.Succeeded)
+        {
+            _logger.LogInformation("Category created successfully");
+            TempData["SuccessMessage"] = "Category created successfully.";
+            return RedirectToAction("Index");
+        }
+
+        _logger.LogWarning("Category creation failed: {Errors}", string.Join(", ", result.Errors));
+        foreach (var error in result.Errors)
+        {
+            ModelState.AddModelError("", error);
+        }
+
         return View(viewModel);
     }
 
@@ -108,7 +125,7 @@ public class CategoryController : Controller
         {
             return NotFound();
         }
-        
+
         return Json(category);
     }
 
@@ -118,12 +135,26 @@ public class CategoryController : Controller
     {
         try
         {
+            var category = await _categoryService.GetCategoryViewModelByIdAsync(id);
+            if (category == null)
+            {
+                TempData["ErrorMessage"] = "Category not found.";
+                return RedirectToAction(nameof(Index));
+            }
+
             await _categoryService.DeleteCategoryAsync(id);
+            TempData["SuccessMessage"] = $"Category '{category.Name}' has been deleted successfully.";
         }
         catch (KeyNotFoundException)
         {
-            return NotFound();
+            TempData["ErrorMessage"] = "Category not found.";
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting category with ID {CategoryId}", id);
+            TempData["ErrorMessage"] = "An error occurred while deleting the category. Please try again.";
+        }
+
         return RedirectToAction(nameof(Index));
     }
 }
