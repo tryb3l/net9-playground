@@ -172,22 +172,29 @@ public class PostService : IPostService
             PublishedDate = viewModel.PublishNow ? DateTime.UtcNow : null,
             AuthorId = userId,
             Slug = SlugHelper.GenerateSlug(viewModel.Title),
-            CategoryId = viewModel.CategoryId
+            CategoryId = viewModel.CategoryId == 0 ? null : viewModel.CategoryId
         };
 
         post.Slug = await EnsureUniqueSlugAsync(post.Slug);
-
+        
         await _postRepository.AddAsync(post);
         await _postRepository.SaveChangesAsync();
 
-        if (viewModel.SelectedTagIds.Count == 0) return post;
-        foreach (var tagId in viewModel.SelectedTagIds)
+        bool? any = false;
+        foreach (var id in viewModel.SelectedTagIds)
         {
-            await _postRepository.AddPostTagAsync(new PostTag
-            {
-                PostId = post.Id,
-                TagId = tagId
-            });
+            any = true;
+            break;
+        }
+
+        if (any != true) return post;
+        foreach (var postTag in viewModel.SelectedTagIds.Select(tagId => new PostTag
+                 {
+                     PostId = post.Id,
+                     TagId = tagId
+                 }))
+        {
+            await _postRepository.AddPostTagAsync(postTag);
         }
         await _postRepository.SaveChangesAsync();
 
