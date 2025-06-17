@@ -1,46 +1,30 @@
 @model WebApplication1.Areas.Admin.ViewModels.Tag.CreateTagViewModel
 
 @{
-    ViewData["Title"] = "Create Tag";
+    ViewData["Title"] = "Create New Tag";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 }
 
 <div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col">
-            <a href="@Url.Action("Index", "Tag", new { area = "Admin" })" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left"></i> Back to Tags
-            </a>
-        </div>
-    </div>
-
     <div class="card">
         <div class="card-header">
             <h5 class="card-title mb-0">Create New Tag</h5>
         </div>
         <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <form asp-action="Create" method="post">
-                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-                        <div class="form-group mb-3">
-                            <label asp-for="Name" class="form-label"></label>
-                            <input asp-for="Name" class="form-control" placeholder="Enter tag name" />
-                            <span asp-validation-for="Name" class="text-danger"></span>
-                        </div>
-
-                        <div class="form-group">
-                            <button type="submit" class="btn btn-primary">Create Tag</button>
-                            <a href="@Url.Action("Index", "Tag", new { area = "Admin" })" class="btn btn-outline-secondary">Cancel</a>
-                        </div>
-                    </form>
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+            }
+            
+            <form method="post" action="/Admin/Tag/Create">
+                <div class="mb-3">
+                    <label for="Name">Tag Name:</label>
+                    <input type="text" id="Name" name="Name" class="form-control" value="@Model.Name" required />
+                    <span asp-validation-for="Name" class="text-danger"></span>
                 </div>
-            </div>
+                <button type="submit" class="btn btn-primary">Create Tag</button>
+                <a href="/Admin/Tag" class="btn btn-secondary">Cancel</a>
+            </form>
         </div>
     </div>
 </div>
-
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}

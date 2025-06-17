@@ -13,61 +13,177 @@
         </div>
     </div>
 
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
     <div class="card">
         <div class="card-header">
-            <h5 class="card-title mb-0">Create New Post</h5>
+            <h5 class="card-title mb-0">
+                <i class="bi bi-file-earmark-plus"></i> Create New Post
+            </h5>
         </div>
         <div class="card-body">
-            <form asp-action="Create" method="post">
+            <form asp-area="Admin" asp-controller="Post" asp-action="Create" method="post">
                 @Html.AntiForgeryToken()
-                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                <!-- Only show validation summary if there are actual errors -->
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                }
 
-                <div class="mb-3">
-                    <label asp-for="Title" class="form-label"></label>
-                    <input asp-for="Title" class="form-control" placeholder="Enter post title" />
-                    <span asp-validation-for="Title" class="text-danger"></span>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label asp-for="CategoryId" class="form-label"></label>
-                            <select asp-for="CategoryId" class="form-select category-select" asp-items="@(new SelectList(Model.AvailableCategories, "Value", "Text"))">
-                                <option value="">-- Select Category --</option>
-                            </select>
-                            <span asp-validation-for="CategoryId" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label asp-for="SelectedTagIds" class="form-label"></label>
-                            <select asp-for="SelectedTagIds" class="form-select tag-select" multiple asp-items="@(new SelectList(Model.AvailableTags, "Value", "Text"))">
-                                @* The asp-items will populate this, no need for a default empty option for multi-select unless desired *@
-                            </select>
-                            <span asp-validation-for="SelectedTagIds" class="text-danger"></span>
-                            <small class="form-text text-muted">Hold Ctrl (or Command on Mac) to select multiple tags.</small>
+                <!-- Title Section -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="form-floating">
+                            <input name="Title" class="form-control" id="titleInput" placeholder="Enter post title" value="@Model.Title" required />
+                            <label for="titleInput" class="form-label">
+                                <i class="bi bi-card-heading me-1"></i>Post Title *
+                            </label>
+                            <span asp-validation-for="Title" class="text-danger"></span>
                         </div>
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <label asp-for="Content" class="form-label"></label>
-                    <textarea asp-for="Content" class="form-control" rows="10" id="postEditor" placeholder="Write your post content here..."></textarea>
-                    <span asp-validation-for="Content" class="text-danger"></span>
+                <!-- Category and Tags Section -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card border-light">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-folder me-1"></i>Category
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <select name="CategoryId" class="form-select" id="categorySelect">
+                                    <option value="">-- Select Category (Optional) --</option>
+                                    @if (Model.AvailableCategories?.Any() == true)
+                                    {
+                                        @foreach (var category in Model.AvailableCategories)
+                                        {
+                                            <option value="@category.Value" @(Model.CategoryId?.ToString() == category.Value ? "selected" : "")>@category.Text</option>
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="CategoryId" class="text-danger"></span>
+                                @if (Model.AvailableCategories?.Any() != true)
+                                {
+                                    <small class="text-muted">
+                                        No categories available.
+                                        <a asp-controller="Category" asp-action="Create" asp-area="Admin" target="_blank">Create one</a>
+                                    </small>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-light">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-tags me-1"></i>Tags
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                @if (Model.AvailableTags?.Any() == true)
+                                {
+                                    <div class="tag-selection-container" style="max-height: 150px; overflow-y: auto;">
+                                        @foreach (var tag in Model.AvailableTags)
+                                        {
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox"
+                                                       name="SelectedTagIds" value="@tag.Value"
+                                                       id="tag_@tag.Value"
+                                                       @(Model.SelectedTagIds.Contains(int.Parse(tag.Value)) ? "checked" : "") />
+                                                <label class="form-check-label" for="tag_@tag.Value">
+                                                    @tag.Text
+                                                </label>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <small class="text-muted">
+                                        No tags available.
+                                        <a asp-controller="Tag" asp-action="Create" asp-area="Admin" target="_blank">Create some tags</a>
+                                    </small>
+                                }
+                                <span asp-validation-for="SelectedTagIds" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="mb-3 form-check">
-                    <input asp-for="PublishNow" class="form-check-input" />
-                    <label asp-for="PublishNow" class="form-check-label"></label>
+                <!-- Content Section -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card border-light">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-file-earmark-text me-1"></i>Post Content
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <textarea name="Content" class="form-control" rows="12"
+                                          placeholder="Write your post content here. You can use HTML formatting.">@Model.Content</textarea>
+                                <span asp-validation-for="Content" class="text-danger"></span>
+                                <small class="form-text text-muted mt-1">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Basic HTML tags are supported and will be sanitized for security.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="mt-4">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save"></i> Save Post
-                    </button>
-                    <a asp-action="Index" asp-controller="Post" asp-area="Admin" class="btn btn-outline-secondary ms-2">
-                        Cancel
-                    </a>
+                <!-- Publishing Options -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card border-light">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-gear me-1"></i>Publishing Options
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-check form-switch">
+                                    <input name="PublishNow" class="form-check-input" type="checkbox" id="publishSwitch" @(Model.PublishNow ? "checked" : "") />
+                                    <label class="form-check-label" for="publishSwitch">
+                                        <strong>Publish immediately</strong>
+                                        <br>
+                                        <small class="text-muted">If unchecked, the post will be saved as a draft</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a href="/Admin/Post" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="savePostBtn">
+                                <i class="bi bi-save me-1"></i>
+                                <span id="saveButtonText">Save Post</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -76,5 +192,5 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-    <script src="~/js/post-editor.js" asp-append-version="true"></script>
+    <script src="~/js/post-create.js" asp-append-version="true"></script>
 }
