@@ -56,44 +56,66 @@ public class PostController : Controller
 
     public async Task<IActionResult> Create()
     {
-        var viewModel = new CreatePostViewModel
+        try
         {
-            AvailableTags = await _tagService.GetAvailableTagsAsync(),
-            AvailableCategories = await _categoryService.GetAvailableCategoriesAsync()
-        };
-        return View(viewModel);
+            var viewModel = new CreatePostViewModel
+            {
+                AvailableTags = await _tagService.GetAvailableTagsAsync(),
+                AvailableCategories = await _categoryService.GetAvailableCategoriesAsync()
+            };
+
+            _logger.LogInformation("Create GET - Loaded {TagCount} tags and {CategoryCount} categories",
+                viewModel.AvailableTags.Count, viewModel.AvailableCategories.Count);
+
+            return View(viewModel);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading create post page");
+            TempData["ErrorMessage"] = "Error loading the create post page. Please try again.";
+            return RedirectToAction(nameof(Index));
+        }
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CreatePostViewModel viewModel)
     {
-        if (ModelState.IsValid)
+        _logger.LogInformation("Create POST action initiated.");
+        if (!ModelState.IsValid)
         {
-            var currentUser = await _userManager.GetUserAsync(User);
-            if (currentUser == null)
+            _logger.LogWarning("ModelState is invalid. Returning view with validation errors.");
+            foreach (var modelState in ViewData.ModelState.Values)
             {
-                ModelState.AddModelError("", "Unable to identify current user. Please log in again");
-                viewModel.AvailableTags = await _tagService.GetAvailableTagsAsync();
-                viewModel.AvailableCategories = await _categoryService.GetAvailableCategoriesAsync();
-                return View(viewModel);
+                foreach (var error in modelState.Errors)
+                {
+                    _logger.LogWarning("Validation Error: {ErrorMessage}", error.ErrorMessage);
+                }
             }
-            try
-            {
-                await _postService.CreatePostAsync(viewModel, currentUser.Id);
-                TempData["SuccessMessage"] = "Post created successfully.";
-                return RedirectToAction(nameof(Index));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating post for user {UserId}, ViewModel: {@ViewModel}", currentUser.Id, viewModel);
-                ModelState.AddModelError("", $"An unexpected error occurred while creating the post. Please try again.");
-            }
+            
+            viewModel.AvailableTags = await _tagService.GetAvailableTagsAsync();
+            viewModel.AvailableCategories = await _categoryService.GetAvailableCategoriesAsync();
+            return View(viewModel);
         }
 
-        viewModel.AvailableTags = await _tagService.GetAvailableTagsAsync();
-        viewModel.AvailableCategories = await _categoryService.GetAvailableCategoriesAsync();
-        return View(viewModel);
+        try
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var createdPost = await _postService.CreatePostAsync(viewModel, currentUser.Id);
+
+            TempData["SuccessMessage"] = $"Post '{createdPost.Title}' created successfully.";
+            _logger.LogInformation("Post created successfully with ID {PostId}", createdPost.Id);
+            return RedirectToAction(nameof(Index));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while creating the post.");
+            TempData["ErrorMessage"] = "An unexpected error occurred. Please try again.";
+            
+            viewModel.AvailableTags = await _tagService.GetAvailableTagsAsync();
+            viewModel.AvailableCategories = await _categoryService.GetAvailableCategoriesAsync();
+            return View(viewModel);
+        }
     }
 
     public async Task<IActionResult> Edit(int? id)
@@ -126,6 +148,7 @@ public class PostController : Controller
             try
             {
                 await _postService.UpdatePostAsync(id, viewModel);
+                TempData["SuccessMessage"] = "Post updated successfully.";
             }
             catch (KeyNotFoundException)
             {
@@ -159,21 +182,72 @@ public class PostController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
-        await _postService.DeletePostAsync(id);
-        return RedirectToAction(nameof(Index));
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> SoftDelete(int id)
-    {
         try
         {
-            await _postService.SoftDeletePostAsync(id);
+            await _postService.DeletePostAsync(id);
+            TempData["SuccessMessage"] = "Post deleted successfully.";
         }
         catch (KeyNotFoundException)
         {
-            return NotFound();
+            TempData["ErrorMessage"] = "Post not found.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting post with ID {PostId}", id);
+            TempData["ErrorMessage"] = "Error deleting post. Please try again.";
+        }
+        return RedirectToAction(nameof(Index));
+    }
+
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> SoftDelete(int id)
+{
+    try
+    {
+        var post = await _postService.GetPostByIdAsync(id, includeUnpublished: true);
+        if (post == null)
+        {
+            TempData["ErrorMessage"] = "Post not found.";
+            return RedirectToAction(nameof(Index));
+        }
+        
+        var postTitle = post.Title;
+        
+        await _postService.SoftDeletePostAsync(id);
+
+        TempData["SuccessMessage"] = $"Post '{postTitle}' moved to trash successfully.";
+        _logger.LogInformation("Post '{PostTitle}' (ID: {PostId}) soft deleted successfully", postTitle, id);
+    }
+    catch (KeyNotFoundException)
+    {
+        TempData["ErrorMessage"] = "Post not found.";
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error soft deleting post with ID {PostId}", id);
+        TempData["ErrorMessage"] = "Error moving post to trash. Please try again.";
+    }
+    return RedirectToAction(nameof(Index));
+}
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Restore(int id)
+    {
+        try
+        {
+            await _postService.RestorePostAsync(id);
+            TempData["SuccessMessage"] = "Post restored successfully.";
+        }
+        catch (KeyNotFoundException)
+        {
+            TempData["ErrorMessage"] = "Post not found.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error restoring post with ID {PostId}", id);
+            TempData["ErrorMessage"] = "Error restoring post. Please try again.";
         }
         return RedirectToAction(nameof(Index));
     }
@@ -185,6 +259,7 @@ public class PostController : Controller
         try
         {
             await _postService.PublishPostAsync(id);
+            TempData["SuccessMessage"] = "Post published successfully.";
         }
         catch (KeyNotFoundException)
         {
@@ -200,6 +275,7 @@ public class PostController : Controller
         try
         {
             await _postService.UnpublishPostAsync(id);
+            TempData["SuccessMessage"] = "Post unpublished successfully.";
         }
         catch (KeyNotFoundException)
         {
