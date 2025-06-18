@@ -5,9 +5,23 @@
 }
 
 <div class="container-fluid">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3">All Posts</h1>
-        <a href="/Admin/Post/Create" class="btn btn-primary">
+        <a asp-area="Admin" asp-controller="Post" asp-action="Create" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> Create New Post
         </a>
     </div>
@@ -58,14 +72,22 @@
                         {
                             @foreach (var post in Model.Posts)
                             {
-                                <tr>
+                                <tr class="@(post.IsDeleted ? "table-secondary text-muted" : "")">
                                     <td>
                                         <a asp-action="Edit" asp-route-id="@post.Id">@post.Title</a>
+                                        @if (post.IsDeleted)
+                                        {
+                                            <small>(in trash)</small>
+                                        }
                                     </td>
                                     <td>@post.AuthorName</td>
                                     <td>@post.CreatedAt.ToString("yyyy-MM-dd")</td>
                                     <td>
-                                        @if (post.IsPublished)
+                                        @if (post.IsDeleted)
+                                        {
+                                            <span class="badge bg-danger">In Trash</span>
+                                        }
+                                        else if (post.IsPublished)
                                         {
                                             <span class="badge bg-success">Published</span>
                                         }
@@ -86,37 +108,64 @@
                                                 title="Edit">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
-                                            <a asp-action="Details" asp-route-id="@post.Id" class="btn btn-sm btn-outline-info"
-                                                title="View">
-                                                <i class="bi bi-eye"></i>
-                                            </a>
-                                            @if (post.IsPublished)
+                                            @if (post.IsDeleted)
                                             {
-                                                <form asp-action="Unpublish" asp-route-id="@post.Id" method="post"
-                                                    style="display:inline;" class="unpublish-form">
+                                                <form method="post" action="@Url.Action("Restore", "Post", new { id = post.Id })"
+                                                    style="display:inline;">
                                                     @Html.AntiForgeryToken()
-                                                    <button type="submit" class="btn btn-sm btn-outline-warning" title="Unpublish">
-                                                        <i class="bi bi-file-earmark-minus"></i>
+                                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Restore"
+                                                        onclick="return confirm('Are you sure you want to restore the post: @post.Title?');">
+                                                        <i class="bi bi-arrow-clockwise"></i>
+                                                    </button>
+                                                </form>
+                                                <form method="post"
+                                                    action="@Url.Action("DeleteConfirmed", "Post", new { id = post.Id })"
+                                                    style="display:inline;">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-sm btn-danger" title="Delete Permanently"
+                                                        onclick="return confirm('PERMANENTLY DELETE the post: @post.Title? This cannot be undone.');">
+                                                        <i class="bi bi-trash-fill"></i>
                                                     </button>
                                                 </form>
                                             }
                                             else
                                             {
-                                                <form asp-action="Publish" asp-route-id="@post.Id" method="post"
-                                                    style="display:inline;" class="publish-form">
+                                                <a asp-action="Details" asp-route-id="@post.Id" class="btn btn-sm btn-outline-info"
+                                                    title="View">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                @if (post.IsPublished)
+                                                {
+                                                    <form method="post" action="@Url.Action("Unpublish", "Post", new { id = post.Id })"
+                                                        style="display:inline;">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn btn-sm btn-outline-warning" title="Unpublish"
+                                                            onclick="return confirm('Are you sure you want to unpublish the post: @post.Title?');">
+                                                            <i class="bi bi-file-earmark-minus"></i>
+                                                        </button>
+                                                    </form>
+                                                }
+                                                else
+                                                {
+                                                    <form method="post" action="@Url.Action("Publish", "Post", new { id = post.Id })"
+                                                        style="display:inline;">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn btn-sm btn-outline-success" title="Publish"
+                                                            onclick="return confirm('Are you sure you want to publish the post: @post.Title?');">
+                                                            <i class="bi bi-file-earmark-check"></i>
+                                                        </button>
+                                                    </form>
+                                                }
+                                                <form method="post" action="@Url.Action("SoftDelete", "Post", new { id = post.Id })"
+                                                    style="display:inline;">
                                                     @Html.AntiForgeryToken()
-                                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Publish">
-                                                        <i class="bi bi-file-earmark-check"></i>
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                        title="Move to trash"
+                                                        onclick="return confirm('Are you sure you want to move the post to trash: @post.Title?');">
+                                                        <i class="bi bi-trash"></i>
                                                     </button>
                                                 </form>
                                             }
-                                            <form asp-action="Delete" asp-route-id="@post.Id" method="post"
-                                                style="display:inline;" class="delete-form" data-post-title="@post.Title">
-                                                @Html.AntiForgeryToken()
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </form>
                                         </div>
                                     </td>
                                 </tr>
@@ -139,8 +188,8 @@
                     <nav>
                         <ul class="pagination">
                             @{
-                                int totalPages = (int)Math.Ceiling(Model.TotalPosts / (double)Model.PageSize);
-                                for (int i = 1; i <= totalPages; i++)
+                                var totalPages = (int)Math.Ceiling(Model.TotalPosts / (double)Model.PageSize);
+                                for (var i = 1; i <= totalPages; i++)
                                 {
                                     <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
                                         <a class="page-link" asp-action="Index" asp-route-page="@i"
@@ -156,7 +205,3 @@
         </div>
     </div>
 </div>
-
-@section Scripts {
-    <script src="~/js/post-list.js" asp-append-version="true"></script>
-}
