@@ -70,6 +70,7 @@ public class PostRepository : IPostRepository
     public async Task<Post> GetPostWithDetailsAsync(int id)
     {
         var post = await _context.Posts
+        .IgnoreQueryFilters()
         .Include(p => p.Author)
         .Include(p => p.Category)
         .Include(p => p.PostTags)
@@ -82,6 +83,7 @@ public class PostRepository : IPostRepository
     public async Task<IEnumerable<Post>> GetPostsWithFiltersAsync(string? searchTerm, string? tagFilter, bool? publishedOnly, int skip, int take)
     {
         var postsQuery = _context.Posts
+            .IgnoreQueryFilters()
             .Include(p => p.Author)
             .Include(p => p.PostTags)
             .ThenInclude(pt => pt.Tag)
@@ -111,7 +113,7 @@ public class PostRepository : IPostRepository
 
     public async Task<int> CountPostsWithFiltersAsync(string? searchTerm, string? tagFilter, bool? publishedOnly)
     {
-        var postsQuery = _context.Posts.AsQueryable();
+        var postsQuery = _context.Posts.IgnoreQueryFilters().AsQueryable();
 
         if (!string.IsNullOrEmpty(searchTerm))
         {
