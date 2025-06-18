@@ -78,6 +78,7 @@ public class PostService : IPostService
             Title = p.Title,
             CreatedAt = p.CreatedAt,
             IsPublished = p.IsPublished,
+            IsDeleted = p.IsDeleted,
             AuthorName = p.Author!.DisplayName ?? p.Author.UserName ?? "Unknown",
             Tags = p.PostTags.Select(pt => pt.Tag!.Name).ToList()
         }).ToList();
@@ -176,7 +177,7 @@ public class PostService : IPostService
         };
 
         post.Slug = await EnsureUniqueSlugAsync(post.Slug);
-        
+
         await _postRepository.AddAsync(post);
         await _postRepository.SaveChangesAsync();
 
@@ -189,10 +190,10 @@ public class PostService : IPostService
 
         if (any != true) return post;
         foreach (var postTag in viewModel.SelectedTagIds.Select(tagId => new PostTag
-                 {
-                     PostId = post.Id,
-                     TagId = tagId
-                 }))
+        {
+            PostId = post.Id,
+            TagId = tagId
+        }))
         {
             await _postRepository.AddPostTagAsync(postTag);
         }
@@ -304,23 +305,23 @@ public class PostService : IPostService
         await _postRepository.SaveChangesAsync();
     }
 
-    public async Task SoftDeletePostAsync(int id)
-    {
-        var post = await _postRepository.GetByIdAsync(id);
+public async Task SoftDeletePostAsync(int id)
+{
+    var post = await _postRepository.GetPostWithDetailsAsync(id);
 
-        if (post == null)
-            throw new KeyNotFoundException($"Post with ID {id} not found");
+    if (post == null)
+        throw new KeyNotFoundException($"Post with ID {id} not found");
 
-        post.IsDeleted = true;
-        post.DeletedAt = DateTime.UtcNow;
+    post.IsDeleted = true;
+    post.DeletedAt = DateTime.UtcNow;
 
-        await _postRepository.UpdateAsync(post);
-        await _postRepository.SaveChangesAsync();
-    }
+    await _postRepository.UpdateAsync(post);
+    await _postRepository.SaveChangesAsync();
+}
 
     public async Task RestorePostAsync(int id)
     {
-        var post = await _postRepository.GetByIdAsync(id);
+        var post = await _postRepository.GetPostWithDetailsAsync(id);
 
         if (post == null)
             throw new KeyNotFoundException($"Post with ID {id} not found");
