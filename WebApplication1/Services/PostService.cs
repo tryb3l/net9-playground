@@ -124,8 +124,10 @@ public class PostService : IPostService
             IsPublished = post.IsPublished,
             PublishedDate = post.PublishedDate,
             CreatedAt = post.CreatedAt,
+            CategoryId = post.CategoryId,
             SelectedTagIds = post.PostTags.Select(pt => pt.TagId).ToList(),
-            AvailableTags = await GetAvailableTagsAsync()
+            AvailableTags = await GetAvailableTagsAsync(),
+            AvailableCategories = (await _categoryRepository.GetAllAsync()).Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Name }).ToList()
         };
     }
 
@@ -214,11 +216,19 @@ public class PostService : IPostService
 
         post.Title = viewModel.Title;
         post.Content = SanitizeContent(viewModel.Content);
+        post.CategoryId = viewModel.CategoryId;
+
+        if (post.IsDeleted)
+        {
+            post.IsDeleted = false;
+            post.DeletedAt = null;
+        }
 
         if (!post.IsPublished && viewModel.IsPublished)
         {
             post.PublishedDate = DateTime.UtcNow;
         }
+
         post.IsPublished = viewModel.IsPublished;
 
         await _postRepository.DeletePostTagsAsync(post.PostTags);
@@ -305,19 +315,19 @@ public class PostService : IPostService
         await _postRepository.SaveChangesAsync();
     }
 
-public async Task SoftDeletePostAsync(int id)
-{
-    var post = await _postRepository.GetPostWithDetailsAsync(id);
+    public async Task SoftDeletePostAsync(int id)
+    {
+        var post = await _postRepository.GetPostWithDetailsAsync(id);
 
-    if (post == null)
-        throw new KeyNotFoundException($"Post with ID {id} not found");
+        if (post == null)
+            throw new KeyNotFoundException($"Post with ID {id} not found");
 
-    post.IsDeleted = true;
-    post.DeletedAt = DateTime.UtcNow;
+        post.IsDeleted = true;
+        post.DeletedAt = DateTime.UtcNow;
 
-    await _postRepository.UpdateAsync(post);
-    await _postRepository.SaveChangesAsync();
-}
+        await _postRepository.UpdateAsync(post);
+        await _postRepository.SaveChangesAsync();
+    }
 
     public async Task RestorePostAsync(int id)
     {
