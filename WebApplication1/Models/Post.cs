@@ -17,6 +17,6 @@ public class Post : ISoftDelete
     public string? AuthorId { get; init; }
     public User? Author { get; init; }
     public ICollection<PostTag> PostTags { get; init; } = new List<PostTag>();
-    public int? CategoryId { get; init; }
+    public int? CategoryId { get; set; }
     public Category? Category { get; init; }
 }
