@@ -29,7 +29,7 @@
                     <!-- Dashboard -->
                     <li class="nav-item">
                         <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Admin" ? "active" : "")"
-                            asp-area="Admin" asp-controller="Admin" asp-action="Index">
+                            href="@Url.Action("Index", "Admin", new { area = "Admin" })">
                             <i class="bi bi-house-door"></i>
                             <span>Dashboard</span>
                         </a>
@@ -179,6 +179,13 @@
             </div>
         </div>
     </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; @DateTime.Now.Year - WebApplication1 - <a asp-area="" asp-controller="Home"
+                asp-action="Privacy">Privacy</a>
+        </div>
+    </footer>
 
     @if (TempData["SuccessMessage"] != null)
     {
