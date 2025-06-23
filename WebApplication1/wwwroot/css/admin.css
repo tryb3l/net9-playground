@@ -69,8 +69,8 @@ body.admin-body {
     background-color: rgba(0, 0, 0, 0.1);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     flex-shrink: 0;
 }
 
@@ -110,6 +110,7 @@ body.admin-body {
     align-items: center;
     white-space: nowrap;
     text-decoration: none;
+    cursor: pointer;
 }
 
 .sidebar .nav-link:hover {
@@ -176,8 +177,8 @@ body.admin-body {
 
 
 /* === 4. MOBILE RESPONSIVE STYLES === */
-@media (max-width: 767.98px) {
 
+@media (max-width: 767.98px) {
     .sidebar {
         position: fixed;
         left: -250px;

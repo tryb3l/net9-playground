@@ -53,6 +53,31 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    document.addEventListener('DOMContentLoaded', function () {
+        // Force sub-menu links to navigate
+        document.querySelectorAll('.submenu .nav-link').forEach(function (link) {
+            link.addEventListener('click', function (e) {
+                const url = this.getAttribute('href');
+                if (url && url !== '#') {
+                    e.stopPropagation();
+                    window.location.href = url;
+                }
+            });
+        });
+
+        // Force "Back to Site" link
+        const backToSiteLink = document.querySelector('.nav-item:last-child .nav-link');
+        if (backToSiteLink) {
+            backToSiteLink.addEventListener('click', function (e) {
+                const url = this.getAttribute('href');
+                if (url) {
+                    e.stopPropagation();
+                    window.location.href = url;
+                }
+            });
+        }
+    });
+
     const currentController = document.querySelector('.nav-link.active');
     if (currentController && currentController.classList.contains('has-submenu')) {
         const submenuId = currentController.getAttribute('href');
