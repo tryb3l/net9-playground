@@ -37,25 +37,26 @@
 
                     <!-- Posts Menu with Sub-items -->
                     <li class="nav-item">
-                        <a class="nav-link has-submenu @(ViewContext.RouteData.Values["controller"]?.ToString() == "Post" ? "active" : "")"
-                            href="#postsSubmenu" data-bs-toggle="collapse" aria-expanded="false">
-                            <i class="bi bi-file-earmark-text"></i>
-                            <span>Posts</span>
-                            <i class="bi bi-chevron-down toggle-icon ms-auto"></i>
-                        </a>
+                        <div class="nav-link has-submenu d-flex justify-content-between align-items-center @(ViewContext.RouteData.Values["controller"]?.ToString() == "Post" ? "active" : "")"
+                            data-bs-toggle="collapse" data-bs-target="#postsSubmenu" role="button" aria-expanded="false"
+                            aria-controls="postsSubmenu">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-file-earmark-text"></i>
+                                <span>Posts</span>
+                            </div>
+                            <i class="bi bi-chevron-down toggle-icon"></i>
+                        </div>
                         <div class="collapse @(ViewContext.RouteData.Values["controller"]?.ToString() == "Post" ? "show" : "")"
                             id="postsSubmenu">
                             <ul class="nav submenu">
                                 <li class="nav-item">
-                                    <a class="nav-link d-flex align-items-center" asp-area="Admin" asp-controller="Post"
-                                        asp-action="Index">
+                                    <a class="nav-link" asp-area="Admin" asp-controller="Post" asp-action="Index">
                                         <i class="bi bi-list"></i>
                                         <span>All Posts</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link d-flex align-items-center" asp-area="Admin" asp-controller="Post"
-                                        asp-action="Create">
+                                    <a class="nav-link" asp-area="Admin" asp-controller="Post" asp-action="Create">
                                         <i class="bi bi-plus-circle"></i>
                                         <span>Add New</span>
                                     </a>
@@ -66,25 +67,26 @@
 
                     <!-- Categories -->
                     <li class="nav-item">
-                        <a class="nav-link has-submenu @(ViewContext.RouteData.Values["controller"]?.ToString() == "Category" ? "active" : "")"
-                            href="#categoriesSubmenu" data-bs-toggle="collapse" aria-expanded="false">
-                            <i class="bi bi-folder"></i>
-                            <span>Categories</span>
-                            <i class="bi bi-chevron-down toggle-icon ms-auto"></i>
-                        </a>
+                        <div class="nav-link has-submenu d-flex justify-content-between align-items-center @(ViewContext.RouteData.Values["controller"]?.ToString() == "Category" ? "active" : "")"
+                            data-bs-toggle="collapse" data-bs-target="#categoriesSubmenu" role="button"
+                            aria-expanded="false" aria-controls="categoriesSubmenu">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-folder"></i>
+                                <span>Categories</span>
+                            </div>
+                            <i class="bi bi-chevron-down toggle-icon"></i>
+                        </div>
                         <div class="collapse @(ViewContext.RouteData.Values["controller"]?.ToString() == "Category" ? "show" : "")"
                             id="categoriesSubmenu">
                             <ul class="nav submenu">
                                 <li class="nav-item">
-                                    <a class="nav-link d-flex align-items-center" asp-area="Admin"
-                                        asp-controller="Category" asp-action="Index">
+                                    <a class="nav-link" asp-area="Admin" asp-controller="Category" asp-action="Index">
                                         <i class="bi bi-list"></i>
                                         <span>All Categories</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link d-flex align-items-center" asp-area="Admin"
-                                        asp-controller="Category" asp-action="Create">
+                                    <a class="nav-link" asp-area="Admin" asp-controller="Category" asp-action="Create">
                                         <i class="bi bi-plus-circle"></i>
                                         <span>Add New</span>
                                     </a>
@@ -95,25 +97,26 @@
 
                     <!-- Tags -->
                     <li class="nav-item">
-                        <a class="nav-link has-submenu @(ViewContext.RouteData.Values["controller"]?.ToString() == "Tag" ? "active" : "")"
-                            href="#tagsSubmenu" data-bs-toggle="collapse" aria-expanded="false">
-                            <i class="bi bi-tags"></i>
-                            <span>Tags</span>
-                            <i class="bi bi-chevron-down toggle-icon ms-auto"></i>
-                        </a>
+                        <div class="nav-link has-submenu d-flex justify-content-between align-items-center @(ViewContext.RouteData.Values["controller"]?.ToString() == "Tag" ? "active" : "")"
+                            data-bs-toggle="collapse" data-bs-target="#tagsSubmenu" role="button" aria-expanded="false"
+                            aria-controls="tagsSubmenu">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-tags"></i>
+                                <span>Tags</span>
+                            </div>
+                            <i class="bi bi-chevron-down toggle-icon"></i>
+                        </div>
                         <div class="collapse @(ViewContext.RouteData.Values["controller"]?.ToString() == "Tag" ? "show" : "")"
                             id="tagsSubmenu">
                             <ul class="nav submenu">
                                 <li class="nav-item">
-                                    <a class="nav-link d-flex align-items-center" asp-area="Admin" asp-controller="Tag"
-                                        asp-action="Index">
+                                    <a class="nav-link" asp-area="Admin" asp-controller="Tag" asp-action="Index">
                                         <i class="bi bi-list"></i>
                                         <span>All Tags</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link d-flex align-items-center" asp-area="Admin" asp-controller="Tag"
-                                        asp-action="Create">
+                                    <a class="nav-link" asp-area="Admin" asp-controller="Tag" asp-action="Create">
                                         <i class="bi bi-plus-circle"></i>
                                         <span>Add New</span>
                                     </a>
@@ -122,14 +125,12 @@
                         </div>
                     </li>
 
-
                     <!-- Divider -->
                     <li class="nav-divider"></li>
 
                     <!-- Back to Site -->
                     <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center" asp-area="" asp-controller="Home"
-                            asp-action="Index">
+                        <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">
                             <i class="bi bi-arrow-left-circle me-2"></i>
                             <span>Back to Site</span>
                         </a>
@@ -143,7 +144,6 @@
             <!-- Top Navbar -->
             <nav class="navbar navbar-expand admin-navbar">
                 <div class="container-fluid">
-                    <!-- Mobile Toggle Button -->
                     <button id="mobileSidebarToggle" class="navbar-toggler d-md-none" type="button">
                         <i class="bi bi-list"></i>
                     </button>
@@ -155,8 +155,6 @@
                             </button>
                         </div>
                     </form>
-
-                    <!-- Right Side Nav Items -->
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item">
                             <partial name="_LoginPartial" />
@@ -167,9 +165,6 @@
 
             <!-- Page Content -->
             <div class="content-area p-3 p-md-4">
-                <div class="content-header mb-4">
-                    <h1 class="h2">@ViewData["Title"]</h1>
-                </div>
                 @RenderBody()
             </div>
         </div>
@@ -177,8 +172,8 @@
 
     <footer class="border-top footer text-muted mt-auto py-3 bg-light">
         <div class="container-fluid">
-            &copy; @DateTime.Now.Year - WebApplication1 - <a asp-area="" asp-controller="Home"
-                asp-action="Privacy">Privacy</a>
+            &copy; @DateTime.Now.Year - WebApplication1 -
+            <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
         </div>
     </footer>
 
