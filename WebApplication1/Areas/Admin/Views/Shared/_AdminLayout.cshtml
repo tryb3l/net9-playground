@@ -12,8 +12,8 @@
     <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
 </head>
 
-<body>
-    <div class="admin-container d-flex">
+<body class="admin-body d-flex flex-column min-vh-100">
+    <div class="admin-container d-flex flex-grow-1">
         <!-- Sidebar -->
         <div id="adminSidebar" class="sidebar">
             <div class="sidebar-header d-flex align-items-center justify-content-between">
@@ -29,7 +29,7 @@
                     <!-- Dashboard -->
                     <li class="nav-item">
                         <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Admin" ? "active" : "")"
-                            href="@Url.Action("Index", "Admin", new { area = "Admin" })">
+                            asp-area="Admin" asp-controller="Admin" asp-action="Index">
                             <i class="bi bi-house-door"></i>
                             <span>Dashboard</span>
                         </a>
@@ -47,17 +47,15 @@
                             id="postsSubmenu">
                             <ul class="nav submenu">
                                 <li class="nav-item">
-                                    <a class="nav-link d-flex align-items-center"
-                                        href="@Url.Action("Index", "Post", new { area = "Admin" })"
-                                        onclick="window.location='@Url.Action("Index", "Post", new { area = "Admin" })'; return false;">
+                                    <a class="nav-link d-flex align-items-center" asp-area="Admin" asp-controller="Post"
+                                        asp-action="Index">
                                         <i class="bi bi-list"></i>
                                         <span>All Posts</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link d-flex align-items-center"
-                                        href="@Url.Action("Create", "Post", new { area = "Admin" })"
-                                        onclick="window.location='@Url.Action("Create", "Post", new { area = "Admin" })'; return false;">
+                                    <a class="nav-link d-flex align-items-center" asp-area="Admin" asp-controller="Post"
+                                        asp-action="Create">
                                         <i class="bi bi-plus-circle"></i>
                                         <span>Add New</span>
                                     </a>
@@ -78,17 +76,15 @@
                             id="categoriesSubmenu">
                             <ul class="nav submenu">
                                 <li class="nav-item">
-                                    <a class="nav-link d-flex align-items-center"
-                                        href="@Url.Action("Index", "Category", new { area = "Admin" })"
-                                        onclick="window.location='@Url.Action("Index", "Category", new { area = "Admin" })'; return false;">
+                                    <a class="nav-link d-flex align-items-center" asp-area="Admin"
+                                        asp-controller="Category" asp-action="Index">
                                         <i class="bi bi-list"></i>
                                         <span>All Categories</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link d-flex align-items-center"
-                                        href="@Url.Action("Create", "Category", new { area = "Admin" })"
-                                        onclick="window.location='@Url.Action("Create", "Category", new { area = "Admin" })'; return false;">
+                                    <a class="nav-link d-flex align-items-center" asp-area="Admin"
+                                        asp-controller="Category" asp-action="Create">
                                         <i class="bi bi-plus-circle"></i>
                                         <span>Add New</span>
                                     </a>
@@ -109,15 +105,15 @@
                             id="tagsSubmenu">
                             <ul class="nav submenu">
                                 <li class="nav-item">
-                                    <a class="nav-link d-flex align-items-center"
-                                        href="@Url.Action("Index", "Tag", new { area = "Admin" })">
+                                    <a class="nav-link d-flex align-items-center" asp-area="Admin" asp-controller="Tag"
+                                        asp-action="Index">
                                         <i class="bi bi-list"></i>
                                         <span>All Tags</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link d-flex align-items-center"
-                                        href="@Url.Action("Create", "Tag", new { area = "Admin" })">
+                                    <a class="nav-link d-flex align-items-center" asp-area="Admin" asp-controller="Tag"
+                                        asp-action="Create">
                                         <i class="bi bi-plus-circle"></i>
                                         <span>Add New</span>
                                     </a>
@@ -132,9 +128,8 @@
 
                     <!-- Back to Site -->
                     <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center"
-                            href="@Url.Action("Index", "Home", new { area = "" })"
-                            onclick="window.location='@Url.Action("Index", "Home", new { area = "" })'; return false;">
+                        <a class="nav-link d-flex align-items-center" asp-area="" asp-controller="Home"
+                            asp-action="Index">
                             <i class="bi bi-arrow-left-circle me-2"></i>
                             <span>Back to Site</span>
                         </a>
@@ -180,8 +175,8 @@
         </div>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
+    <footer class="border-top footer text-muted mt-auto py-3 bg-light">
+        <div class="container-fluid">
             &copy; @DateTime.Now.Year - WebApplication1 - <a asp-area="" asp-controller="Home"
                 asp-action="Privacy">Privacy</a>
         </div>

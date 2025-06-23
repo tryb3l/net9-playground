@@ -1,7 +1,6 @@
 ﻿@model WebApplication1.Areas.Admin.ViewModels.Post.PostListViewModel
 @{
     ViewData["Title"] = "Manage Posts";
-    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 }
 
 <div class="container-fluid">
@@ -21,9 +20,7 @@
     }
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3">All Posts</h1>
-        <a href="@Url.Action("Create", "Post", new { area = "Admin" })"
-            onclick="window.location='@Url.Action("Create", "Post", new { area = "Admin" })'; return false;"
-            class="btn btn-primary">
+        <a asp-action="Create" asp-controller="Post" asp-area="Admin" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> Create New Post
         </a>
     </div>
@@ -36,12 +33,12 @@
             <form method="get" class="row g-3">
                 <div class="col-md-5">
                     <input type="text" name="searchTerm" class="form-control"
-                        placeholder="Search by title or content..." value="@Model.SearchTerm">
+                           placeholder="Search by title or content..." value="@Model.SearchTerm">
                 </div>
                 <div class="col-md-3">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="publishedOnly" name="publishedOnly"
-                            value="true" @(Model.ShowPublishedOnly ? "checked" : "")>
+                               value="true" @(Model.ShowPublishedOnly ? "checked" : "")>
                         <label class="form-check-label" for="publishedOnly">
                             Published posts only
                         </label>
@@ -49,7 +46,7 @@
                 </div>
                 <div class="col-md-4">
                     <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
-                    <a href="@Url.Action("Index", "Post")" class="btn btn-outline-secondary">Reset</a>
+                    <a asp-action="Index" asp-controller="Post" class="btn btn-outline-secondary">Reset</a>
                 </div>
             </form>
         </div>
@@ -76,7 +73,7 @@
                             {
                                 <tr class="@(post.IsDeleted ? "table-secondary text-muted" : "")">
                                     <td>
-                                        <a href="@Url.Action("Edit", "Post", new { id = post.Id })">@post.Title</a>
+                                        <a asp-action="Edit" asp-controller="Post" asp-route-id="@post.Id">@post.Title</a>
                                         @if (post.IsDeleted)
                                         {
                                             <small>(in trash)</small>
@@ -106,64 +103,59 @@
                                     </td>
                                     <td>
                                         <div class="btn-group">
-                                            <a href="@Url.Action("Edit", "Post", new { id = post.Id })"
-                                                class="btn btn-sm btn-outline-primary" title="Edit">
+                                            <a asp-action="Edit" asp-controller="Post" asp-route-id="@post.Id"
+                                               class="btn btn-sm btn-outline-primary" title="Edit">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
                                             @if (post.IsDeleted)
                                             {
-                                                <form method="post" action="@Url.Action("Restore", "Post", new { id = post.Id })"
-                                                    style="display:inline;">
+                                                <form method="post" asp-action="Restore" asp-controller="Post" asp-route-id="@post.Id"
+                                                      style="display:inline;" class="form-confirm" data-confirm-message="Are you sure you want to restore the post: '@System.Web.HttpUtility.JavaScriptStringEncode(post.Title)'?">
                                                     @Html.AntiForgeryToken()
-                                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Restore"
-                                                        onclick="return confirm('Are you sure you want to restore the post: \'@System.Web.HttpUtility.JavaScriptStringEncode(post.Title)\'?');">
+                                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Restore">
                                                         <i class="bi bi-arrow-clockwise"></i>
                                                     </button>
                                                 </form>
                                                 <form method="post"
-                                                    action="@Url.Action("DeleteConfirmed", "Post", new { id = post.Id })"
-                                                    style="display:inline;">
+                                                      asp-action="DeleteConfirmed" asp-controller="Post" asp-route-id="@post.Id"
+                                                      style="display:inline;" class="form-confirm" data-confirm-message="PERMANENTLY DELETE the post: '@System.Web.HttpUtility.JavaScriptStringEncode(post.Title)'? This cannot be undone.">
                                                     @Html.AntiForgeryToken()
-                                                    <button type="submit" class="btn btn-sm btn-danger" title="Delete Permanently"
-                                                        onclick="return confirm('PERMANENTLY DELETE the post: \'@System.Web.HttpUtility.JavaScriptStringEncode(post.Title)\'? This cannot be undone.');">
+                                                    <button type="submit" class="btn btn-sm btn-danger" title="Delete Permanently">
                                                         <i class="bi bi-trash-fill"></i>
                                                     </button>
                                                 </form>
                                             }
                                             else
                                             {
-                                                <a href="@Url.Action("Details", "Post", new { id = post.Id })"
-                                                    class="btn btn-sm btn-outline-info" title="View">
+                                                <a asp-action="Details" asp-controller="Post" asp-route-id="@post.Id"
+                                                   class="btn btn-sm btn-outline-info" title="View">
                                                     <i class="bi bi-eye"></i>
                                                 </a>
                                                 @if (post.IsPublished)
                                                 {
-                                                    <form method="post" action="@Url.Action("Unpublish", "Post", new { id = post.Id })"
-                                                        style="display:inline;">
+                                                    <form method="post" asp-action="Unpublish" asp-controller="Post" asp-route-id="@post.Id"
+                                                          style="display:inline;" class="form-confirm" data-confirm-message="Are you sure you want to unpublish the post: '@System.Web.HttpUtility.JavaScriptStringEncode(post.Title)'?">
                                                         @Html.AntiForgeryToken()
-                                                        <button type="submit" class="btn btn-sm btn-outline-warning" title="Unpublish"
-                                                            onclick="return confirm('Are you sure you want to unpublish the post: \'@System.Web.HttpUtility.JavaScriptStringEncode(post.Title)\'?');">
+                                                        <button type="submit" class="btn btn-sm btn-outline-warning" title="Unpublish">
                                                             <i class="bi bi-file-earmark-minus"></i>
                                                         </button>
                                                     </form>
                                                 }
                                                 else
                                                 {
-                                                    <form method="post" action="@Url.Action("Publish", "Post", new { id = post.Id })"
-                                                        style="display:inline;">
+                                                    <form method="post" asp-action="Publish" asp-controller="Post" asp-route-id="@post.Id"
+                                                          style="display:inline;" class="form-confirm" data-confirm-message="Are you sure you want to publish the post: '@System.Web.HttpUtility.JavaScriptStringEncode(post.Title)'?">
                                                         @Html.AntiForgeryToken()
-                                                        <button type="submit" class="btn btn-sm btn-outline-success" title="Publish"
-                                                            onclick="return confirm('Are you sure you want to publish the post: \'@System.Web.HttpUtility.JavaScriptStringEncode(post.Title)\'?');">
+                                                        <button type="submit" class="btn btn-sm btn-outline-success" title="Publish">
                                                             <i class="bi bi-file-earmark-check"></i>
                                                         </button>
                                                     </form>
                                                 }
-                                                <form method="post" action="@Url.Action("SoftDelete", "Post", new { id = post.Id })"
-                                                    style="display:inline;">
+                                                <form method="post" asp-action="SoftDelete" asp-controller="Post" asp-route-id="@post.Id"
+                                                      style="display:inline;" class="form-confirm" data-confirm-message="Are you sure you want to move the post to trash: '@System.Web.HttpUtility.JavaScriptStringEncode(post.Title)'?">
                                                     @Html.AntiForgeryToken()
                                                     <button type="submit" class="btn btn-sm btn-outline-danger"
-                                                        title="Move to trash"
-                                                        onclick="return confirm('Are you sure you want to move the post to trash: \'@System.Web.HttpUtility.JavaScriptStringEncode(post.Title)\'?');">
+                                                            title="Move to trash">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
                                                 </form>
@@ -195,7 +187,7 @@
                                 {
                                     <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
                                         <a class="page-link"
-                                            href="@Url.Action("Index", new { page = i, searchTerm = Model.SearchTerm, tagFilter = Model.TagFilter, publishedOnly = Model.ShowPublishedOnly })">@i</a>
+                                           asp-action="Index" asp-controller="Post" asp-route-page="@i" asp-route-searchTerm="@Model.SearchTerm" asp-route-tagFilter="@Model.TagFilter" asp-route-publishedOnly="@Model.ShowPublishedOnly">@i</a>
                                     </li>
                                 }
                             }
@@ -208,7 +200,5 @@
 </div>
 
 @section Scripts {
-
-    @* This section is intentionally left empty to prevent loading any conflicting scripts. *@
 
 }
