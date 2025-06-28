@@ -2,192 +2,143 @@
 <html lang="en">
 
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>@ViewData["Title"] - Admin Panel</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/WebApplication1.styles.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true"/>
 </head>
 
-<body class="admin-body d-flex flex-column min-vh-100">
-    <div class="admin-container d-flex flex-grow-1">
-        <!-- Sidebar -->
-        <div id="adminSidebar" class="sidebar">
-            <div class="sidebar-header d-flex align-items-center justify-content-between">
-                <a class="sidebar-brand" asp-area="Admin" asp-controller="Admin" asp-action="Index">
-                    <span class="sidebar-brand-text">Admin Panel</span>
-                </a>
-                <button id="sidebarCollapseBtn" class="btn sidebar-toggle d-none d-md-flex">
-                    <i class="bi bi-list"></i>
-                </button>
-            </div>
-            <div class="sidebar-content">
-                <ul class="nav flex-column">
-                    <!-- Dashboard -->
-                    <li class="nav-item">
-                        <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Admin" ? "active" : "")"
-                            asp-area="Admin" asp-controller="Admin" asp-action="Index">
-                            <i class="bi bi-house-door"></i>
-                            <span>Dashboard</span>
-                        </a>
-                    </li>
+<body class="admin-body">
+<div class="admin-container">
 
-                    <!-- Posts Menu with Sub-items -->
-                    <li class="nav-item">
-                        <div class="nav-link has-submenu d-flex justify-content-between align-items-center @(ViewContext.RouteData.Values["controller"]?.ToString() == "Post" ? "active" : "")"
-                            data-bs-toggle="collapse" data-bs-target="#postsSubmenu" role="button" aria-expanded="false"
-                            aria-controls="postsSubmenu">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-file-earmark-text"></i>
-                                <span>Posts</span>
-                            </div>
-                            <i class="bi bi-chevron-down toggle-icon"></i>
-                        </div>
-                        <div class="collapse @(ViewContext.RouteData.Values["controller"]?.ToString() == "Post" ? "show" : "")"
-                            id="postsSubmenu">
-                            <ul class="nav submenu">
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-area="Admin" asp-controller="Post" asp-action="Index">
-                                        <i class="bi bi-list"></i>
-                                        <span>All Posts</span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-area="Admin" asp-controller="Post" asp-action="Create">
-                                        <i class="bi bi-plus-circle"></i>
-                                        <span>Add New</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
+    <!-- Sidebar -->
+    <div id="adminSidebar" class="sidebar">
+        <div class="sidebar-header d-flex align-items-center justify-content-between">
+            <a class="sidebar-brand" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+                <span class="sidebar-brand-text">Admin Panel</span>
+            </a>
+            <button id="sidebarCollapseBtn" class="btn sidebar-toggle d-none d-md-flex">
+                <i class="bi bi-list"></i>
+            </button>
+        </div>
+        <div class="sidebar-content">
+            <ul class="nav flex-column">
 
-                    <!-- Categories -->
-                    <li class="nav-item">
-                        <div class="nav-link has-submenu d-flex justify-content-between align-items-center @(ViewContext.RouteData.Values["controller"]?.ToString() == "Category" ? "active" : "")"
-                            data-bs-toggle="collapse" data-bs-target="#categoriesSubmenu" role="button"
-                            aria-expanded="false" aria-controls="categoriesSubmenu">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-folder"></i>
-                                <span>Categories</span>
-                            </div>
-                            <i class="bi bi-chevron-down toggle-icon"></i>
-                        </div>
-                        <div class="collapse @(ViewContext.RouteData.Values["controller"]?.ToString() == "Category" ? "show" : "")"
-                            id="categoriesSubmenu">
-                            <ul class="nav submenu">
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-area="Admin" asp-controller="Category" asp-action="Index">
-                                        <i class="bi bi-list"></i>
-                                        <span>All Categories</span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-area="Admin" asp-controller="Category" asp-action="Create">
-                                        <i class="bi bi-plus-circle"></i>
-                                        <span>Add New</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
+                <!-- Dashboard -->
+                <li class="nav-item">
+                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")"
+                       asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+                        <i class="bi bi-house-door"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
 
-                    <!-- Tags -->
-                    <li class="nav-item">
-                        <div class="nav-link has-submenu d-flex justify-content-between align-items-center @(ViewContext.RouteData.Values["controller"]?.ToString() == "Tag" ? "active" : "")"
-                            data-bs-toggle="collapse" data-bs-target="#tagsSubmenu" role="button" aria-expanded="false"
-                            aria-controls="tagsSubmenu">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-tags"></i>
-                                <span>Tags</span>
-                            </div>
-                            <i class="bi bi-chevron-down toggle-icon"></i>
-                        </div>
-                        <div class="collapse @(ViewContext.RouteData.Values["controller"]?.ToString() == "Tag" ? "show" : "")"
-                            id="tagsSubmenu">
-                            <ul class="nav submenu">
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-area="Admin" asp-controller="Tag" asp-action="Index">
-                                        <i class="bi bi-list"></i>
-                                        <span>All Tags</span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-area="Admin" asp-controller="Tag" asp-action="Create">
-                                        <i class="bi bi-plus-circle"></i>
-                                        <span>Add New</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
+                <!-- Posts -->
+                <li class="nav-item">
+                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Post" ? "active" : "")"
+                       asp-area="Admin" asp-controller="Post" asp-action="Index">
+                        <i class="bi bi-file-earmark-post"></i>
+                        <span>Posts</span>
+                    </a>
+                </li>
 
-                    <!-- Divider -->
-                    <li class="nav-divider"></li>
+                <!-- Categories -->
+                <li class="nav-item">
+                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Category" ? "active" : "")"
+                       asp-area="Admin" asp-controller="Category" asp-action="Index">
+                        <i class="bi bi-bookmark"></i>
+                        <span>Categories</span>
+                    </a>
+                </li>
 
-                    <!-- Back to Site -->
-                    <li class="nav-item">
-                        <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">
-                            <i class="bi bi-arrow-left-circle me-2"></i>
-                            <span>Back to Site</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
+                <!-- Tags -->
+                <li class="nav-item">
+                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Tag" ? "active" : "")"
+                       asp-area="Admin" asp-controller="Tag" asp-action="Index">
+                        <i class="bi bi-tags"></i>
+                        <span>Tags</span>
+                    </a>
+                </li>
+            </ul>
         </div>
 
-        <!-- Main Content Wrapper -->
-        <div class="main-wrapper">
-            <!-- Top Navbar -->
-            <nav class="navbar navbar-expand admin-navbar">
-                <div class="container-fluid">
-                    <button id="mobileSidebarToggle" class="navbar-toggler d-md-none" type="button">
-                        <i class="bi bi-list"></i>
-                    </button>
-                    <form class="d-none d-md-block ms-3 me-auto" role="search">
-                        <div class="input-group">
-                            <input type="text" class="form-control" placeholder="Search..." aria-label="Search">
-                            <button class="btn btn-outline-secondary" type="button">
-                                <i class="bi bi-search"></i>
-                            </button>
-                        </div>
-                    </form>
-                    <ul class="navbar-nav ms-auto">
-                        <li class="nav-item">
-                            <partial name="_LoginPartial" />
-                        </li>
-                    </ul>
-                </div>
-            </nav>
-
-            <!-- Page Content -->
-            <div class="content-area p-3 p-md-4">
-                @RenderBody()
-            </div>
+        <div class="sidebar-footer">
+            <a href="/" class="nav-link">
+                <i class="bi bi-arrow-left-circle"></i>
+                <span>Back to Site</span>
+            </a>
         </div>
     </div>
 
-    <footer class="border-top footer text-muted mt-auto py-3 bg-light">
-        <div class="container-fluid">
-            &copy; @DateTime.Now.Year - WebApplication1 -
-            <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
+    <!-- Main Content Wrapper -->
+    <div class="main-wrapper">
+        <!-- Top Navbar -->
+        <nav class="navbar navbar-expand-md navbar-light bg-light border-bottom admin-navbar">
+            <div class="container-fluid">
+                <button id="mobileSidebarToggle" class="btn sidebar-toggle d-md-none me-3" type="button">
+                    <i class="bi bi-list"></i>
+                </button>
+                <form class="d-none d-md-block ms-3 me-auto" role="search">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="Search..." aria-label="Search">
+                        <button class="btn btn-outline-secondary" type="button">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </form>
+                <ul class="navbar-nav ms-auto">
+                    <partial name="_LoginPartial"/>
+                </ul>
+            </div>
+        </nav>
 
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div id="tempDataSuccessMessage" data-message="@TempData["SuccessMessage"]" style="display:none;"></div>
-    }
+        <!-- Page Content -->
+        <main class="content-area">
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show mx-4" role="alert">
+                    @TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show mx-4" role="alert">
+                    @TempData["ErrorMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            @RenderBody()
+        </main>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    <script src="~/js/admin-sidebar.js" asp-append-version="true"></script>
-    <script src="~/js/admin-notifications.js" asp-append-version="true"></script>
-    @await RenderSectionAsync("Scripts", required: false)
+        <footer class="border-top footer text-muted mt-auto py-3 bg-light">
+            <div class="container-fluid">
+                &copy; @DateTime.Now.Year - WebApplication1 -
+                <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            </div>
+        </footer>
+    </div>
+</div>
+
+@if (TempData["message"] != null)
+{
+    <div id="tempDataSuccessMessage" data-message="@TempData["message"]" style="display:none;"></div>
+}
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+<script src="~/js/admin-sidebar.js" asp-append-version="true"></script>
+<script src="~/js/admin-notifications.js" asp-append-version="true"></script>
+<script src="~/js/admin-tables.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", false)
 </body>
 
 </html>
