@@ -1,0 +1,184 @@
+@{
+    ViewData["Title"] = "Dashboard";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container-fluid">
+    <!-- Page Title -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
+            <p class="text-muted">Welcome back! Here's a summary of your blog.</p>
+        </div>
+    </div>
+
+    <!-- At a Glance Stats -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card text-white bg-primary">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="card-title h5 mb-0">Total Posts</div>
+                        <div class="h2 fw-bold">150</div>
+                    </div>
+                    <i class="bi bi-file-earmark-post h1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card text-white bg-success">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="card-title h5 mb-0">Categories</div>
+                        <div class="h2 fw-bold">12</div>
+                    </div>
+                    <i class="bi bi-bookmark h1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card text-white bg-info">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="card-title h5 mb-0">Tags</div>
+                        <div class="h2 fw-bold">45</div>
+                    </div>
+                    <i class="bi bi-tags h1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card text-white bg-warning">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="card-title h5 mb-0">Drafts</div>
+                        <div class="h2 fw-bold">8</div>
+                    </div>
+                    <i class="bi bi-pencil-square h1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content and Quick Actions -->
+    <div class="row g-4">
+        <!-- Quick Actions -->
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="bi bi-lightning-charge-fill me-2"></i>Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a asp-area="Admin" asp-controller="Post" asp-action="Create" class="btn btn-primary">
+                            <i class="bi bi-plus-circle me-1"></i> Create New Post
+                        </a>
+                        <a asp-area="Admin" asp-controller="Category" asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="bi bi-folder-symlink me-1"></i> Manage Categories
+                        </a>
+                        <a asp-area="Admin" asp-controller="Tag" asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="bi bi-hash me-1"></i> Manage Tags
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Posts -->
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="bi bi-clock-history me-2"></i>Recent Activity</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">New Post Published: "Getting Started with .NET 8"</li>
+                        <li class="list-group-item">New Draft Saved: "Advanced C# Concepts"</li>
+                        <li class="list-group-item">Category Updated: "Web Development"</li>
+                        <li class="list-group-item">New Post Published: "Understanding Docker"</li>
+                        <li class="list-group-item">New Tag Created: "Performance"</li>
+                    </ul>
+                </div>
+                <div class="card-footer text-center">
+                    <a asp-area="Admin" asp-controller="Post" asp-action="Index">View All Posts</a>
+                </div>
+            </div>
+        </div>
+        
+<!-- Analytics and Moderation -->
+<div class="row g-4 mt-0">
+    <!-- Post Statistics -->
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="bi bi-bar-chart-line-fill me-2"></i>Post Statistics</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="postStatsChart"></canvas>
+                <p class="text-muted text-center mt-2">Posts published in the last 30 days.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Comments -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="bi bi-chat-left-text-fill me-2"></i>Recent Comments</h5>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">John Doe on "Intro to .NET"</h6>
+                            <small>1 day ago</small>
+                        </div>
+                        <p class="mb-1">Great article, very helpful!</p>
+                        <small>
+                            <a href="#">Approve</a> &middot; <a href="#" class="text-danger">Spam</a>
+                        </small>
+                    </li>
+                    <li class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Jane Smith on "Docker Basics"</h6>
+                            <small>3 days ago</small>
+                        </div>
+                        <p class="mb-1">This is exactly what I was looking for.</p>
+                        <small>
+                            <a href="#">Approve</a> &middot; <a href="#" class="text-danger">Spam</a>
+                        </small>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-footer text-center">
+                <a href="#">View All Comments</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const ctx = document.getElementById('postStatsChart');
+            if (ctx) {
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                        datasets: [{
+                            label: 'Posts',
+                            data: [5, 9, 3, 7],
+                            fill: false,
+                            borderColor: 'rgb(75, 192, 192)',
+                            tension: 0.1
+                        }]
+                    }
+                });
+            }
+        });
+    </script>
+}
+    </div>
+</div>
