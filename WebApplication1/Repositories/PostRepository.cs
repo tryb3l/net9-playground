@@ -49,10 +49,6 @@ public class PostRepository : IPostRepository
     public async Task<IEnumerable<Post>> GetPublishedPostsAsync(int skip, int take)
     {
         return await _context.Posts
-            .Include(p => p.Author)
-            .Include(p => p.Category)
-            .Include(p => p.PostTags)
-            .ThenInclude(pt => pt.Tag)
             .Where(p => p.IsPublished)
             .OrderByDescending(p => p.PublishedDate)
             .Skip(skip)
@@ -63,8 +59,7 @@ public class PostRepository : IPostRepository
     public async Task<int> CountPublishedPostsAsync()
     {
         return await _context.Posts
-            .Where(p => p.IsPublished)
-            .CountAsync();
+            .CountAsync(p => p.IsPublished);
     }
 
     public async Task<Post> GetPostWithDetailsAsync(int id)
@@ -91,12 +86,12 @@ public class PostRepository : IPostRepository
 
         if (!string.IsNullOrEmpty(searchTerm))
         {
-            postsQuery = postsQuery.Where(p => p.Title.Contains(searchTerm) || p.Content!.Contains(searchTerm));
+            postsQuery = postsQuery.Where(p => p.Title.Contains(searchTerm) || (p.Content != null && p.Content.Contains(searchTerm)));
         }
 
         if (!string.IsNullOrEmpty(tagFilter))
         {
-            postsQuery = postsQuery.Where(p => p.PostTags.Any(pt => pt.Tag!.Name == tagFilter));
+            postsQuery = postsQuery.Where(p => p.PostTags.Any(pt => pt.Tag != null && pt.Tag.Name == tagFilter));
         }
 
         if (publishedOnly.HasValue && publishedOnly.Value)
@@ -117,12 +112,12 @@ public class PostRepository : IPostRepository
 
         if (!string.IsNullOrEmpty(searchTerm))
         {
-            postsQuery = postsQuery.Where(p => p.Title.Contains(searchTerm) || p.Content!.Contains(searchTerm));
+            postsQuery = postsQuery.Where(p => p.Title.Contains(searchTerm) || (p.Content != null && p.Content.Contains(searchTerm)));
         }
 
         if (!string.IsNullOrEmpty(tagFilter))
         {
-            postsQuery = postsQuery.Where(p => p.PostTags.Any(pt => pt.Tag!.Name == tagFilter));
+            postsQuery = postsQuery.Where(p => p.PostTags.Any(pt => pt.Tag != null && pt.Tag.Name == tagFilter));
         }
 
         if (publishedOnly.HasValue && publishedOnly.Value)
@@ -145,7 +140,7 @@ public class PostRepository : IPostRepository
 
     public async Task<IEnumerable<Tag>> GetAllTagsAsync()
     {
-        return await _context.Tags.OrderBy(t => t.Name).ToListAsync();
+        return await _context.Tags.ToListAsync();
     }
 
     public async Task AddPostTagAsync(PostTag postTag)
@@ -155,12 +150,55 @@ public class PostRepository : IPostRepository
 
     public async Task<bool> SlugExistsAsync(string slug, int? excludePostId = null)
     {
-        var query = _context.Posts.Where(p => p.Slug == slug);
+        var query = _context.Posts.AsQueryable();
         if (excludePostId.HasValue)
         {
             query = query.Where(p => p.Id != excludePostId.Value);
         }
+        return await query.AnyAsync(p => p.Slug == slug);
+    }
 
-        return await query.AnyAsync();
+    public async Task<(IEnumerable<Post> Posts, int FilteredCount, int TotalCount)> GetPostsForDataTableAsync(int start, int length, string? searchTerm, string sortColumn, bool orderAsc)
+    {
+        var query = _context.Posts
+            .Include(p => p.Author)
+            .AsQueryable();
+
+        var totalCount = await query.CountAsync();
+
+        if (!string.IsNullOrEmpty(searchTerm))
+        {
+            query = query.Where(p =>
+                p.Title.Contains(searchTerm) ||
+                (p.Author != null && p.Author.UserName.Contains(searchTerm))
+            );
+        }
+
+        var filteredCount = await query.CountAsync();
+
+        IOrderedQueryable<Post> orderedQuery;
+        switch (sortColumn)
+        {
+            case "Title":
+                orderedQuery = orderAsc ? query.OrderBy(p => p.Title) : query.OrderByDescending(p => p.Title);
+                break;
+            case "Author":
+                orderedQuery = orderAsc ? query.OrderBy(p => p.Author.UserName) : query.OrderByDescending(p => p.Author.UserName);
+                break;
+            case "PublishedDate":
+                orderedQuery = orderAsc ? query.OrderBy(p => p.PublishedDate) : query.OrderByDescending(p => p.PublishedDate);
+                break;
+            case "CreatedAt":
+            default:
+                orderedQuery = orderAsc ? query.OrderBy(p => p.CreatedAt) : query.OrderByDescending(p => p.CreatedAt);
+                break;
+        }
+
+        var posts = await orderedQuery
+            .Skip(start)
+            .Take(length)
+            .ToListAsync();
+
+        return (posts, filteredCount, totalCount);
     }
 }

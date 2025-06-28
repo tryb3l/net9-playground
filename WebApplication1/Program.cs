@@ -1,6 +1,7 @@
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using WebApplication1.Data;
 using WebApplication1.HealthChecks;
@@ -68,7 +69,7 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 
 builder.Services.AddHttpContextAccessor();
-
+builder.Services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
 builder.Services.AddSingleton<DbMigrationService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<DbMigrationService>());
 builder.Services.AddHealthChecks()
@@ -123,29 +124,38 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
-app.Use(async (context, next) =>
-{
-    context.Response.Headers.Append("X-Frame-Options", "SAMEORIGIN");
-    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
-    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
-
-    const string csp = "default-src 'self'; " +
-                       "script-src 'self' 'sha256-V5ld3fn8GVclauMRqI82QiZ10Q9Y3gzkMrZheQtM4mA='; " +
-                       "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net/npm/; " +
-                       "img-src 'self' data: https://avatars3.githubusercontent.com https://ui-avatars.com https://lh3.googleusercontent.com; " +
-                       "font-src 'self' data: https://cdn.jsdelivr.net/npm/; " +
-                       "connect-src 'self'; " +
-                       "frame-src 'self'; " +
-                       "object-src 'none'; " +
-                       "base-uri 'self'; " +
-                       "form-action 'self'; " +
-                       "frame-ancestors 'self';";
-    context.Response.Headers.Append("Content-Security-Policy", csp);
-
-    context.Response.Headers.Append("Permissions-Policy", "camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()");
-
-    await next();
-});
+// app.Use(async (context, next) =>
+// {
+//     context.Response.Headers.Append("X-Frame-Options", "SAMEORIGIN");
+//     context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+//     context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+//
+//     var csp = builder.Environment.IsDevelopment() 
+//         ? "default-src 'self'; " +
+//           "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+//           "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net/npm/; " +
+//           "img-src 'self' data: https://avatars3.githubusercontent.com https://ui-avatars.com https://lh3.googleusercontent.com; " +
+//           "font-src 'self' data: https://cdn.jsdelivr.net/npm/; " +
+//           "connect-src 'self'; " +
+//           "frame-src 'self';"
+//         : "default-src 'self'; " +
+//           "script-src 'self' 'sha256-V5ld3fn8GVclauMRqI82QiZ10Q9Y3gzkMrZheQtM4mA='; " +
+//           "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net/npm/; " +
+//           "img-src 'self' data: https://avatars3.githubusercontent.com https://ui-avatars.com https://lh3.googleusercontent.com; " +
+//           "font-src 'self' data: https://cdn.jsdelivr.net/npm/; " +
+//           "connect-src 'self'; " +
+//           "frame-src 'self'; " +
+//           "object-src 'none'; " +
+//           "base-uri 'self'; " +
+//           "form-action 'self'; " +
+//           "frame-ancestors 'self';";
+//
+//     context.Response.Headers.Append("Content-Security-Policy", csp);
+//
+//     context.Response.Headers.Append("Permissions-Policy", "camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()");
+//
+//     await next();
+// });
 
 app.UseAuthentication();
 app.UseAuthorization();

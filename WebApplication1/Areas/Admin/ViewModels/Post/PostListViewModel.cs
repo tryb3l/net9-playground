@@ -9,6 +9,7 @@ public class PostListViewModel
     public string? SearchTerm { get; init; }
     public string? TagFilter { get; init; }
     public bool ShowPublishedOnly { get; init; }
+    public int TotalPages => (int)Math.Ceiling((double)TotalPosts / PageSize);
 }
 
 public class PostSummaryViewModel
@@ -16,6 +17,7 @@ public class PostSummaryViewModel
     public int Id { get; init; }
     public string Title { get; init; } = string.Empty;
     public DateTime CreatedAt { get; init; }
+    public DateTime? PublishedDate { get; set; }
     public bool IsPublished { get; set; }
     public bool IsDeleted { get; set; }
     public string AuthorName { get; init; } = string.Empty;
