@@ -1,34 +1,59 @@
 ﻿@using Microsoft.AspNetCore.Identity
-@using WebApplication1.Models
 @inject SignInManager<User> SignInManager
 @inject UserManager<User> UserManager
 
 <ul class="navbar-nav">
     @if (SignInManager.IsSignedIn(User))
     {
-        <li class="nav-item dropdown ms-auto">
+        var user = await UserManager.GetUserAsync(User);
+        var userName = user?.UserName ?? "User";
+        var userEmail = user?.Email ?? "no-email@example.com";
+
+        <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button"
-                data-bs-toggle="dropdown" aria-expanded="false">
-                <img src="https://ui-avatars.com/api/?name=@(User.Identity?.Name)&background=random" alt="Profile"
-                    class="rounded-circle me-2" width="32" height="32">
-                <span class="d-none d-md-inline">@User.Identity?.Name</span>
+               data-bs-toggle="dropdown" aria-expanded="false">
+                <img
+                    src="https://ui-avatars.com/api/?name=@(Uri.EscapeDataString(userName))&background=random&color=fff"
+                    alt="Profile" class="rounded-circle me-2" width="32" height="32">
+                <span class="d-none d-sm-inline">@userName</span>
             </a>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                <li><a class="dropdown-item" asp-area="Identity" asp-page="/Account/Manage/Index"><i
-                            class="bi bi-person me-2"></i>Profile</a></li>
+                <li>
+                    <div class="dropdown-header px-3">
+                        <h6 class="mb-0">@userName</h6>
+                        <small class="text-muted">@userEmail</small>
+                    </div>
+                </li>
+                <li>
+                    <hr class="dropdown-divider">
+                </li>
                 @if (User.IsInRole("Admin"))
                 {
-                    <li><a class="dropdown-item" asp-area="Admin" asp-controller="Admin" asp-action="Index">
-                            <i class="bi bi-gear me-2"></i>Admin Panel</a></li>
+                    <li>
+                        <a class="dropdown-item" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+                            <i class="bi bi-speedometer2 me-2"></i>Admin Panel
+                        </a>
+                    </li>
                 }
+                <li>
+                    <a class="dropdown-item" asp-area="Identity" asp-page="/Account/Manage/Index">
+                        <i class="bi bi-person-circle me-2"></i>Manage Account
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" asp-area="" asp-controller="Home" asp-action="Index">
+                        <i class="bi bi-box-arrow-up-right me-2"></i>View Main Site
+                    </a>
+                </li>
                 <li>
                     <hr class="dropdown-divider">
                 </li>
                 <li>
                     <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout"
-                        asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
-                        <button type="submit" class="dropdown-item"><i
-                                class="bi bi-box-arrow-right me-2"></i>Logout</button>
+                          asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })" method="post">
+                        <button type="submit" class="dropdown-item text-danger">
+                            <i class="bi bi-box-arrow-right me-2"></i>Logout
+                        </button>
                     </form>
                 </li>
             </ul>
@@ -36,11 +61,11 @@
     }
     else
     {
-        <li class="nav-item">
-            <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Login">Login</a>
+        <li class="nav-item me-2">
+            <a class="btn btn-outline-primary" asp-area="Identity" asp-page="/Account/Login">Login</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Register">Register</a>
+            <a class="btn btn-primary" asp-area="Identity" asp-page="/Account/Register">Register</a>
         </li>
     }
 </ul>
