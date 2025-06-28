@@ -3,13 +3,17 @@ namespace WebApplication1.Areas.Admin.ViewModels.Post;
 
 public class PostViewModel
 {
-    public int Id { get; set; }
-    public string Title { get; set; } = string.Empty;
-    public string? Content { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime? PublishedDate { get; set; }
-    public bool IsPublished { get; set; }
-    public string? AuthorName { get; set; } = string.Empty;
-    public string? AuthorId { get; set; } = string.Empty;
-    public List<string> Tags { get; set; } = new List<string>();
+    public int Id { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public string? Content { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime? PublishedDate { get; init; }
+    public bool IsPublished { get; init; }
+    public bool IsDeleted { get; set; }
+    public string? AuthorName { get; init; } = string.Empty;
+    public string? AuthorId { get; init; } = string.Empty;
+    public List<string> Tags { get; init; } = [];
+    public string Status { get; set; }
+    public string Actions { get; set; }
+    
 }
