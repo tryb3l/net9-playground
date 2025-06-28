@@ -15,5 +15,10 @@ public interface IPostRepository : IRepository<Post>
     Task<IEnumerable<Tag>> GetAllTagsAsync();
     Task AddPostTagAsync(PostTag postTag);
     Task<bool> SlugExistsAsync(string slug, int? excludePostId = null);
-
+    Task<(IEnumerable<Post> Posts, int FilteredCount, int TotalCount)> GetPostsForDataTableAsync(
+        int start, 
+        int length, 
+        string? searchTerm, 
+        string sortColumn, 
+        bool orderAsc);
 }

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc.Rendering;
 using WebApplication1.Areas.Admin.ViewModels.Post;
+using WebApplication1.Helpers;
 using WebApplication1.Models;
 using WebApplication1.ViewModels;
 
@@ -21,4 +22,5 @@ public interface IPostService
     Task UnpublishPostAsync(int id);
     Task SoftDeletePostAsync(int id);
     Task RestorePostAsync(int id);
+    Task<DataTablesResponse<PostViewModel>> GetPostListForDataTableAsync(DataTablesRequest request);
 }

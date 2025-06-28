@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using WebApplication1.Areas.Admin.ViewModels.Post;
+using WebApplication1.Helpers;
 using WebApplication1.Interfaces;
 using WebApplication1.Models;
 
@@ -26,10 +27,9 @@ public class PostController : Controller
         _logger = logger;
     }
 
-    public async Task<IActionResult> Index(int page = 1, string? searchTerm = null, string? tagFilter = null, bool? publishedOnly = null)
+    public IActionResult Index()
     {
-        var viewModel = await _postService.GetPostListAsync(page, searchTerm, tagFilter, publishedOnly);
-        return View("PostsList", viewModel);
+        return View("PostsList");
     }
 
     public async Task<IActionResult> Details(int? id)
@@ -54,6 +54,7 @@ public class PostController : Controller
         return View(viewModel);
     }
 
+    [HttpGet]
     public async Task<IActionResult> Create()
     {
         try
@@ -92,7 +93,7 @@ public class PostController : Controller
                     _logger.LogWarning("Validation Error: {ErrorMessage}", error.ErrorMessage);
                 }
             }
-            
+
             viewModel.AvailableTags = await _tagService.GetAvailableTagsAsync();
             viewModel.AvailableCategories = await _categoryService.GetAvailableCategoriesAsync();
             return View(viewModel);
@@ -111,13 +112,14 @@ public class PostController : Controller
         {
             _logger.LogError(ex, "An error occurred while creating the post.");
             TempData["ErrorMessage"] = "An unexpected error occurred. Please try again.";
-            
+
             viewModel.AvailableTags = await _tagService.GetAvailableTagsAsync();
             viewModel.AvailableCategories = await _categoryService.GetAvailableCategoriesAsync();
             return View(viewModel);
         }
     }
 
+    [HttpGet]
     public async Task<IActionResult> Edit(int? id)
     {
         if (id == null)
@@ -130,6 +132,8 @@ public class PostController : Controller
         {
             return NotFound();
         }
+        
+        viewModel.PublishNow = viewModel.IsPublished;
 
         return View(viewModel);
     }
@@ -162,6 +166,7 @@ public class PostController : Controller
         return View(viewModel);
     }
 
+    [HttpGet]
     public async Task<IActionResult> Delete(int? id)
     {
         if (id == null)
@@ -199,37 +204,37 @@ public class PostController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-[HttpPost]
-[ValidateAntiForgeryToken]
-public async Task<IActionResult> SoftDelete(int id)
-{
-    try
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SoftDelete(int id)
     {
-        var post = await _postService.GetPostByIdAsync(id, includeUnpublished: true);
-        if (post == null)
+        try
+        {
+            var post = await _postService.GetPostByIdAsync(id, includeUnpublished: true);
+            if (post == null)
+            {
+                TempData["ErrorMessage"] = "Post not found.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var postTitle = post.Title;
+
+            await _postService.SoftDeletePostAsync(id);
+
+            TempData["SuccessMessage"] = $"Post '{postTitle}' moved to trash successfully.";
+            _logger.LogInformation("Post '{PostTitle}' (ID: {PostId}) soft deleted successfully", postTitle, id);
+        }
+        catch (KeyNotFoundException)
         {
             TempData["ErrorMessage"] = "Post not found.";
-            return RedirectToAction(nameof(Index));
         }
-        
-        var postTitle = post.Title;
-        
-        await _postService.SoftDeletePostAsync(id);
-
-        TempData["SuccessMessage"] = $"Post '{postTitle}' moved to trash successfully.";
-        _logger.LogInformation("Post '{PostTitle}' (ID: {PostId}) soft deleted successfully", postTitle, id);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error soft deleting post with ID {PostId}", id);
+            TempData["ErrorMessage"] = "Error moving post to trash. Please try again.";
+        }
+        return RedirectToAction(nameof(Index));
     }
-    catch (KeyNotFoundException)
-    {
-        TempData["ErrorMessage"] = "Post not found.";
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Error soft deleting post with ID {PostId}", id);
-        TempData["ErrorMessage"] = "Error moving post to trash. Please try again.";
-    }
-    return RedirectToAction(nameof(Index));
-}
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -282,5 +287,12 @@ public async Task<IActionResult> SoftDelete(int id)
             return NotFound();
         }
         return RedirectToAction(nameof(Index));
+    }
+    
+    [HttpPost]
+    public async Task<IActionResult> GetPostsData([FromForm] DataTablesRequest request) 
+    {
+        var pagedData = await _postService.GetPostListForDataTableAsync(request);
+        return Json(pagedData);
     }
 }
