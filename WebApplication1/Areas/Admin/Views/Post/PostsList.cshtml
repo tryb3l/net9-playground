@@ -1,204 +1,72 @@
-﻿@model WebApplication1.Areas.Admin.ViewModels.Post.PostListViewModel
+﻿@* Remove the model directive, as it's no longer needed *@
 @{
-    ViewData["Title"] = "Manage Posts";
+    ViewData["Title"] = "Posts";
 }
 
 <div class="container-fluid">
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @TempData["SuccessMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @TempData["ErrorMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3">All Posts</h1>
-        <a asp-action="Create" asp-controller="Post" asp-area="Admin" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Create New Post
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Posts</h1>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i> Create New
         </a>
-    </div>
-
-    <div class="card mb-4">
-        <div class="card-header">
-            <i class="bi bi-funnel"></i> Filter Posts
-        </div>
-        <div class="card-body">
-            <form method="get" class="row g-3">
-                <div class="col-md-5">
-                    <input type="text" name="searchTerm" class="form-control"
-                           placeholder="Search by title or content..." value="@Model.SearchTerm">
-                </div>
-                <div class="col-md-3">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="publishedOnly" name="publishedOnly"
-                               value="true" @(Model.ShowPublishedOnly ? "checked" : "")>
-                        <label class="form-check-label" for="publishedOnly">
-                            Published posts only
-                        </label>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
-                    <a asp-action="Index" asp-controller="Post" class="btn btn-outline-secondary">Reset</a>
-                </div>
-            </form>
-        </div>
     </div>
 
     <div class="card">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
+                <table id="postsTable" class="table table-hover align-middle" style="width:100%">
+                    <thead class="table-light">
                         <tr>
                             <th>Title</th>
                             <th>Author</th>
                             <th>Created</th>
                             <th>Status</th>
-                            <th>Tags</th>
-                            <th>Actions</th>
+                            <th>Published</th>
+                            <th class="text-end no-sort">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @if (Model.Posts.Any())
-                        {
-                            @foreach (var post in Model.Posts)
-                            {
-                                <tr class="@(post.IsDeleted ? "table-secondary text-muted" : "")">
-                                    <td>
-                                        <a asp-action="Edit" asp-controller="Post" asp-route-id="@post.Id">@post.Title</a>
-                                        @if (post.IsDeleted)
-                                        {
-                                            <small>(in trash)</small>
-                                        }
-                                    </td>
-                                    <td>@post.AuthorName</td>
-                                    <td>@post.CreatedAt.ToString("yyyy-MM-dd")</td>
-                                    <td>
-                                        @if (post.IsDeleted)
-                                        {
-                                            <span class="badge bg-danger">In Trash</span>
-                                        }
-                                        else if (post.IsPublished)
-                                        {
-                                            <span class="badge bg-success">Published</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-secondary">Draft</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        @foreach (var tag in post.Tags)
-                                        {
-                                            <span class="badge bg-info me-1">@tag</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        <div class="btn-group">
-                                            <a asp-action="Edit" asp-controller="Post" asp-route-id="@post.Id"
-                                               class="btn btn-sm btn-outline-primary" title="Edit">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            @if (post.IsDeleted)
-                                            {
-                                                <form method="post" asp-action="Restore" asp-controller="Post" asp-route-id="@post.Id"
-                                                      style="display:inline;" class="form-confirm" data-confirm-message="Are you sure you want to restore the post: '@System.Web.HttpUtility.JavaScriptStringEncode(post.Title)'?">
-                                                    @Html.AntiForgeryToken()
-                                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Restore">
-                                                        <i class="bi bi-arrow-clockwise"></i>
-                                                    </button>
-                                                </form>
-                                                <form method="post"
-                                                      asp-action="DeleteConfirmed" asp-controller="Post" asp-route-id="@post.Id"
-                                                      style="display:inline;" class="form-confirm" data-confirm-message="PERMANENTLY DELETE the post: '@System.Web.HttpUtility.JavaScriptStringEncode(post.Title)'? This cannot be undone.">
-                                                    @Html.AntiForgeryToken()
-                                                    <button type="submit" class="btn btn-sm btn-danger" title="Delete Permanently">
-                                                        <i class="bi bi-trash-fill"></i>
-                                                    </button>
-                                                </form>
-                                            }
-                                            else
-                                            {
-                                                <a asp-action="Details" asp-controller="Post" asp-route-id="@post.Id"
-                                                   class="btn btn-sm btn-outline-info" title="View">
-                                                    <i class="bi bi-eye"></i>
-                                                </a>
-                                                @if (post.IsPublished)
-                                                {
-                                                    <form method="post" asp-action="Unpublish" asp-controller="Post" asp-route-id="@post.Id"
-                                                          style="display:inline;" class="form-confirm" data-confirm-message="Are you sure you want to unpublish the post: '@System.Web.HttpUtility.JavaScriptStringEncode(post.Title)'?">
-                                                        @Html.AntiForgeryToken()
-                                                        <button type="submit" class="btn btn-sm btn-outline-warning" title="Unpublish">
-                                                            <i class="bi bi-file-earmark-minus"></i>
-                                                        </button>
-                                                    </form>
-                                                }
-                                                else
-                                                {
-                                                    <form method="post" asp-action="Publish" asp-controller="Post" asp-route-id="@post.Id"
-                                                          style="display:inline;" class="form-confirm" data-confirm-message="Are you sure you want to publish the post: '@System.Web.HttpUtility.JavaScriptStringEncode(post.Title)'?">
-                                                        @Html.AntiForgeryToken()
-                                                        <button type="submit" class="btn btn-sm btn-outline-success" title="Publish">
-                                                            <i class="bi bi-file-earmark-check"></i>
-                                                        </button>
-                                                    </form>
-                                                }
-                                                <form method="post" asp-action="SoftDelete" asp-controller="Post" asp-route-id="@post.Id"
-                                                      style="display:inline;" class="form-confirm" data-confirm-message="Are you sure you want to move the post to trash: '@System.Web.HttpUtility.JavaScriptStringEncode(post.Title)'?">
-                                                    @Html.AntiForgeryToken()
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger"
-                                                            title="Move to trash">
-                                                        <i class="bi bi-trash"></i>
-                                                    </button>
-                                                </form>
-                                            }
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="6" class="text-center">No posts found.</td>
-                            </tr>
-                        }
                     </tbody>
                 </table>
             </div>
-
-            <!-- Pagination -->
-            @if (Model.TotalPosts > Model.PageSize)
-            {
-                <div class="d-flex justify-content-center mt-4">
-                    <nav>
-                        <ul class="pagination">
-                            @{
-                                var totalPages = (int)Math.Ceiling(Model.TotalPosts / (double)Model.PageSize);
-                                for (var i = 1; i <= totalPages; i++)
-                                {
-                                    <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
-                                        <a class="page-link"
-                                           asp-action="Index" asp-controller="Post" asp-route-page="@i" asp-route-searchTerm="@Model.SearchTerm" asp-route-tagFilter="@Model.TagFilter" asp-route-publishedOnly="@Model.ShowPublishedOnly">@i</a>
-                                    </li>
-                                }
-                            }
-                        </ul>
-                    </nav>
-                </div>
-            }
         </div>
     </div>
 </div>
 
 @section Scripts {
-
+    <script>
+        $(document).ready(function () {
+            $('#postsTable').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: "@Url.Action("GetPostsData", "Post")",
+                    type: "POST",
+                    dataType: "json",
+                    error: function (xhr, error, thrown) {
+                        alert("An error occurred while fetching data. Please try again.");
+                    }
+                },
+                columns: [
+                    { data: "title", name: "Title" },
+                    { data: "authorName", name: "Author" },
+                    { data: "createdAt", name: "Created" },
+                    { data: "status", name: "Status", orderable: false },
+                    { data: "publishedDate", name: "Published" },
+                    { data: "actions", name: "Actions", orderable: false, searchable: false }
+                ],
+                order: [[2, "desc"]],
+                columnDefs: [
+                    {
+                        targets: 'no-sort',
+                        orderable: false
+                    },
+                    {
+                        targets: -1,
+                        className: 'text-end'
+                    }
+                ]
+            });
+        });
+    </script>
 }
