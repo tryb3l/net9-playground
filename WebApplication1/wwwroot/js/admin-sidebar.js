@@ -1,89 +1,39 @@
-document.addEventListener('DOMContentLoaded', function () {
-    const sidebar = document.getElementById('adminSidebar');
-    const sidebarCollapseBtn = document.getElementById('sidebarCollapseBtn');
+document.addEventListener('DOMContentLoaded', function() {
+    // Get sidebar elements
     const mobileSidebarToggle = document.getElementById('mobileSidebarToggle');
+    const adminSidebar = document.getElementById('adminSidebar');
+    const sidebarCollapseBtn = document.getElementById('sidebarCollapseBtn');
 
-    let isSidebarCollapsed = localStorage.getItem('adminSidebarCollapsed') === 'true';
-    let isMobileView = window.innerWidth < 768;
-
-    if (isSidebarCollapsed) {
-        sidebar.classList.add('collapsed');
-    }
-
-    function toggleSidebar() {
-        sidebar.classList.toggle('collapsed');
-        isSidebarCollapsed = sidebar.classList.contains('collapsed');
-        localStorage.setItem('adminSidebarCollapsed', isSidebarCollapsed);
-    }
-
-    sidebarCollapseBtn.addEventListener('click', function () {
-        toggleSidebar();
-    });
-
-    mobileSidebarToggle.addEventListener('click', function () {
-        if (window.innerWidth < 768) {
-            sidebar.classList.toggle('show');
-            document.body.classList.toggle('sidebar-visible');
-        }
-    });
-
-    document.addEventListener('click', function (event) {
-        if (window.innerWidth < 768 &&
-            sidebar.classList.contains('show') &&
-            !sidebar.contains(event.target) &&
-            !mobileSidebarToggle.contains(event.target)) {
-            sidebar.classList.remove('show');
-            document.body.classList.remove('sidebar-visible');
-        }
-    });
-
-    window.addEventListener('resize', function () {
-        const wasMobileView = isMobileView;
-        isMobileView = window.innerWidth < 768;
-
-        if (wasMobileView !== isMobileView) {
-            if (isMobileView) {
-                sidebar.classList.remove('show');
-                document.body.classList.remove('sidebar-visible');
-            }
-            else {
-                sidebar.classList.remove('show');
-                document.body.classList.remove('sidebar-visible');
-            }
-        }
-    });
-
-    document.addEventListener('DOMContentLoaded', function () {
-        // Force sub-menu links to navigate
-        document.querySelectorAll('.submenu .nav-link').forEach(function (link) {
-            link.addEventListener('click', function (e) {
-                const url = this.getAttribute('href');
-                if (url && url !== '#') {
-                    e.stopPropagation();
-                    window.location.href = url;
-                }
-            });
+    // Mobile sidebar toggle
+    if (mobileSidebarToggle && adminSidebar) {
+        mobileSidebarToggle.addEventListener('click', function() {
+            adminSidebar.classList.toggle('show-sidebar');
         });
+    }
 
-        // Force "Back to Site" link
-        const backToSiteLink = document.querySelector('.nav-item:last-child .nav-link');
-        if (backToSiteLink) {
-            backToSiteLink.addEventListener('click', function (e) {
-                const url = this.getAttribute('href');
-                if (url) {
-                    e.stopPropagation();
-                    window.location.href = url;
-                }
-            });
-        }
+    // Desktop sidebar collapse
+    if (sidebarCollapseBtn && adminSidebar) {
+        sidebarCollapseBtn.addEventListener('click', function() {
+            document.body.classList.toggle('sidebar-collapsed');
+        });
+    }
+
+    // On mobile, hide the sidebar after clicking a link.
+    document.querySelectorAll('.sidebar a.nav-link').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            if (window.innerWidth < 768 && adminSidebar && adminSidebar.classList.contains('show-sidebar')) {
+                adminSidebar.classList.remove('show-sidebar');
+            }
+        });
     });
 
-    const currentController = document.querySelector('.nav-link.active');
-    if (currentController && currentController.classList.contains('has-submenu')) {
-        const submenuId = currentController.getAttribute('href');
-        const submenu = document.querySelector(submenuId);
-        if (submenu) {
-            submenu.classList.add('show');
-        }
-    }
+    // Delete confirmations
+    document.querySelectorAll('.delete-form').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            const postTitle = this.getAttribute('data-post-title');
+            if (!confirm(`Are you sure you want to delete "${postTitle}"?`)) {
+                e.preventDefault();
+            }
+        });
+    });
 });
