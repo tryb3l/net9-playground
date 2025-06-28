@@ -1,14 +1,14 @@
-@model WebApplication1.Areas.Admin.ViewModels.Post.EditPostViewModel
+@model WebApplication1.Areas.Admin.ViewModels.Category.EditCategoryViewModel
 @{
-    ViewData["Title"] = "Edit Post";
+    ViewData["Title"] = "Edit Category";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 }
 
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col">
-            <a asp-action="Index" asp-controller="Post" asp-area="Admin" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left"></i> Back to Posts
+            <a asp-action="Index" asp-controller="Category" asp-area="Admin" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Categories
             </a>
         </div>
     </div>
@@ -16,7 +16,7 @@
     <div class="card">
         <div class="card-header">
             <h5 class="card-title mb-0">
-                <i class="bi bi-pencil-square"></i> Edit Post: @Model.Title
+                <i class="bi bi-pencil-square"></i> Edit Category: @Model.Name
             </h5>
         </div>
         <div class="card-body">
@@ -24,110 +24,25 @@
                 @Html.AntiForgeryToken()
                 <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
-                <!-- Title Section -->
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <div class="form-floating">
-                            <input asp-for="Title" class="form-control" placeholder="Enter post title" required />
-                            <label asp-for="Title" class="form-label">
-                                <i class="bi bi-card-heading me-1"></i>Post Title *
-                            </label>
-                            <span asp-validation-for="Title" class="text-danger"></span>
-                        </div>
-                    </div>
+                <div class="mb-3">
+                    <label asp-for="Name" class="form-label">Category Name:</label>
+                    <input asp-for="Name" class="form-control" required />
+                    <span asp-validation-for="Name" class="text-danger"></span>
                 </div>
 
-                <!-- Category and Tags Section -->
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <div class="card border-light h-100">
-                            <div class="card-header bg-light">
-                                <h6 class="mb-0"><i class="bi bi-folder me-1"></i>Category</h6>
-                            </div>
-                            <div class="card-body">
-                                <select asp-for="CategoryId" asp-items="Model.AvailableCategories" class="form-select">
-                                    <option value="">-- Select Category (Optional) --</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card border-light h-100">
-                            <div class="card-header bg-light">
-                                <h6 class="mb-0"><i class="bi bi-tags me-1"></i>Tags</h6>
-                            </div>
-                            <div class="card-body">
-                                @if (Model.AvailableTags.Any())
-                                {
-                                    <div class="tag-selection-container" style="max-height: 150px; overflow-y: auto;">
-                                        @foreach (var tag in Model.AvailableTags)
-                                        {
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="SelectedTagIds"
-                                                    value="@tag.Value" id="tag_@tag.Value"
-                                                    @(Model.SelectedTagIds.Contains(int.Parse(tag.Value)) ? "checked" : "") />
-                                                <label class="form-check-label" for="tag_@tag.Value">@tag.Text</label>
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                                else
-                                {
-                                    <small class="text-muted">No tags available.</small>
-                                }
-                            </div>
-                        </div>
-                    </div>
+                <div class="mb-3">
+                    <label asp-for="Description" class="form-label">Description:</label>
+                    <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                    <span asp-validation-for="Description" class="text-danger"></span>
                 </div>
 
-                <!-- Content Section -->
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <div class="card border-light">
-                            <div class="card-header bg-light">
-                                <h6 class="mb-0"><i class="bi bi-file-earmark-text me-1"></i>Post Content</h6>
-                            </div>
-                            <div class="card-body">
-                                <textarea asp-for="Content" class="form-control" rows="12"
-                                    placeholder="Write your post content here..."></textarea>
-                                <span asp-validation-for="Content" class="text-danger"></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Publishing Options -->
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <div class="card border-light">
-                            <div class="card-header bg-light">
-                                <h6 class="mb-0"><i class="bi bi-gear me-1"></i>Publishing Options</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="form-check form-switch">
-                                    <input asp-for="IsPublished" class="form-check-input" type="checkbox" />
-                                    <label asp-for="IsPublished" class="form-check-label">
-                                        <strong>Published</strong>
-                                        <br>
-                                        <small class="text-muted">If checked, the post will be visible on the public
-                                            blog.</small>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="row">
-                    <div class="col-12">
-                        <div class="d-flex gap-2 justify-content-end">
-                            <a asp-action="Index" class="btn btn-outline-secondary"><i
-                                    class="bi bi-x-circle me-1"></i>Cancel</a>
-                            <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Save
-                                Changes</button>
-                        </div>
-                    </div>
+                <div class="d-flex gap-2 justify-content-end">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i>Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i>Save Changes
+                    </button>
                 </div>
             </form>
         </div>
