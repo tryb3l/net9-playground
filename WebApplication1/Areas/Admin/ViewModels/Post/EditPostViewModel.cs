@@ -1,4 +1,3 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
@@ -11,6 +10,7 @@ public class EditPostViewModel
     [Required(ErrorMessage = "Title is required")]
     [StringLength(255, MinimumLength = 2, ErrorMessage = "Title must be between 2 and 255 characters")]
     public string Title { get; init; } = string.Empty;
+    public bool PublishNow { get; set; }
 
     [Display(Name = "Content")]
     public string? Content { get; init; }
