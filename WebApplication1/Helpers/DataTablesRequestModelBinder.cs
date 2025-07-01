@@ -19,7 +19,8 @@ public class DataTablesRequestModelBinder : IModelBinder
             {
                 Value = valueProvider.GetValue("search[value]").FirstValue,
                 Regex = bool.Parse(valueProvider.GetValue("search[regex]").FirstValue ?? "false")
-            }
+            },
+            StatusFilter = valueProvider.GetValue("statusFilter").FirstValue
         };
 
         var colIndex = 0;
