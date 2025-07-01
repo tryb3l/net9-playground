@@ -6,4 +6,5 @@ namespace WebApplication1.Interfaces;
 public interface ICategoryRepository : IRepository<Category>
 {
     Task<bool> ExistingAsync(int id);
+    Task<int> CountAllAsync();
 }

@@ -6,4 +6,5 @@ namespace WebApplication1.Interfaces;
 public interface ITagRepository : IRepository<Tag>
 {
     Task<IEnumerable<Tag>> GetPopularTagsAsync(int count);
+    Task<int> CountAllAsync();
 }
