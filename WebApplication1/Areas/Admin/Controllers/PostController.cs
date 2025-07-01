@@ -17,14 +17,17 @@ public class PostController : Controller
     private readonly ITagService _tagService;
     private readonly UserManager<User> _userManager;
     private readonly ILogger<PostController> _logger;
+    private readonly IActivityLogService _activityLogService;
 
-    public PostController(IPostService postService, ICategoryService categoryService, ITagService tagService, UserManager<User> userManager, ILogger<PostController> logger)
+
+    public PostController(IPostService postService, ICategoryService categoryService, ITagService tagService, UserManager<User> userManager, ILogger<PostController> logger, IActivityLogService activityLogService)
     {
         _postService = postService;
         _categoryService = categoryService;
         _tagService = tagService;
         _userManager = userManager;
         _logger = logger;
+        _activityLogService = activityLogService;
     }
 
     public IActionResult Index()
@@ -104,6 +107,10 @@ public class PostController : Controller
             var currentUser = await _userManager.GetUserAsync(User);
             var createdPost = await _postService.CreatePostAsync(viewModel, currentUser.Id);
 
+            await _activityLogService.LogActivityAsync(currentUser.Id, "Created", "Post",
+                $"Created new post: '{createdPost?.Title ?? "Untitled"}'");
+
+
             TempData["SuccessMessage"] = $"Post '{createdPost.Title}' created successfully.";
             _logger.LogInformation("Post created successfully with ID {PostId}", createdPost.Id);
             return RedirectToAction(nameof(Index));
@@ -132,7 +139,7 @@ public class PostController : Controller
         {
             return NotFound();
         }
-        
+
         viewModel.PublishNow = viewModel.IsPublished;
 
         return View(viewModel);
@@ -151,7 +158,9 @@ public class PostController : Controller
         {
             try
             {
+                var currentUser = await _userManager.GetUserAsync(User);
                 await _postService.UpdatePostAsync(id, viewModel);
+                await _activityLogService.LogActivityAsync(currentUser.Id, "Updated", "Post", $"Updated post: '{viewModel.Title}'");
                 TempData["SuccessMessage"] = "Post updated successfully.";
             }
             catch (KeyNotFoundException)
@@ -205,6 +214,13 @@ public class PostController : Controller
     }
 
     [HttpPost]
+    public async Task<IActionResult> GetPostsData([FromForm] DataTablesRequest request)
+    {
+        var pagedData = await _postService.GetPostListForDataTableAsync(request);
+        return Json(pagedData);
+    }
+
+    [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SoftDelete(int id)
     {
@@ -213,27 +229,25 @@ public class PostController : Controller
             var post = await _postService.GetPostByIdAsync(id, includeUnpublished: true);
             if (post == null)
             {
-                TempData["ErrorMessage"] = "Post not found.";
-                return RedirectToAction(nameof(Index));
+                return Json(new { success = false, message = "Post not found." });
             }
 
-            var postTitle = post.Title;
-
+            var currentUser = await _userManager.GetUserAsync(User);
             await _postService.SoftDeletePostAsync(id);
+            await _activityLogService.LogActivityAsync(currentUser.Id, "Trashed", "Post", $"Moved post to trash: '{post.Title}'");
 
-            TempData["SuccessMessage"] = $"Post '{postTitle}' moved to trash successfully.";
-            _logger.LogInformation("Post '{PostTitle}' (ID: {PostId}) soft deleted successfully", postTitle, id);
+
+            return Json(new { success = true, message = $"Post '{post.Title}' moved to trash successfully." });
         }
         catch (KeyNotFoundException)
         {
-            TempData["ErrorMessage"] = "Post not found.";
+            return NotFound(new { message = "Post not found." });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error soft deleting post with ID {PostId}", id);
-            TempData["ErrorMessage"] = "Error moving post to trash. Please try again.";
+            return StatusCode(500, new { message = "Error moving post to trash. Please try again." });
         }
-        return RedirectToAction(nameof(Index));
     }
 
     [HttpPost]
@@ -242,19 +256,27 @@ public class PostController : Controller
     {
         try
         {
+            var post = await _postService.GetPostByIdAsync(id, includeUnpublished: true, includeDeleted: true);
+            if (post == null)
+            {
+                return Json(new { success = false, message = "Post not found." });
+            }
+
+            var currentUser = await _userManager.GetUserAsync(User);
             await _postService.RestorePostAsync(id);
-            TempData["SuccessMessage"] = "Post restored successfully.";
+            await _activityLogService.LogActivityAsync(currentUser.Id, "Restored", "Post", $"Restored post: '{post.Title}'");
+
+            return Json(new { success = true, message = $"Post '{post.Title}' restored successfully." });
         }
         catch (KeyNotFoundException)
         {
-            TempData["ErrorMessage"] = "Post not found.";
+            return Json(new { success = false, message = "Post not found." });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error restoring post with ID {PostId}", id);
-            TempData["ErrorMessage"] = "Error restoring post. Please try again.";
+            return Json(new { success = false, message = "Error restoring post. Please try again." });
         }
-        return RedirectToAction(nameof(Index));
     }
 
     [HttpPost]
@@ -263,14 +285,26 @@ public class PostController : Controller
     {
         try
         {
+            var post = await _postService.GetPostByIdAsync(id, includeUnpublished: true);
+            if (post == null) return Json(new { success = false, message = "Post not found." });
+
+            var currentUser = await _userManager.GetUserAsync(User);
             await _postService.PublishPostAsync(id);
-            TempData["SuccessMessage"] = "Post published successfully.";
+            await _activityLogService.LogActivityAsync(currentUser.Id, "Published", "Post",
+                $"Published post: '{post.Title ?? "Untitled"}'");
+
+            // Return JSON for AJAX requests
+            return Json(new { success = true, message = "Post published successfully." });
         }
         catch (KeyNotFoundException)
         {
-            return NotFound();
+            return Json(new { success = false, message = "Post not found." });
         }
-        return RedirectToAction(nameof(Index));
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error publishing post with ID {PostId}", id);
+            return Json(new { success = false, message = "An error occurred while publishing post." });
+        }
     }
 
     [HttpPost]
@@ -279,20 +313,57 @@ public class PostController : Controller
     {
         try
         {
+            var post = await _postService.GetPostByIdAsync(id, includeUnpublished: true);
+            if (post == null) return Json(new { success = false, message = "Post not found." });
+
+            var currentUser = await _userManager.GetUserAsync(User);
             await _postService.UnpublishPostAsync(id);
-            TempData["SuccessMessage"] = "Post unpublished successfully.";
+            await _activityLogService.LogActivityAsync(currentUser.Id, "Unpublished", "Post",
+                $"Unpublished post: '{post.Title ?? "Untitled"}'");
+
+            // Return JSON for AJAX requests
+            return Json(new { success = true, message = "Post unpublished successfully." });
         }
         catch (KeyNotFoundException)
         {
-            return NotFound();
+            return Json(new { success = false, message = "Post not found." });
         }
-        return RedirectToAction(nameof(Index));
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error unpublishing post with ID {PostId}", id);
+            return Json(new { success = false, message = "An error occurred while unpublishing post." });
+        }
     }
-    
+
     [HttpPost]
-    public async Task<IActionResult> GetPostsData([FromForm] DataTablesRequest request) 
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EmptyTrash()
     {
-        var pagedData = await _postService.GetPostListForDataTableAsync(request);
-        return Json(pagedData);
+        try
+        {
+            await _postService.EmptyTrashAsync();
+            return Json(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error emptying trash");
+            return Json(new { success = false, message = "An error occurred while emptying trash." });
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RestoreAll()
+    {
+        try
+        {
+            await _postService.RestoreAllPostsAsync();
+            return Json(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error restoring all posts");
+            return Json(new { success = false, message = "An error occurred while restoring posts." });
+        }
     }
 }
