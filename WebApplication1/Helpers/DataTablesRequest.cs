@@ -11,6 +11,8 @@ public class DataTablesRequest
     public Search? Search { get; set; }
     public List<Column> Columns { get; set; } = new();
     public List<Order> Order { get; set; } = new();
+    public string? StatusFilter { get; set; }
+
 }
 
 public class Search
