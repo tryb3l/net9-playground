@@ -54,4 +54,9 @@ public class TagRepository : ITagRepository
             .Take(count)
             .ToListAsync();
     }
+    
+    public async Task<int> CountAllAsync()
+    {
+        return await _context.Tags.CountAsync();
+    }
 }
