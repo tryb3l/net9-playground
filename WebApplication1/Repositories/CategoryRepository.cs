@@ -51,4 +51,9 @@ public class CategoryRepository : ICategoryRepository
     {
         return await _context.Categories.AnyAsync(c => c.Id == id);
     }
+    
+    public async Task<int> CountAllAsync()
+    {
+        return await _context.Categories.CountAsync();
+    }
 }
