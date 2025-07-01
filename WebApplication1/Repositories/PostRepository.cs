@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using WebApplication1.Data;
 using WebApplication1.Interfaces;
@@ -158,11 +159,26 @@ public class PostRepository : IPostRepository
         return await query.AnyAsync(p => p.Slug == slug);
     }
 
-    public async Task<(IEnumerable<Post> Posts, int FilteredCount, int TotalCount)> GetPostsForDataTableAsync(int start, int length, string? searchTerm, string sortColumn, bool orderAsc)
+    public async Task<(IEnumerable<Post> Posts, int FilteredCount, int TotalCount)> GetPostsForDataTableAsync(
+    int start, int length, string? searchTerm, string sortColumn, bool orderAsc, string? statusFilter)
     {
-        var query = _context.Posts
-            .Include(p => p.Author)
-            .AsQueryable();
+        var baseQuery = _context.Posts.IgnoreQueryFilters().Include(p => p.Author);
+
+        IQueryable<Post> query;
+
+        switch (statusFilter)
+        {
+            case "Trashed":
+                query = baseQuery.Where(p => p.IsDeleted);
+                break;
+            case "All":
+                query = baseQuery;
+                break;
+            case "Active":
+            default:
+                query = baseQuery.Where(p => !p.IsDeleted);
+                break;
+        }
 
         var totalCount = await query.CountAsync();
 
@@ -176,29 +192,70 @@ public class PostRepository : IPostRepository
 
         var filteredCount = await query.CountAsync();
 
-        IOrderedQueryable<Post> orderedQuery;
-        switch (sortColumn)
+        Expression<Func<Post, object>> keySelector = sortColumn.ToLower() switch
         {
-            case "Title":
-                orderedQuery = orderAsc ? query.OrderBy(p => p.Title) : query.OrderByDescending(p => p.Title);
-                break;
-            case "Author":
-                orderedQuery = orderAsc ? query.OrderBy(p => p.Author.UserName) : query.OrderByDescending(p => p.Author.UserName);
-                break;
-            case "PublishedDate":
-                orderedQuery = orderAsc ? query.OrderBy(p => p.PublishedDate) : query.OrderByDescending(p => p.PublishedDate);
-                break;
-            case "CreatedAt":
-            default:
-                orderedQuery = orderAsc ? query.OrderBy(p => p.CreatedAt) : query.OrderByDescending(p => p.CreatedAt);
-                break;
-        }
+            "title" => p => p.Title,
+            "author" => p => p.Author.UserName,
+            "published" => p => p.PublishedDate,
+            "created" => p => p.CreatedAt,
+            _ => p => p.CreatedAt
+        };
 
-        var posts = await orderedQuery
+        query = orderAsc
+            ? query.OrderBy(keySelector)
+            : query.OrderByDescending(keySelector);
+
+        var posts = await query
             .Skip(start)
             .Take(length)
             .ToListAsync();
 
         return (posts, filteredCount, totalCount);
+    }
+
+    public async Task<int> CountAllAsync(Expression<Func<Post, bool>>? filter = null)
+    {
+        var query = _context.Posts.AsQueryable();
+        if (filter != null)
+        {
+            query = query.Where(filter);
+        }
+        return await query.CountAsync();
+    }
+
+    public async Task<IEnumerable<Post>> GetRecentPostsAsync(int count)
+    {
+        return await _context.Posts
+            .Include(p => p.Author)
+            .Where(p => !p.IsDeleted)
+            .OrderByDescending(p => p.CreatedAt)
+            .Take(count)
+            .ToListAsync();
+    }
+
+    public async Task<Post?> GetByIdAsync(int id, bool includeUnpublished, bool includeDeleted)
+    {
+        var query = _context.Posts.AsQueryable();
+
+        if (includeDeleted)
+        {
+            query = query.IgnoreQueryFilters();
+        }
+
+        if (!includeUnpublished)
+        {
+            query = query.Where(p => p.IsPublished);
+        }
+
+        return await query.FirstOrDefaultAsync(p => p.Id == id);
+    }
+
+    public async Task<IEnumerable<Post>> GetAllTrashedPostsAsync()
+    {
+        return await _context.Posts
+            .IgnoreQueryFilters()
+            .Where(p => p.IsDeleted)
+            .Include(p => p.PostTags)
+            .ToListAsync();
     }
 }

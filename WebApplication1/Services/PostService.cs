@@ -56,18 +56,9 @@ public class PostService : IPostService
         };
     }
 
-    public async Task<Post?> GetPostByIdAsync(int id, bool includeUnpublished = false)
+    public async Task<Post?> GetPostByIdAsync(int id, bool includeUnpublished = false, bool includeDeleted = false)
     {
-        try
-        {
-            var post = await _postRepository.GetPostWithDetailsAsync(id);
-            if (!includeUnpublished && !post.IsPublished) return null;
-            return post;
-        }
-        catch (KeyNotFoundException)
-        {
-            return null;
-        }
+        return await _postRepository.GetByIdAsync(id, includeUnpublished, includeDeleted);
     }
 
     public async Task<PostListViewModel> GetPostListAsync(int page, string? searchTerm, string? tagFilter,
@@ -169,10 +160,10 @@ public class PostService : IPostService
 
         if (any != true) return post;
         foreach (var postTag in viewModel.SelectedTagIds.Select(tagId => new PostTag
-                 {
-                     PostId = post.Id,
-                     TagId = tagId
-                 }))
+        {
+            PostId = post.Id,
+            TagId = tagId
+        }))
             await _postRepository.AddPostTagAsync(postTag);
         await _postRepository.SaveChangesAsync();
 
@@ -316,7 +307,8 @@ public class PostService : IPostService
             request.Length,
             searchTerm,
             sortColumn,
-            orderAsc
+            orderAsc,
+            request.StatusFilter
         );
 
         var postViewModels = posts.Select(p =>
@@ -420,5 +412,28 @@ public class PostService : IPostService
         }
 
         return currentSlug;
+    }
+
+    public async Task EmptyTrashAsync()
+    {
+        var trashedPosts = await _postRepository.GetAllTrashedPostsAsync();
+        foreach (var post in trashedPosts)
+        {
+            await _postRepository.DeletePostTagsAsync(post.PostTags);
+            await _postRepository.DeleteAsync(post);
+        }
+        await _postRepository.SaveChangesAsync();
+    }
+
+    public async Task RestoreAllPostsAsync()
+    {
+        var trashedPosts = await _postRepository.GetAllTrashedPostsAsync();
+        foreach (var post in trashedPosts)
+        {
+            post.IsDeleted = false;
+            post.DeletedAt = null;
+            await _postRepository.UpdateAsync(post);
+        }
+        await _postRepository.SaveChangesAsync();
     }
 }
