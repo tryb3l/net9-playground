@@ -1,77 +1,64 @@
-/* Sets up the body for a "sticky footer" layout */
-body.admin-body {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    margin-bottom: 0 !important;
-    background-color: #f8f9fa;
+/* === CORE LAYOUT === */
+html, body.admin-body {
+    height: 100%;
     overflow: hidden;
 }
 
-/* The main container that holds the sidebar and main content. It grows to fill available space. */
+body.admin-body {
+    background-color: #f8f9fa;
+}
+
 .admin-container {
     display: flex;
-    flex-grow: 1;
-    width: 100%;
     height: 100vh;
 }
 
-/* The main content area, holding the top navbar and the page content. */
 .main-wrapper {
     flex-grow: 1;
+    min-width: 0;
+    transition: margin-left 0.3s ease-in-out;
     display: flex;
     flex-direction: column;
-    min-width: 0;
-    overflow-y: auto; /* Allow this entire column to scroll */
+    overflow-y: auto;
 }
 
-/* The top navigation bar inside the main wrapper. */
 .admin-navbar {
-    flex-shrink: 0;
     position: sticky;
     top: 0;
     z-index: 1000;
-    background-color: #fff;
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    padding: 0.75rem 1rem;
+    flex-shrink: 0;
 }
 
-/* The main content area where @RenderBody is rendered */
 .content-area {
-    flex-grow: 1;
     padding: 1.5rem;
+    flex-grow: 1;
 }
 
-/* The footer at the very bottom of the page. */
 .footer {
     flex-shrink: 0;
-    z-index: 1001;
+    background-color: #fff;
+    border-top: 1px solid #dee2e6;
 }
 
-
-/* === 2. SIDEBAR STYLES === */
-
+/* === SIDEBAR STYLES === */
 .sidebar {
     width: 250px;
     flex-shrink: 0;
-    background-color: #343a40;
+    background-color: #212529;
     color: #fff;
     display: flex;
     flex-direction: column;
-    max-height: 100vh;
+    height: 100vh;
     position: sticky;
     top: 0;
     z-index: 1020;
-    transition: width 0.3s ease-in-out;
+    transition: width 0.3s ease-in-out, margin-left 0.3s ease-in-out;
 }
 
 .sidebar-header {
     padding: 1rem;
-    background-color: rgba(0, 0, 0, 0.1);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     flex-shrink: 0;
 }
 
@@ -81,20 +68,11 @@ body.admin-body {
     font-weight: bold;
     font-size: 1.2rem;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .sidebar-content {
     flex-grow: 1;
     overflow-y: auto;
-    padding: 1rem 0;
-}
-
-.sidebar-footer {
-    padding: 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    flex-shrink: 0;
 }
 
 .sidebar .nav-link {
@@ -103,7 +81,6 @@ body.admin-body {
     display: flex;
     align-items: center;
     white-space: nowrap;
-    transition: background-color 0.2s, color 0.2s;
 }
 
 .sidebar .nav-link:hover,
@@ -116,55 +93,99 @@ body.admin-body {
     margin-right: 0.75rem;
     font-size: 1.1rem;
     width: 20px;
-    text-align: center;
 }
 
-/* Collapsed Sidebar Styles */
+/* === SIDEBAR TOGGLE BUTTON === */
+.sidebar-toggle {
+    color: #343a40;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0 0.75rem;
+}
+
+.sidebar-toggle:hover {
+    color: #000;
+}
+
+/* === SIDEBAR FOOTER & USER PROFILE === */
+.sidebar-footer {
+    padding: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+}
+
+.sidebar-user-profile {
+    padding: 0.5rem;
+}
+
+.sidebar-user-profile .dropdown-menu {
+    width: calc(100% - 1rem);
+}
+
+.sidebar-login-actions .nav-link {
+    padding: 0.5rem;
+}
+
+/* --- Desktop Collapsed State --- */
 .sidebar.collapsed {
     width: 80px;
 }
 
 .sidebar.collapsed .sidebar-brand-text,
-.sidebar.collapsed .nav-link span {
+.sidebar.collapsed .nav-link span,
+.sidebar.collapsed .user-name {
     display: none;
 }
 
-.sidebar.collapsed .sidebar-header {
+.sidebar.collapsed .nav-link {
     justify-content: center;
 }
 
+.sidebar.collapsed .nav-link i {
+    margin-right: 0;
+}
+
 .sidebar.collapsed .sidebar-footer {
+    padding: 0.5rem 0;
     text-align: center;
 }
 
-.sidebar.collapsed .sidebar-footer span {
-    display: none;
+.sidebar.collapsed .sidebar-user-profile .dropdown-toggle {
+    justify-content: center;
 }
 
-.sidebar-toggle {
-    color: rgba(255, 255, 255, 0.7);
-    border: none;
+.sidebar.collapsed .sidebar-user-profile .dropdown-toggle img {
+    margin-right: 0 !important;
 }
 
-.sidebar-toggle:hover {
-    color: #fff;
-}
-
-
-/* === 3. RESPONSIVE BEHAVIOR === */
-
+/* --- Mobile State --- */
 @media (max-width: 767.98px) {
+    .main-wrapper {
+        margin-left: 0 !important;
+    }
+
     .sidebar {
         position: fixed;
-        left: -250px;
-        transition: left 0.3s ease-in-out;
+        margin-left: -250px;
     }
 
     .sidebar.active {
-        left: 0;
+        margin-left: 0;
+        box-shadow: 0 0 15px rgba(0,0,0,0.25);
     }
 
-    .main-wrapper {
-        width: 100%;
+    .sidebar.collapsed {
+        width: 250px;
+        margin-left: -250px;
+    }
+    .sidebar.collapsed.active {
+        margin-left: 0;
+    }
+    .sidebar.collapsed .sidebar-brand-text,
+    .sidebar.collapsed .nav-link span,
+    .sidebar.collapsed .user-name {
+        display: inline-block;
     }
 }
