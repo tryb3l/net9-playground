@@ -4,18 +4,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const desktopSidebarToggle = document.getElementById('sidebarCollapseBtn');
     const mobileSidebarToggle = document.getElementById('mobileSidebarToggle');
 
-    // --- State Persistence for Desktop ---
-    const applySidebarState = () => {
-        if (window.innerWidth >= 768 && localStorage.getItem('sidebarCollapsed') === 'true') {
-            adminSidebar.classList.add('collapsed');
-        }
-    };
-
     // --- Desktop Toggle Handler ---
     if (desktopSidebarToggle) {
         desktopSidebarToggle.addEventListener('click', function () {
-            adminSidebar.classList.toggle('collapsed');
-            localStorage.setItem('sidebarCollapsed', adminSidebar.classList.contains('collapsed'));
+            const isCollapsed = document.documentElement.classList.toggle('sidebar-collapsed-state');
+            localStorage.setItem('sidebarCollapsed', isCollapsed);
         });
     }
 
@@ -39,7 +32,4 @@ document.addEventListener('DOMContentLoaded', function () {
     if (userProfileDropdown) {
         new bootstrap.Dropdown(userProfileDropdown);
     }
-
-    // --- Initial State on Page Load ---
-    applySidebarState();
 });
