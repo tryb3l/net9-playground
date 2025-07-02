@@ -1,5 +1,6 @@
 /* === CORE LAYOUT === */
-html, body.admin-body {
+html,
+body.admin-body {
     height: 100%;
     overflow: hidden;
 }
@@ -120,6 +121,27 @@ body.admin-body {
     padding: 0.5rem;
 }
 
+.sidebar-user-profile .dropdown-toggle {
+    width: 100%;
+}
+
+.sidebar-user-profile .dropdown-toggle::after {
+    display: none;
+}
+
+.sidebar-user-profile .user-name-text {
+    display: none;
+}
+
+.sidebar-user-profile .bi-gear {
+    font-size: 1.2rem;
+    transition: transform 0.3s ease;
+}
+
+.sidebar-user-profile .dropdown-toggle[aria-expanded="true"] .bi-gear {
+    transform: rotate(90deg);
+}
+
 .sidebar-user-profile .dropdown-menu {
     width: calc(100% - 1rem);
 }
@@ -128,39 +150,42 @@ body.admin-body {
     padding: 0.5rem;
 }
 
-/* --- Desktop Collapsed State --- */
-.sidebar.collapsed {
+/* This state is applied via the .sidebar-collapsed-state class on the <html> tag */
+.sidebar-collapsed-state .sidebar {
     width: 80px;
 }
 
-.sidebar.collapsed .sidebar-brand-text,
-.sidebar.collapsed .nav-link span,
-.sidebar.collapsed .user-name {
+.sidebar-collapsed-state .sidebar .sidebar-brand-text,
+.sidebar-collapsed-state .sidebar .nav-link span {
     display: none;
 }
 
-.sidebar.collapsed .nav-link {
+.sidebar-collapsed-state .sidebar .nav-link {
     justify-content: center;
 }
 
-.sidebar.collapsed .nav-link i {
+.sidebar-collapsed-state .sidebar .nav-link i {
     margin-right: 0;
 }
 
-.sidebar.collapsed .sidebar-footer {
+.sidebar-collapsed-state .sidebar .sidebar-footer {
     padding: 0.5rem 0;
     text-align: center;
 }
 
-.sidebar.collapsed .sidebar-user-profile .dropdown-toggle {
+.sidebar-collapsed-state .sidebar .sidebar-user-profile .dropdown-toggle {
     justify-content: center;
 }
 
-.sidebar.collapsed .sidebar-user-profile .dropdown-toggle img {
+.sidebar-collapsed-state .sidebar .sidebar-user-profile .dropdown-toggle img {
     margin-right: 0 !important;
 }
 
-/* --- Mobile State --- */
+.sidebar-collapsed-state .sidebar .sidebar-user-profile .bi-gear {
+    display: none;
+}
+
+/* This state is controlled by the .active class on the .sidebar element */
 @media (max-width: 767.98px) {
     .main-wrapper {
         margin-left: 0 !important;
@@ -173,19 +198,6 @@ body.admin-body {
 
     .sidebar.active {
         margin-left: 0;
-        box-shadow: 0 0 15px rgba(0,0,0,0.25);
-    }
-
-    .sidebar.collapsed {
-        width: 250px;
-        margin-left: -250px;
-    }
-    .sidebar.collapsed.active {
-        margin-left: 0;
-    }
-    .sidebar.collapsed .sidebar-brand-text,
-    .sidebar.collapsed .nav-link span,
-    .sidebar.collapsed .user-name {
-        display: inline-block;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.25);
     }
 }
