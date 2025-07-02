@@ -8,15 +8,25 @@
 {
     var user = await UserManager.GetUserAsync(User);
     var userName = user?.UserName ?? "User";
+    var userEmail = user?.Email ?? "no-email@example.com";
 
     <div class="dropdown dropup sidebar-user-profile">
         <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle"
             data-bs-toggle="dropdown" aria-expanded="false">
             <img src="https://ui-avatars.com/api/?name=@(Uri.EscapeDataString(userName))&background=212529&color=fff" alt=""
                 width="32" height="32" class="rounded-circle me-2">
-            <strong class="user-name">@userName</strong>
+            <i class="bi bi-gear"></i>
         </a>
         <ul class="dropdown-menu dropdown-menu-dark text-small shadow">
+            <li>
+                <div class="dropdown-header px-3 py-2">
+                    <h6 class="mb-0">@userName</h6>
+                    <small class="text-muted" style="word-break: break-all;">@userEmail</small>
+                </div>
+            </li>
+            <li>
+                <hr class="dropdown-divider">
+            </li>
             @if (User.IsInRole("Admin"))
             {
                 <li>
@@ -28,6 +38,11 @@
             <li>
                 <a class="dropdown-item" asp-area="Identity" asp-page="/Account/Manage/Index">
                     <i class="bi bi-person-circle me-2"></i>Manage Account
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item" asp-area="" asp-controller="Home" asp-action="Index" target="_blank">
+                    <i class="bi bi-box-arrow-up-right me-2"></i>View Main Site
                 </a>
             </li>
             <li>
