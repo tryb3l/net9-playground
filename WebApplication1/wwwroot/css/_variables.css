@@ -1,0 +1,38 @@
+:root {
+    /* Greyscale */
+    --color-white: #fff;
+    --color-black: #000;
+    --color-gray-100: #f8f9fa;
+    --color-gray-300: #dee2e6;
+    --color-gray-800: #343a40;
+    --color-gray-900: #212529;
+
+    /* Brand & Accent Colors (using Bootstrap defaults as a base) */
+    --color-primary: #0d6efd;
+    --color-success: #198754;
+    --color-danger: #dc3545;
+    --color-warning: #ffc107;
+    --color-info: #0dcaf0;
+
+    --text-color-light: var(--color-white);
+    --text-color-light-muted: rgba(255, 255, 255, 0.7);
+    --text-color-dark: var(--color-gray-800);
+
+    /* Component Specific Colors */
+    --sidebar-bg: var(--color-gray-900);
+    --sidebar-text: var(--text-color-light-muted);
+    --sidebar-text-active: var(--text-color-light);
+    --sidebar-border: rgba(255, 255, 255, 0.1);
+    --sidebar-hover-bg: rgba(255, 255, 255, 0.1);
+    --navbar-shadow-color: rgba(0, 0, 0, 0.075);
+
+    --sidebar-width-expanded: 250px;
+    --sidebar-width-collapsed: 80px;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+
+    --border-default: 1px solid var(--color-gray-300);
+
+    --shadow-sm: 0 0.125rem 0.25rem var(--navbar-shadow-color);
+}

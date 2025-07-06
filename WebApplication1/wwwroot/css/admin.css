@@ -6,7 +6,7 @@ body.admin-body {
 }
 
 body.admin-body {
-    background-color: #f8f9fa;
+    background-color: var(--color-gray-100);
 }
 
 .admin-container {
@@ -27,27 +27,27 @@ body.admin-body {
     position: sticky;
     top: 0;
     z-index: 1000;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    box-shadow: var(--shadow-sm);
     flex-shrink: 0;
 }
 
 .content-area {
-    padding: 1.5rem;
+    padding: var(--spacing-lg);
     flex-grow: 1;
 }
 
 .footer {
     flex-shrink: 0;
-    background-color: #fff;
-    border-top: 1px solid #dee2e6;
+    background-color: var(--color-white);
+    border-top: var(--border-default);
 }
 
 /* === SIDEBAR STYLES === */
 .sidebar {
-    width: 250px;
+    width: var(--sidebar-width-expanded);
     flex-shrink: 0;
-    background-color: #212529;
-    color: #fff;
+    background-color: var(--sidebar-bg);
+    color: var(--text-color-light);
     display: flex;
     flex-direction: column;
     height: 100vh;
@@ -58,13 +58,13 @@ body.admin-body {
 }
 
 .sidebar-header {
-    padding: 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--sidebar-border);
     flex-shrink: 0;
 }
 
 .sidebar-brand {
-    color: white;
+    color: var(--text-color-light);
     text-decoration: none;
     font-weight: bold;
     font-size: 1.2rem;
@@ -77,8 +77,8 @@ body.admin-body {
 }
 
 .sidebar .nav-link {
-    color: rgba(255, 255, 255, 0.7);
-    padding: 0.75rem 1rem;
+    color: var(--sidebar-text);
+    padding: 0.75rem var(--spacing-md);
     display: flex;
     align-items: center;
     white-space: nowrap;
@@ -86,8 +86,8 @@ body.admin-body {
 
 .sidebar .nav-link:hover,
 .sidebar .nav-link.active {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background-color: var(--sidebar-hover-bg);
+    color: var(--sidebar-text-active);
 }
 
 .sidebar .nav-link i {
@@ -98,7 +98,7 @@ body.admin-body {
 
 /* === SIDEBAR TOGGLE BUTTON === */
 .sidebar-toggle {
-    color: #343a40;
+    color: var(--color-gray-800);
     background: none;
     border: none;
     font-size: 1.5rem;
@@ -107,18 +107,18 @@ body.admin-body {
 }
 
 .sidebar-toggle:hover {
-    color: #000;
+    color: var(--color-black);
 }
 
 /* === SIDEBAR FOOTER & USER PROFILE === */
 .sidebar-footer {
-    padding: 0.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: var(--spacing-sm);
+    border-top: 1px solid var(--sidebar-border);
     flex-shrink: 0;
 }
 
 .sidebar-user-profile {
-    padding: 0.5rem;
+    padding: var(--spacing-sm);
 }
 
 .sidebar-user-profile .dropdown-toggle {
@@ -147,13 +147,13 @@ body.admin-body {
 }
 
 .sidebar-login-actions .nav-link {
-    padding: 0.5rem;
+    padding: var(--spacing-sm);
 }
 
 /* === DESKTOP COLLAPSED STATE === */
 @media (min-width: 768px) {
     .sidebar-collapsed-state .sidebar {
-        width: 80px;
+        width: var(--sidebar-width-collapsed);
     }
 
     .sidebar-collapsed-state .sidebar .sidebar-brand-text,
@@ -170,7 +170,7 @@ body.admin-body {
     }
 
     .sidebar-collapsed-state .sidebar .sidebar-footer {
-        padding: 0.5rem 0;
+        padding: var(--spacing-sm) 0;
         text-align: center;
     }
 
@@ -187,7 +187,7 @@ body.admin-body {
     }
 }
 
-/* This state is controlled by the .active class on the .sidebar element */
+/* === MOBILE STATE === */
 @media (max-width: 767.98px) {
     .main-wrapper {
         margin-left: 0 !important;
@@ -200,6 +200,6 @@ body.admin-body {
 
     .sidebar.active {
         margin-left: 0;
-        box-shadow: 0 0 15px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 0 15px var(--navbar-shadow-color);
     }
 }
