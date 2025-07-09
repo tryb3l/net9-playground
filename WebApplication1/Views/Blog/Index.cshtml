@@ -3,54 +3,33 @@
     ViewData["Title"] = "Blog";
 }
 
-<div class="container">
+<div class="container mt-4">
     <div class="row">
         <!-- Main content -->
-        <div class="col-md-8">
-            <h1>Blog Posts</h1>
+        <div class="col-lg-8">
+            <h1 class="mb-4">Blog Posts</h1>
 
-            @foreach (var post in Model.Posts)
+            @if (Model.Posts.Any())
             {
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <h2 class="card-title">
-                            <a asp-action="Post" asp-route-id="@post.Id" asp-route-slug="@post.Slug">@post.Title</a>
-                        </h2>
-                        <div class="text-muted mb-2">
-                            Posted on @post.PublishedDate?.ToString("MMMM dd, yyyy") by
-                            @(post.Author?.DisplayName ?? post.Author?.UserName ?? "Unknown")
-                        </div>
-                        <p class="card-text">@(post.Content != null ? (post.Content.Length > 200 ? post.Content.Substring(0,
-                                                    200) + "..." : post.Content) : "")</p>
-                    <a asp-action="Post" asp-route-id="@post.Id" asp-route-slug="@post.Slug"
-                        class="btn btn-primary">Read More →</a>
+                <div class="post-card-grid">
+                    @foreach (var post in Model.Posts)
+                    {
+                        <partial name="_PostCard" model="post" />
+                    }
                 </div>
-                <div class="card-footer text-muted">
-                    @if (post.Category != null)
-                        {
-                            <span>Category: <a asp-action="Index"
-                                    asp-route-category="@post.Category.Slug">@post.Category.Name</a></span>
-                        }
-
-                        @if (post.PostTags.Any())
-                        {
-                            <span class="ms-3">Tags:
-                                @foreach (var postTag in post.PostTags)
-                                {
-                                    <a asp-action="Index" asp-route-tag="@postTag.Tag?.Name"
-                                        class="badge bg-secondary text-decoration-none link-light">@postTag.Tag?.Name</a>
-                                }
-                            </span>
-                        }
-                    </div>
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    <p class="mb-0">No posts found. Try clearing the filters to see all posts.</p>
                 </div>
             }
 
             <!-- Pagination -->
             @if (Model.TotalPages > 1)
             {
-                <nav aria-label="Page navigation">
-                    <ul class="pagination">
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
                         @for (int i = 1; i <= Model.TotalPages; i++)
                         {
                             <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
@@ -64,26 +43,22 @@
         </div>
 
         <!-- Sidebar -->
-        <div class="col-md-4">
+        <div class="col-lg-4">
             <!-- Categories widget -->
             <div class="card mb-4">
                 <div class="card-header">Categories</div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col">
-                            <ul class="list-unstyled mb-0">
-                                @foreach (var category in Model.Categories)
-                                {
-                                    <li>
-                                        <a asp-action="Index" asp-route-category="@category.Slug"
-                                            class="@(category.Slug == Model.CurrentCategory ? "fw-bold" : "")">
-                                            @category.Name
-                                        </a>
-                                    </li>
-                                }
-                            </ul>
-                        </div>
-                    </div>
+                    <ul class="list-unstyled mb-0">
+                        @foreach (var category in Model.Categories)
+                        {
+                            <li>
+                                <a asp-action="Index" asp-route-category="@category.Slug"
+                                    class="@(category.Slug == Model.CurrentCategory ? "fw-bold" : "")">
+                                    @category.Name
+                                </a>
+                            </li>
+                        }
+                    </ul>
                 </div>
             </div>
 
@@ -93,8 +68,8 @@
                 <div class="card-body">
                     @foreach (var tag in Model.Tags)
                     {
-                        <a asp-action="Index" asp-route-tag="@tag.Name"
-                            class="badge bg-secondary text-decoration-none link-light @(tag.Name == Model.CurrentTag ? "bg-primary" : "")">
+                        <a asp-action="Index" asp-route-tag="@tag.Slug"
+                            class="badge bg-secondary text-decoration-none link-light @(tag.Slug == Model.CurrentTag ? "bg-primary" : "")">
                             @tag.Name
                         </a>
                     }
