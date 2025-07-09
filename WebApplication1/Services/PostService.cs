@@ -17,7 +17,7 @@ public class PostService : IPostService
     private readonly ICategoryRepository _categoryRepository;
     private readonly IPostRepository _postRepository;
     private readonly ITagRepository _tagRepository;
-    private readonly IUrlHelper _urlHelper;
+    private readonly IUrlHelper? _urlHelper;
 
     public PostService(
         IPostRepository postRepository,
@@ -38,17 +38,43 @@ public class PostService : IPostService
         const int pageSize = 5;
         var skip = (page - 1) * pageSize;
 
-        var posts = await _postRepository.GetPublishedPostsAsync(skip, pageSize);
+        var postsData = await _postRepository.GetPublishedPostsWithDetailsAsync(skip, pageSize);
         var totalPosts = await _postRepository.CountPublishedPostsAsync();
 
         var categories = await _categoryRepository.GetAllAsync();
-        var tags = await _tagRepository.GetPopularTagsAsync(10);
+        var popularTags = await _tagRepository.GetPopularTagsAsync(10);
+
+        var postCards = postsData.Select(p => new PostCardViewModel
+        {
+            Id = p.Id,
+            Title = p.Title,
+            Slug = p.Slug ?? string.Empty,
+            ShortDescription = !string.IsNullOrEmpty(p.Content) && p.Content.Length > 200
+                ? p.Content.Substring(0, 200) + "..."
+                : p.Content ?? string.Empty,
+            PublishDate = p.PublishedDate ?? p.CreatedAt,
+            CategoryName = p.Category?.Name ?? "Uncategorized",
+            CategorySlug = p.Category?.Slug ?? string.Empty,
+            Tags = p.PostTags.Select(pt => new TagViewModel
+            {
+                Name = pt.Tag!.Name,
+                Slug = SlugHelper.GenerateSlug(pt.Tag!.Name)
+            })
+        }).ToList();
 
         return new BlogIndexViewModel
         {
-            Posts = posts.ToList(),
-            Categories = categories.ToList(),
-            Tags = tags.ToList(),
+            Posts = postCards,
+            Categories = categories.Select(c => new CategoryViewModel
+            {
+                Name = c.Name,
+                Slug = c.Slug ?? SlugHelper.GenerateSlug(c.Name)
+            }).ToList(),
+            Tags = popularTags.Select(t => new TagViewModel
+            {
+                Name = t.Name,
+                Slug = SlugHelper.GenerateSlug(t.Name)
+            }).ToList(),
             CurrentPage = page,
             TotalPages = (int)Math.Ceiling(totalPosts / (double)pageSize),
             CurrentCategory = category,
