@@ -7,6 +7,7 @@ namespace WebApplication1.Interfaces;
 public interface IPostRepository : IRepository<Post>
 {
     Task<IEnumerable<Post>> GetPublishedPostsAsync(int skip, int take);
+    Task<IEnumerable<Post>> GetPublishedPostsWithDetailsAsync(int skip, int take);
     Task<Post> GetPostWithDetailsAsync(int id);
     Task<int> CountPublishedPostsAsync();
     Task<IEnumerable<Post>> GetPostsWithFiltersAsync(string? searchTerm, string? tagFilter, bool? publishedOnly, int skip, int take);

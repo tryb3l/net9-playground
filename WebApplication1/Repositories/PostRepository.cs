@@ -57,6 +57,20 @@ public class PostRepository : IPostRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<Post>> GetPublishedPostsWithDetailsAsync(int skip, int take)
+    {
+        return await _context.Posts
+            .Where(p => p.IsPublished && !p.IsDeleted)
+            .Include(p => p.Category)
+            .Include(p => p.Author)
+            .Include(p => p.PostTags)
+            .ThenInclude(pt => pt.Tag)
+            .OrderByDescending(p => p.PublishedDate)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync();
+    }
+
     public async Task<int> CountPublishedPostsAsync()
     {
         return await _context.Posts
