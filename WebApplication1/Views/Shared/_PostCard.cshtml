@@ -1,0 +1,32 @@
+@using WebApplication1.ViewModels
+@model PostCardViewModel
+
+<article class="post-card">
+    <a href="@Url.Action("Post", "Blog", new { id = Model.Id, slug = Model.Slug })" class="post-card-link"
+        aria-label="@Model.Title">
+        @if (!string.IsNullOrEmpty(Model.FeaturedImageUrl))
+        {
+            <div class="post-card-image-container">
+                <img src="@Model.FeaturedImageUrl" alt="" class="post-card-image" loading="lazy">
+            </div>
+        }
+
+        <div class="post-card-content">
+            <header class="post-card-header">
+                <span class="post-card-category">@Model.CategoryName</span>
+                <h3 class="post-card-title">@Model.Title</h3>
+            </header>
+            <section class="post-card-excerpt">
+                <p>@Model.ShortDescription</p>
+            </section>
+            <footer class="post-card-footer">
+                <div class="post-card-tags">
+                    @foreach (var tag in Model.Tags)
+                    {
+                        <span class="post-card-tag">#@tag.Name</span>
+                    }
+                </div>
+            </footer>
+        </div>
+    </a>
+</article>
