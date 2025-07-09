@@ -1,0 +1,130 @@
+.post-card {
+  background-color: var(--surface-color);
+  color: var(--on-surface-color);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  text-decoration: none;
+
+  box-shadow: 0 1px 3px rgba(var(--shadow-color), var(--shadow-strength-1));
+
+
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.post-card-link {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    color: inherit;
+    text-decoration: none;
+}
+
+.post-card-image-container {
+    width: 100%;
+    height: 180px;
+    overflow: hidden;
+}
+
+.post-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease-out;
+}
+
+.post-card-content {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.post-card-category {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    text-transform: uppercase;
+}
+
+.post-card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.3;
+    margin: 8px 0 12px;
+}
+
+.post-card-excerpt {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    flex-grow: 1;
+}
+
+.post-card-footer {
+    margin-top: 16px;
+}
+
+.post-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.post-card-tag {
+    font-size: 0.75rem;
+    background-color: rgba(var(--on-surface-color), 0.08);
+    padding: 4px 10px;
+    border-radius: 8px;
+}
+
+
+/* ================================================================= */
+/* DESKTOP ENHANCEMENTS (Applies only when screen is 768px or wider) */
+/* ================================================================= */
+
+@media (min-width: 768px) {
+  .post-card {
+    border-radius: 16px;
+
+    /* The more complex, layered shadow for desktop */
+    box-shadow:
+      0 2px 4px rgba(var(--shadow-color), var(--shadow-strength-1)),
+      0 4px 8px rgba(var(--shadow-color), var(--shadow-strength-2));
+  }
+
+  .post-card:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      0 4px 8px rgba(var(--shadow-color), var(--shadow-strength-1)),
+      0 8px 16px rgba(var(--shadow-color), var(--shadow-strength-2));
+  }
+
+  .post-card:hover .post-card-image {
+    transform: scale(1.05);
+  }
+
+  .post-card-image-container {
+    height: 200px;
+  }
+
+  .post-card-content {
+    padding: 24px;
+  }
+
+  .post-card-category {
+    font-size: 0.875rem;
+  }
+
+  .post-card-title {
+    font-size: 1.5rem;
+  }
+
+  .post-card-excerpt {
+    font-size: 1rem;
+  }
+
+  .post-card-tag {
+    font-size: 0.8rem;
+  }
+}

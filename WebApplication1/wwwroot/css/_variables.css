@@ -1,38 +1,53 @@
 :root {
-    /* Greyscale */
-    --color-white: #fff;
-    --color-black: #000;
-    --color-gray-100: #f8f9fa;
-    --color-gray-300: #dee2e6;
-    --color-gray-800: #343a40;
-    --color-gray-900: #212529;
+    /* === THEME-AWARE BASE VARIABLES === */
+    --surface-color: #f8f9fa;
+    --on-surface-color: #212529;
+    --primary-color: #0d6efd;
+    --on-primary-color: #fff;
+    --border-color: #dee2e6;
+    --shadow-color-rgb: 0, 0, 0;
+    --shadow-strength: 0.075;
 
-    /* Brand & Accent Colors (using Bootstrap defaults as a base) */
-    --color-primary: #0d6efd;
+    /* === SEMANTIC COLORS === */
     --color-success: #198754;
     --color-danger: #dc3545;
     --color-warning: #ffc107;
     --color-info: #0dcaf0;
+    --color-white: #fff;
+    --color-black: #000;
 
-    --text-color-light: var(--color-white);
-    --text-color-light-muted: rgba(255, 255, 255, 0.7);
-    --text-color-dark: var(--color-gray-800);
-
-    /* Component Specific Colors */
-    --sidebar-bg: var(--color-gray-900);
-    --sidebar-text: var(--text-color-light-muted);
-    --sidebar-text-active: var(--text-color-light);
+    /* === COMPONENT-SPECIFIC VARIABLES === */
+    --sidebar-bg: var(--on-surface-color);
+    --sidebar-text: rgba(255, 255, 255, 0.7);
+    --sidebar-text-active: var(--color-white);
     --sidebar-border: rgba(255, 255, 255, 0.1);
     --sidebar-hover-bg: rgba(255, 255, 255, 0.1);
-    --navbar-shadow-color: rgba(0, 0, 0, 0.075);
 
+    /* === SIZING & SPACING === */
     --sidebar-width-expanded: 250px;
     --sidebar-width-collapsed: 80px;
     --spacing-sm: 0.5rem;
     --spacing-md: 1rem;
     --spacing-lg: 1.5rem;
 
-    --border-default: 1px solid var(--color-gray-300);
+    /* === BORDERS & SHADOWS === */
+    --border-default: 1px solid var(--border-color);
+    --shadow-sm: 0 0.125rem 0.25rem rgba(var(--shadow-color-rgb), var(--shadow-strength));
+}
 
-    --shadow-sm: 0 0.125rem 0.25rem var(--navbar-shadow-color);
+[data-theme='dark'] {
+    --surface-color: #2d2e30;
+    --on-surface-color: #e8eaed;
+    --primary-color: #8ab4f8;
+    --on-primary-color: #202124;
+    --border-color: rgba(255, 255, 255, 0.1);
+    --shadow-color-rgb: 0, 0, 0;
+    --shadow-strength: 0.3;
+
+    /* Sidebar for dark theme */
+    --sidebar-bg: #202124;
+    --sidebar-text: rgba(255, 255, 255, 0.7);
+    --sidebar-text-active: var(--color-white);
+    --sidebar-border: rgba(255, 255, 255, 0.1);
+    --sidebar-hover-bg: rgba(255, 255, 255, 0.2);
 }
