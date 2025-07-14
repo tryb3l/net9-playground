@@ -68,12 +68,14 @@ public class PostService : IPostService
             Categories = categories.Select(c => new CategoryViewModel
             {
                 Name = c.Name,
-                Slug = c.Slug ?? SlugHelper.GenerateSlug(c.Name)
+                Slug = c.Slug ?? SlugHelper.GenerateSlug(c.Name),
+                PostCount = c.Posts?.Count(p => p.IsPublished && !p.IsDeleted) ?? 0
             }).ToList(),
             Tags = popularTags.Select(t => new TagViewModel
             {
                 Name = t.Name,
-                Slug = SlugHelper.GenerateSlug(t.Name)
+                Slug = SlugHelper.GenerateSlug(t.Name),
+                PostCount = t.PostTags?.Count(pt => pt.Post != null && pt.Post.IsPublished && !pt.Post.IsDeleted) ?? 0
             }).ToList(),
             CurrentPage = page,
             TotalPages = (int)Math.Ceiling(totalPosts / (double)pageSize),
