@@ -1,0 +1,37 @@
+﻿@using WebApplication1.ViewModels
+@model PostCardViewModel
+
+<article class="featured-post-card">
+    <a asp-controller="Blog" asp-action="Post" asp-route-id="@Model.Id" asp-route-slug="@Model.Slug"
+        class="featured-post-link">
+        @if (!string.IsNullOrEmpty(Model.FeaturedImageUrl))
+        {
+            <div class="featured-image-container">
+                <img src="@Model.FeaturedImageUrl" alt="@Model.Title" class="featured-image" loading="lazy">
+                <div class="featured-overlay"></div>
+            </div>
+        }
+
+        <div class="featured-content">
+            <div class="featured-meta">
+                <span class="featured-category">@Model.CategoryName</span>
+                <span class="featured-date">@Model.PublishDate.ToString("MMM dd, yyyy")</span>
+            </div>
+
+            <h2 class="featured-title">@Model.Title</h2>
+            <p class="featured-excerpt">@Model.ShortDescription</p>
+
+            <div class="featured-tags">
+                @foreach (var tag in Model.Tags.Take(3))
+                {
+                    <span class="featured-tag">#@tag.Name</span>
+                }
+            </div>
+
+            <div class="featured-action">
+                <span class="read-more-text">Read Article</span>
+                <i class="bi bi-arrow-right"></i>
+            </div>
+        </div>
+    </a>
+</article>
