@@ -16,6 +16,36 @@
     --color-white: #fff;
     --color-black: #000;
 
+    /* === NAVIGATION VARIABLES === */
+    --navbar-bg: rgba(248, 249, 250, 0.95);
+    --navbar-bg-solid: #f8f9fa;
+    --navbar-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    --navbar-shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.18);
+    --navbar-border: rgba(255, 255, 255, 0.2);
+    --navbar-backdrop-blur: blur(20px);
+    --navbar-border-radius: 20px;
+    --navbar-border-radius-mobile: 16px;
+    --navbar-padding: 0.75rem 1.5rem;
+    --navbar-gap: 2rem;
+    --navbar-transition: all 0.3s ease;
+
+    /* === NAV LINK VARIABLES === */
+    --nav-link-color: rgba(33, 37, 41, 0.8);
+    --nav-link-color-hover: #0d6efd;
+    --nav-link-color-active: #0d6efd;
+    --nav-link-bg-hover: rgba(13, 110, 253, 0.1);
+    --nav-link-padding: 0.75rem 1rem;
+    --nav-link-border-radius: 12px;
+    --nav-link-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* === DROPDOWN VARIABLES === */
+    --dropdown-bg: #f8f9fa;
+    --dropdown-border: rgba(33, 37, 41, 0.1);
+    --dropdown-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    --dropdown-border-radius: 12px;
+    --dropdown-item-hover-bg: rgba(13, 110, 253, 0.1);
+    --dropdown-item-hover-color: #0d6efd;
+
     /* === COMPONENT-SPECIFIC VARIABLES === */
     --sidebar-bg: var(--on-surface-color);
     --sidebar-text: rgba(255, 255, 255, 0.7);
@@ -33,6 +63,28 @@
     /* === BORDERS & SHADOWS === */
     --border-default: 1px solid var(--border-color);
     --shadow-sm: 0 0.125rem 0.25rem rgba(var(--shadow-color-rgb), var(--shadow-strength));
+
+    /* === ANIMATION VARIABLES === */
+    --animation-duration-fast: 0.2s;
+    --animation-duration-normal: 0.3s;
+    --animation-duration-slow: 0.5s;
+    --animation-easing: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* === ANIMATION TIMINGS === */
+    --animation-fast: 0.2s;
+    --animation-normal: 0.3s;
+    --animation-slow: 0.4s;
+    --animation-spring: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+    /* === MOBILE NAVIGATION === */
+    --mobile-menu-transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --mobile-menu-item-hover: rgba(var(--primary-color), 0.05);
+    --mobile-menu-item-active: rgba(var(--primary-color), 0.08);
+    --mobile-menu-border: rgba(var(--on-surface-color), 0.1);
+
+    --mobile-menu-bg: var(--surface-color);
+    --mobile-menu-shadow: 0 8px 32px rgba(var(--shadow-color-rgb), 0.1);
+    --mobile-menu-border-radius: 16px;
 }
 
 [data-theme='dark'] {
@@ -43,6 +95,19 @@
     --border-color: rgba(255, 255, 255, 0.1);
     --shadow-color-rgb: 0, 0, 0;
     --shadow-strength: 0.3;
+
+    /* === DARK THEME NAVIGATION === */
+    --navbar-bg: rgba(45, 46, 48, 0.95);
+    --navbar-bg-solid: #2d2e30;
+    --navbar-border: rgba(255, 255, 255, 0.2);
+    --nav-link-color: rgba(232, 234, 237, 0.8);
+    --nav-link-color-hover: #8ab4f8;
+    --nav-link-color-active: #8ab4f8;
+    --nav-link-bg-hover: rgba(138, 180, 248, 0.1);
+    --dropdown-bg: #2d2e30;
+    --dropdown-border: rgba(255, 255, 255, 0.1);
+    --dropdown-item-hover-bg: rgba(138, 180, 248, 0.1);
+    --dropdown-item-hover-color: #8ab4f8;
 
     /* Sidebar for dark theme */
     --sidebar-bg: #202124;
