@@ -3,17 +3,10 @@ using System.Text.Json;
 
 namespace WebApplication1.Middleware;
 
-public class GlobalExceptionHandlerMiddleware : IMiddleware
+public class GlobalExceptionHandlerMiddleware(
+    ILogger<GlobalExceptionHandlerMiddleware> logger,
+    IWebHostEnvironment environment) : IMiddleware
 {
-    private readonly ILogger<GlobalExceptionHandlerMiddleware> _logger;
-    private readonly IWebHostEnvironment _environment;
-
-    public GlobalExceptionHandlerMiddleware(ILogger<GlobalExceptionHandlerMiddleware> loggler, IWebHostEnvironment environment)
-    {
-        _logger = loggler;
-        _environment = environment;
-    }
-
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
         try
@@ -22,7 +15,7 @@ public class GlobalExceptionHandlerMiddleware : IMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unhandled exception");
+            logger.LogError(ex, "An unhandled exception has occurred while processing the request.");
             await HandleExceptionAsync(context, ex);
         }
     }
@@ -32,7 +25,7 @@ public class GlobalExceptionHandlerMiddleware : IMiddleware
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
 
-        var response = _environment.IsDevelopment()
+        var response = environment.IsDevelopment()
             ? new { error = exception.Message, stackTrace = exception.StackTrace }
             : new { error = "An error occurred. Please try again later.", stackTrace = (string?)null };
 

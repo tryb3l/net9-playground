@@ -117,6 +117,16 @@ try
     app.UseStaticFiles();
     app.UseRouting();
 
+    app.UseSerilogRequestLogging(options =>
+    {
+        options.EnrichDiagnosticContext = ((diagnosticContext, httpContext) =>
+        {
+            if (httpContext.Request.Host.Value != null)
+                diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value);
+            diagnosticContext.Set("UserAgent", httpContext.Request.Headers.UserAgent);
+        });
+    });
+
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapStaticAssets();
