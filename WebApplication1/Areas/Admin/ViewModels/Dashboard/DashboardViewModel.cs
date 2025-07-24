@@ -6,9 +6,10 @@ namespace WebApplication1.Areas.Admin.ViewModels.Dashboard
     public class RecentPostViewModel
     {
         public int Id { get; set; }
-        public string Title { get; set; }
-        public System.DateTime CreatedAt { get; set; }
-        public string AuthorName { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public string AuthorName { get; set; } = string.Empty;
         public bool IsPublished { get; set; }
     }
 
