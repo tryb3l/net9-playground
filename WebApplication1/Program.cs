@@ -1,156 +1,157 @@
 using HealthChecks.UI.Client;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 using WebApplication1.Data;
-using WebApplication1.HealthChecks;
-using WebApplication1.Interfaces;
+using WebApplication1.Extensions;
 using WebApplication1.Middleware;
 using WebApplication1.Models;
-using WebApplication1.Repositories;
 using WebApplication1.Services;
 using WebApplication1.Utils;
 
-var builder = WebApplication.CreateBuilder(args);
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
-var root = Directory.GetCurrentDirectory();
-var envFile = Path.Combine(root, ".dev.env");
-DotEnv.Load(envFile);
-
-var connectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING") ??
-throw new InvalidOperationException("CONNECTION_STRING environment variable not found.");
-
-var googleClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID") ??
-throw new InvalidOperationException("GOOGLE_CLIENT_ID environment variable not found.");
-
-var googleClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET") ??
-throw new InvalidOperationException("GOOGLE_CLIENT_SECRET environment variable not found.");
-
-builder.Services.AddControllersWithViews()
-    .AddRazorRuntimeCompilation();
-
-builder.Services.AddRazorPages();
-
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(connectionString));
-
-builder.Services.AddIdentity<User, IdentityRole>()
-    .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddDefaultTokenProviders()
-    .AddDefaultUI();
-
-builder.Services.ConfigureApplicationCookie(options =>
+try
 {
-    options.LoginPath = "/Identity/Account/Login";
-    options.AccessDeniedPath = "/Identity/Account/AccessDenied";
-});
+    var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddAuthentication()
-    .AddGoogle(googleOptions =>
+    builder.Host.UseSerilog((context, services, configuration) => configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext()
+        .WriteTo.Console());
+
+    var root = Directory.GetCurrentDirectory();
+    var envFile = Path.Combine(root, ".dev.env");
+    DotEnv.Load(envFile);
+
+    var connectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING") ??
+                           throw new InvalidOperationException("CONNECTION_STRING environment variable not found.");
+
+    var googleClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID") ??
+                         throw new InvalidOperationException("GOOGLE_CLIENT_ID environment variable not found.");
+
+    var googleClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET") ??
+                             throw new InvalidOperationException("GOOGLE_CLIENT_SECRET environment variable not found.");
+
+    var healthCheckApiKey = Environment.GetEnvironmentVariable("HEALTHCHECKS_API_KEY") ??
+                            throw new InvalidOperationException("HEALTHCHECKS_API_KEY environment variable not found.");
+
+    var mvcBuilder = builder.Services.AddControllersWithViews();
+    builder.Services.AddRazorPages();
+
+    if (builder.Environment.IsDevelopment())
     {
-        googleOptions.ClientId = googleClientId;
-        googleOptions.ClientSecret = googleClientSecret;
-        googleOptions.CallbackPath = "/signin-google";
+        mvcBuilder.AddRazorRuntimeCompilation();
+    }
+
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseNpgsql(connectionString));
+
+    builder.Services.AddIdentity<User, IdentityRole>()
+        .AddEntityFrameworkStores<ApplicationDbContext>()
+        .AddDefaultTokenProviders()
+        .AddDefaultUI();
+
+    builder.Services.ConfigureApplicationCookie(options =>
+    {
+        options.LoginPath = "/Identity/Account/Login";
+        options.AccessDeniedPath = "/Identity/Account/AccessDenied";
     });
 
-// Global error handling
-builder.Services.AddTransient<GlobalExceptionHandlerMiddleware>();
+    builder.Services.AddAuthentication()
+        .AddGoogle(googleOptions =>
+        {
+            googleOptions.ClientId = googleClientId;
+            googleOptions.ClientSecret = googleClientSecret;
+            googleOptions.CallbackPath = "/signin-google";
+        });
 
-// Repository registrations
-builder.Services.AddScoped<IPostRepository, PostRepository>();
-builder.Services.AddScoped<ITagRepository, TagRepository>();
-builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+    builder.Services.AddAuthorizationBuilder()
+        .AddPolicy("Admin", policy =>
+        {
+            policy.AddRequirements(new AdminOrApiKeyRequirement());
+        });
 
-// Service registrations
-builder.Services.AddScoped<IPostService, PostService>();
-builder.Services.AddScoped<ITagService, TagService>();
-builder.Services.AddScoped<ICategoryService, CategoryService>();
-builder.Services.AddScoped<IAccountService, AccountService>();
-builder.Services.AddScoped<IDashboardService, DashboardService>();
-builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
+    builder.Services.AddTransient<GlobalExceptionHandlerMiddleware>();
+    
+    builder.Services.AddSingleton<IAuthorizationHandler, AdminOrApiKeyHandler>();
 
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
-builder.Services.AddSingleton<DbMigrationService>();
-builder.Services.AddHostedService(sp => sp.GetRequiredService<DbMigrationService>());
-builder.Services.AddHealthChecks()
-    .AddCheck<DbMigrationHealthChecks>("database_migrations", tags: ["database"]);
+    builder.Services.AddApplicationServices();
 
-if (builder.Environment.IsDevelopment())
-{
-    builder.Services.AddHttpClient("HealthChecksClient", client =>
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
+    builder.Services.AddSingleton<DbMigrationService>();
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<DbMigrationService>());
+
+    builder.Services.AddHealthChecks()
+        .AddNpgSql(connectionString);
+    
+    builder.Services.AddHealthChecksUI(setup =>
     {
-        client.BaseAddress = new Uri("http://web/");
+        setup.AddHealthCheckEndpoint("API", "https://web/health");
+        
+        setup.UseApiEndpointHttpMessageHandler(_ => new HealthCheckHttpClientHandler(
+            healthCheckApiKey,
+            builder.Environment.IsDevelopment()
+        ));
     })
-    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+    .AddInMemoryStorage();
+
+    var app = builder.Build();
+
+    app.UseGlobalExceptionHandler();
+
+    if (!app.Environment.IsDevelopment())
     {
-        ServerCertificateCustomValidationCallback =
-            (sender, certificate, chain, sslPolicyErrors) => true
-    });
+        app.UseExceptionHandler("/Home/Error");
+        app.UseHsts();
+    }
 
-    builder.Services.AddHealthChecksUI(options =>
+    app.UseHttpsRedirection();
+    app.UseStaticFiles();
+    app.UseRouting();
+
+    app.UseAuthentication();
+    app.UseAuthorization();
+    app.MapStaticAssets();
+
+    app.MapHealthChecks("/health", new HealthCheckOptions
     {
-        options.SetEvaluationTimeInSeconds(5);
-        options.MaximumHistoryEntriesPerEndpoint(50);
-        options.AddHealthCheckEndpoint("API", "http://web/health");
-        options.UseApiEndpointHttpMessageHandler(sp =>
-            new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback =
-                    (sender, certificate, chain, sslPolicyErrors) => true
-            });
-    }).AddInMemoryStorage();
-}
-else
-{
-    builder.Services.AddHealthChecksUI(options =>
+        Predicate = _ => true,
+        ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+    }).DisableHttpMetrics().RequireAuthorization("Admin");
+
+    app.MapHealthChecksUI(options =>
     {
-        options.SetEvaluationTimeInSeconds(5);
-        options.MaximumHistoryEntriesPerEndpoint(50);
-        options.AddHealthCheckEndpoint("API", "http://web/health");
-    }).AddInMemoryStorage();
+        options.UIPath = "/health-ui";
+        options.ApiPath = "/health-api";
+    }).RequireAuthorization("Admin");
+
+    app.MapControllerRoute(
+        name: "admin",
+        pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
+
+    app.MapControllerRoute(
+        name: "default",
+        pattern: "{controller=Home}/{action=Index}/{id?}");
+
+    app.MapRazorPages()
+       .WithStaticAssets();
+
+    app.Run();
 }
-
-var app = builder.Build();
-
-app.UseGlobalExceptionHandler();
-
-if (!app.Environment.IsDevelopment())
+catch (Exception ex)
 {
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
+    Log.Fatal(ex, "Unhandled exception");
 }
-
-app.UseHttpsRedirection();
-app.UseStaticFiles();
-app.UseRouting();
-
-app.UseAuthentication();
-app.UseAuthorization();
-app.MapStaticAssets();
-
-app.MapHealthChecks("/health", new HealthCheckOptions
+finally
 {
-    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
-}).DisableHttpMetrics();
-
-app.MapHealthChecksUI(options =>
-{
-    options.UIPath = "/health-ui";
-    options.ApiPath = "/health-api";
-});
-
-app.MapControllerRoute(
-    name: "admin",
-    pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}"
-    );
-
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
-
-app.MapRazorPages()
-   .WithStaticAssets();
-
-app.Run();
+    Log.Information("Shut down complete");
+    Log.CloseAndFlush();
+}
