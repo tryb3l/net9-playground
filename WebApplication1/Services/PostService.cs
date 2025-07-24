@@ -318,45 +318,45 @@ public class PostService : IPostService
     public async Task<DataTablesResponse<PostViewModel>> GetPostListForDataTableAsync(DataTablesRequest request)
     {
         var searchTerm = request.Search?.Value;
-        var orderBy = request.Order.FirstOrDefault()?.Column ?? 2;
-        var orderAsc = (request.Order.FirstOrDefault()?.Dir ?? "asc") == "asc";
-
-        var sortColumn = request.Columns[orderBy].Name switch
-        {
-            "Title" => "Title",
-            "Author" => "Author.UserName",
-            "Created" => "CreatedAt",
-            "Published" => "PublishedDate",
-            _ => "CreatedAt"
-        };
+        var order = request.Order.FirstOrDefault();
+        var sortColumnIndex = order?.Column ?? 2;
+        var sortColumnName = request.Columns.ElementAtOrDefault(sortColumnIndex)?.Name ?? "Created";
+        var orderAsc = (order?.Dir ?? "desc") == "asc";
 
         var (posts, filteredCount, totalCount) = await _postRepository.GetPostsForDataTableAsync(
             request.Start,
             request.Length,
             searchTerm,
-            sortColumn,
+            sortColumnName,
             orderAsc,
             request.StatusFilter
         );
 
         var postViewModels = posts.Select(p =>
         {
+            if (_urlHelper == null) return null;
+
             var editUrl = _urlHelper.Action("Edit", "Post", new { id = p.Id, area = "Admin" });
             var deleteUrl = _urlHelper.Action("SoftDelete", "Post", new { id = p.Id, area = "Admin" });
             var restoreUrl = _urlHelper.Action("Restore", "Post", new { id = p.Id, area = "Admin" });
 
-            var actionsHtml = $@"
-                <div class='btn-group' role='group'>
-                    <a href='{editUrl}' class='btn btn-sm btn-outline-primary' title='Edit'><i class='bi bi-pencil'></i></a>";
+            var actionsHtml = $"""
+                                  <div class='btn-group' role='group'>
+                                      <a href='{editUrl}' class='btn btn-sm btn-outline-primary' title='Edit'><i class='bi bi-pencil'></i></a>
+                               """;
 
             if (p.IsDeleted)
-                actionsHtml += $@"
-                    <form method='post' action='{restoreUrl}' class='d-inline'>
-                        <button type='submit' class='btn btn-sm btn-outline-success' title='Restore'>
-                            <i class='bi bi-arrow-counterclockwise'></i>
-                        </button>
-                    </form>";
+            {
+                actionsHtml += $"""
+                                   <form method='post' action='{restoreUrl}' class='d-inline restore-form'>
+                                       <button type='submit' class='btn btn-sm btn-outline-success' title='Restore'>
+                                           <i class='bi bi-arrow-counterclockwise'></i>
+                                       </button>
+                                   </form>
+                                """;
+            }
             else
+            {
                 actionsHtml += $"""
                                     <form method='post' action='{deleteUrl}' class='d-inline delete-form' data-post-title='{p.Title}'>
                                         <button type='submit' class='btn btn-sm btn-outline-danger' title='Delete'>
@@ -364,6 +364,7 @@ public class PostService : IPostService
                                         </button>
                                     </form>
                                 """;
+            }
 
             actionsHtml += "</div>";
 
@@ -383,14 +384,16 @@ public class PostService : IPostService
                         : "<span class='badge bg-secondary'>Draft</span>",
                 Actions = actionsHtml
             };
-        }).ToList();
+        })
+        .Where(vm => vm != null)
+        .ToList();
 
         return new DataTablesResponse<PostViewModel>
         {
             Draw = request.Draw,
             RecordsTotal = totalCount,
             RecordsFiltered = filteredCount,
-            Data = postViewModels
+            Data = postViewModels!
         };
     }
 

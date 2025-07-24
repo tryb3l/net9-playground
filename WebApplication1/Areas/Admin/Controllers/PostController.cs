@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -105,13 +106,15 @@ public class PostController : Controller
         try
         {
             var currentUser = await _userManager.GetUserAsync(User);
+            Debug.Assert(currentUser != null, nameof(currentUser) + " != null");
             var createdPost = await _postService.CreatePostAsync(viewModel, currentUser.Id);
 
             await _activityLogService.LogActivityAsync(currentUser.Id, "Created", "Post",
                 $"Created new post: '{createdPost?.Title ?? "Untitled"}'");
 
 
-            TempData["SuccessMessage"] = $"Post '{createdPost.Title}' created successfully.";
+            TempData["SuccessMessage"] = $"Post '{createdPost?.Title}' created successfully.";
+            Debug.Assert(createdPost != null, nameof(createdPost) + " != null");
             _logger.LogInformation("Post created successfully with ID {PostId}", createdPost.Id);
             return RedirectToAction(nameof(Index));
         }
@@ -263,6 +266,7 @@ public class PostController : Controller
 
             var currentUser = await _userManager.GetUserAsync(User);
             await _postService.SoftDeletePostAsync(id);
+            Debug.Assert(currentUser != null, nameof(currentUser) + " != null");
             await _activityLogService.LogActivityAsync(currentUser.Id, "Trashed", "Post", $"Moved post to trash: '{post.Title}'");
 
 
@@ -293,6 +297,7 @@ public class PostController : Controller
 
             var currentUser = await _userManager.GetUserAsync(User);
             await _postService.RestorePostAsync(id);
+            Debug.Assert(currentUser != null, nameof(currentUser) + " != null");
             await _activityLogService.LogActivityAsync(currentUser.Id, "Restored", "Post", $"Restored post: '{post.Title}'");
 
             return Json(new { success = true, message = $"Post '{post.Title}' restored successfully." });
@@ -319,6 +324,7 @@ public class PostController : Controller
 
             var currentUser = await _userManager.GetUserAsync(User);
             await _postService.PublishPostAsync(id);
+            Debug.Assert(currentUser != null, nameof(currentUser) + " != null");
             await _activityLogService.LogActivityAsync(currentUser.Id, "Published", "Post",
                 $"Published post: '{post.Title ?? "Untitled"}'");
 

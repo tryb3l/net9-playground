@@ -9,11 +9,11 @@ public class PostViewModel
     public DateTime CreatedAt { get; init; }
     public DateTime? PublishedDate { get; init; }
     public bool IsPublished { get; init; }
-    public bool IsDeleted { get; set; }
+    public bool IsDeleted { get; init; }
     public string? AuthorName { get; init; } = string.Empty;
     public string? AuthorId { get; init; } = string.Empty;
     public List<string> Tags { get; init; } = [];
-    public string Status { get; set; }
-    public string Actions { get; set; }
+    public string? Status { get; init; }
+    public string? Actions { get; init; }
     
 }
