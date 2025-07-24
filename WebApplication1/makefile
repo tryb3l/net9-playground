@@ -36,14 +36,14 @@ add-migration:
 	@if [ -z $(name) ]; then \
 	 echo "Please provide a migration name: make add-migration name=<migration_name>"; \
 	else \
-	 read -p "Connection string (leave empty to use .dev.env): " conn_str; \
-	 if [ -z "$$conn_str" ]; then \
-	  export $$(grep -v '^#' ./.dev.env | xargs) && \
-	  echo "Using CONNECTION_STRING: $${CONNECTION_STRING}" && \
-	  dotnet ef migrations add $(name) --project $(APP_PROJECT) --startup-project $(APP_PROJECT) -o Data/Migrations; \
+		read -p "Connection string (leave empty to use .dev.env): " conn_str; \
+	if [ -z "$$conn_str" ]; then \
+		export $$(grep -v '^#' ./.dev.env | xargs) && \
+		echo "Using CONNECTION_STRING: $${CONNECTION_STRING}" && \
+		dotnet ef migrations add $(name) --project $(APP_PROJECT) --startup-project $(APP_PROJECT) -o Data/Migrations; \
 	 else \
-	  CONNECTION_STRING="$$conn_str" dotnet ef migrations add $(name) --project $(APP_PROJECT) --startup-project $(APP_PROJECT) -o Data/Migrations; \
-	 fi \
+		CONNECTION_STRING="$$conn_str" dotnet ef migrations add $(name) --project $(APP_PROJECT) --startup-project $(APP_PROJECT) -o Data/Migrations; \
+		fi \
 	fi
 
 # Add a migration using Docker container
@@ -90,16 +90,16 @@ migrate-local-mapped: docker-postgres-local wait-postgres
 	echo "Running database migrations to $$DB_NAME..." && \
 	CONNECTION_STRING="Host=localhost;Port=5432;Database=$$DB_NAME;Username=$$USERNAME;Password=$$PASSWORD" \
 	dotnet ef database update \
-	  --project $(APP_PROJECT) \
-	  --startup-project $(APP_PROJECT)
+		--project $(APP_PROJECT) \
+		--startup-project $(APP_PROJECT)
 
 # Drop database (CAUTION!)
 drop-database:
 	@echo "WARNING: This will delete all data in the database!"
 	@read -p "Are you sure? [y/N] " confirm; \
 	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
-	 docker-compose -f $(COMPOSE_FILE) exec postgres dropdb -U postgres net9playground --if-exists; \
-	 docker-compose -f $(COMPOSE_FILE) exec postgres createdb -U postgres net9playground; \
+		docker-compose -f $(COMPOSE_FILE) exec postgres dropdb -U postgres net9playground --if-exists; \
+		docker-compose -f $(COMPOSE_FILE) exec postgres createdb -U postgres net9playground; \
 	fi
 
 # Full reset: drop DB, apply migrations, and seed data
