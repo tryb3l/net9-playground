@@ -16,11 +16,11 @@ public class ApplicationDbContext : IdentityDbContext<User>
         _serviceProvider = serviceProvider;
     }
 
-    public DbSet<Post> Posts { get; set; }
-    public DbSet<Tag> Tags { get; set; }
-    public DbSet<PostTag> PostTags { get; set; }
-    public DbSet<Category> Categories { get; set; }
-    public DbSet<ActivityLog> ActivityLogs { get; set; }
+    public DbSet<Post> Posts { get; set; } = null!;
+    public DbSet<Category> Categories { get; set; } = null!;
+    public DbSet<Tag> Tags { get; set; } = null!;
+    public DbSet<PostTag> PostTags { get; set; } = null!;
+    public DbSet<ActivityLog> ActivityLogs { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -60,14 +60,12 @@ public class ApplicationDbContext : IdentityDbContext<User>
             .UseSeeding((context, seedingData) =>
             {
                 var serviceProvider = ((ApplicationDbContext)context)._serviceProvider;
-                if (serviceProvider != null)
-                    SeedData.SeedSync((ApplicationDbContext)context, serviceProvider);
+                SeedData.SeedSync((ApplicationDbContext)context, serviceProvider);
             })
             .UseAsyncSeeding(async (context, seedingData, cancellationToken) =>
             {
                 var serviceProvider = ((ApplicationDbContext)context)._serviceProvider;
-                if (serviceProvider != null)
-                    await SeedData.SeedAsync((ApplicationDbContext)context, serviceProvider, cancellationToken);
+                await SeedData.SeedAsync((ApplicationDbContext)context, serviceProvider, cancellationToken);
             });
     }
 }
