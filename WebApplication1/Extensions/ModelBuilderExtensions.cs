@@ -39,7 +39,7 @@ public static class ModelBuilderExtensions
 {
     private static readonly MethodInfo SetQueryFilterMethod = typeof(ModelBuilderExtensions)
         .GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
-        .Single(t => t.IsGenericMethod && t.Name == nameof(SetQueryFilter));
+        .Single(t => t is { IsGenericMethod: true, Name: nameof(SetQueryFilter) });
 
     public static void SetQueryFilterOnAllEntities<TEntityInterface>(
         this ModelBuilder builder,
@@ -54,17 +54,17 @@ public static class ModelBuilderExtensions
         }
     }
 
-    static void SetEntityQueryFilter<TEntityInterface>(
+    private static void SetEntityQueryFilter<TEntityInterface>(
         this ModelBuilder builder,
         Type entityType,
         Expression<Func<TEntityInterface, bool>> filterExpression)
     {
         SetQueryFilterMethod
             .MakeGenericMethod(entityType, typeof(TEntityInterface))
-            .Invoke(null, new object[] { builder, filterExpression });
+            .Invoke(null, [builder, filterExpression]);
     }
 
-    static void SetQueryFilter<TEntity, TEntityInterface>(
+    private static void SetQueryFilter<TEntity, TEntityInterface>(
         this ModelBuilder builder,
         Expression<Func<TEntityInterface, bool>> filterExpression)
             where TEntityInterface : class
@@ -73,10 +73,10 @@ public static class ModelBuilderExtensions
         var concreteExpression = filterExpression
             .Convert<TEntityInterface, TEntity>();
         builder.Entity<TEntity>()
-            .AppendQueryFilter<TEntity>(concreteExpression);
+            .AppendQueryFilter(concreteExpression);
     }
 
-    static void AppendQueryFilter<T>(
+    private static void AppendQueryFilter<T>(
         this EntityTypeBuilder entityTypeBuilder,
         Expression<Func<T, bool>> expression
         )
