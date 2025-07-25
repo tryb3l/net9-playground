@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Serilog.Events;
 using WebApplication1.Data;
 using WebApplication1.Extensions;
 using WebApplication1.Middleware;
@@ -24,6 +25,9 @@ try
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
         .Enrich.FromLogContext()
+        .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+        .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+        .MinimumLevel.Override("HealthChecks.UI", LogEventLevel.Warning)
         .WriteTo.Console());
 
     var root = Directory.GetCurrentDirectory();
@@ -119,12 +123,20 @@ try
 
     app.UseSerilogRequestLogging(options =>
     {
-        options.EnrichDiagnosticContext = ((diagnosticContext, httpContext) =>
+        options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
         {
             if (httpContext.Request.Host.Value != null)
                 diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value);
             diagnosticContext.Set("UserAgent", httpContext.Request.Headers.UserAgent);
-        });
+        };
+        options.GetLevel = (httpContext, elapsed, ex) =>
+        {
+            if (ex == null && httpContext.Response.StatusCode == 200 && httpContext.Request.Path.StartsWithSegments("/health"))
+            {
+                return LogEventLevel.Debug; 
+            }
+            return LogEventLevel.Information;
+        };
     });
 
     app.UseAuthentication();
