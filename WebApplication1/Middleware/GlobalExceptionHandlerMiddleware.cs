@@ -3,10 +3,19 @@ using System.Text.Json;
 
 namespace WebApplication1.Middleware;
 
+public record ErrorDetails
+{
+    public required string Error { get; init; }
+    public string? StackTrace { get; init; }
+}
+
 public class GlobalExceptionHandlerMiddleware(
     ILogger<GlobalExceptionHandlerMiddleware> logger,
     IWebHostEnvironment environment) : IMiddleware
 {
+    private const string GenericErrorMessage = "An error occurred. Please try again later.";
+    private static readonly JsonSerializerOptions JsonSerializerOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
         try
@@ -19,19 +28,16 @@ public class GlobalExceptionHandlerMiddleware(
             await HandleExceptionAsync(context, ex);
         }
     }
-
+    
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
-        context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
 
         var response = environment.IsDevelopment()
-            ? new { error = exception.Message, stackTrace = exception.StackTrace }
-            : new { error = "An error occurred. Please try again later.", stackTrace = (string?)null };
+            ? new ErrorDetails { Error = exception.Message, StackTrace = exception.StackTrace }
+            : new ErrorDetails { Error = GenericErrorMessage };
 
-        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-        var json = JsonSerializer.Serialize(response, options);
-        await context.Response.WriteAsync(json);
+        await context.Response.WriteAsJsonAsync(response, JsonSerializerOptions);
     }
 }
 
