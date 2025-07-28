@@ -200,16 +200,16 @@ public class PostRepository : IPostRepository
         {
             query = query.Where(p =>
                 p.Title.Contains(searchTerm) ||
-                (p.Author != null && p.Author.UserName.Contains(searchTerm))
+                (p.Author != null && p.Author.UserName != null && p.Author.UserName.Contains(searchTerm))
             );
         }
 
         var filteredCount = await query.CountAsync();
 
-        Expression<Func<Post, object>> keySelector = sortColumn.ToLower() switch
+        Expression<Func<Post, object?>> keySelector = sortColumn.ToLower() switch
         {
             "title" => p => p.Title,
-            "author" => p => p.Author.UserName,
+            "author" => p => p.Author != null ? p.Author.UserName : string.Empty,
             "published" => p => p.PublishedDate,
             "created" => p => p.CreatedAt,
             _ => p => p.CreatedAt
