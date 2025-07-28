@@ -5,7 +5,7 @@ namespace WebApplication1.Helpers;
 [ModelBinder(typeof(DataTablesRequestModelBinder))]
 public class DataTablesRequest
 {
-    public int Draw { get; set; }
+    public int Draw { get; init; }
     public int Start { get; set; }
     public int Length { get; set; }
     public Search? Search { get; set; }
@@ -32,6 +32,6 @@ public class Column
 
 public class Order
 {
-    public int Column { get; set; }
-    public string? Dir { get; set; }
+    public int Column { get; init; }
+    public string? Dir { get; init; }
 }
