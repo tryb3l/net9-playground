@@ -24,7 +24,7 @@ public class DataTablesRequestModelBinder : IModelBinder
         };
 
         var colIndex = 0;
-        while (valueProvider.GetValue($"columns[{colIndex}][data]").Any())
+        while (valueProvider.GetValue($"columns[{colIndex}][data]").Length != 0)
         {
             model.Columns.Add(new Column
             {
@@ -42,7 +42,7 @@ public class DataTablesRequestModelBinder : IModelBinder
         }
 
         var orderIndex = 0;
-        while (valueProvider.GetValue($"order[{orderIndex}][column]").Any())
+        while (valueProvider.GetValue($"order[{orderIndex}][column]").Length != 0)
         {
             model.Order.Add(new Order
             {
