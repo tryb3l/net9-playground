@@ -3,22 +3,27 @@ using System.ComponentModel.DataAnnotations;
 
 namespace WebApplication1.Models;
 
-    public class ActivityLog
-    {
-        public int Id { get; set; }
+public class ActivityLog
+{
+    public int Id { get; init; }
 
-        [Required]
-        public string UserId { get; set; }
-        public User User { get; set; } 
+    [Required]
+    [MaxLength(128)]
+    public required string UserId { get; init; }
+    public User? User { get; init; }
 
-        [Required]
-        public string ActionType { get; set; }
+    [Required]
+    [MaxLength(50)]
+    public required string ActionType { get; init; }
 
-        [Required]
-        public string EntityType { get; set; }
+    [Required]
+    [MaxLength(50)]
+    public required string EntityType { get; init; }
 
-        public string Description { get; set; }
+    [Required]
+    [MaxLength(500)]
+    public required string Description { get; init; }
 
-        [Required]
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-    }
+    [Required]
+    public DateTime Timestamp { get; init; } = DateTime.UtcNow;
+}
