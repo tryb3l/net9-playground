@@ -353,8 +353,9 @@ public class PostController : Controller
 
             var currentUser = await _userManager.GetUserAsync(User);
             await _postService.UnpublishPostAsync(id);
-            await _activityLogService.LogActivityAsync(currentUser.Id, "Unpublished", "Post",
-                $"Unpublished post: '{post.Title ?? "Untitled"}'");
+            if (currentUser != null)
+                await _activityLogService.LogActivityAsync(currentUser.Id, "Unpublished", "Post",
+                    $"Unpublished post: '{post.Title ?? "Untitled"}'");
 
             // Return JSON for AJAX requests
             return Json(new { success = true, message = "Post unpublished successfully." });
