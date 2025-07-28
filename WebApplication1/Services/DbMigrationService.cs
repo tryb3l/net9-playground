@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Reflection;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 using WebApplication1.Data;
@@ -51,7 +52,7 @@ public class DbMigrationService : BackgroundService
 
         try
         {
-            if (dbContext.Database.CanConnect())
+            if (await dbContext.Database.CanConnectAsync(stoppingToken))
             {
                 var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync(stoppingToken);
                 var pendingCount = pendingMigrations.Count();
@@ -104,7 +105,7 @@ public class DbMigrationService : BackgroundService
         await SeedData.Initialize(scope.ServiceProvider);
     }
 
-    private async Task RepairMigrationHistoryAsync(ApplicationDbContext context, ILogger logger)
+    private static async Task RepairMigrationHistoryAsync(ApplicationDbContext context, ILogger logger)
     {
         var migrations = context.GetType().Assembly
             .GetTypes()
@@ -114,9 +115,10 @@ public class DbMigrationService : BackgroundService
                 Migration = t.GetCustomAttribute<MigrationAttribute>(),
                 Type = t
             })
-            .OrderBy(m => m.Migration!.Id);
+            .OrderBy(m => m.Migration!.Id)
+            .ToList();
 
-        logger.LogInformation("Attempting to mark {Count} migrations as applied", migrations.Count());
+        logger.LogInformation("Attempting to mark {Count} migrations as applied", migrations.Count);
 
         foreach (var migration in migrations)
         {
