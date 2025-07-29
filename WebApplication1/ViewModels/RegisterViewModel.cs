@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace WebApplication1.ViewModels;
 
-public class RegisterViewModel
+public abstract class RegisterViewModel
 {
     [Required]
     [EmailAddress]

@@ -24,7 +24,7 @@ public class EditPostViewModel
 
     public DateTime CreatedAt { get; init; }
     [Display(Name = "Category")]
-    public int? CategoryId { get; set; }
+    public int? CategoryId { get; init; }
     [Display(Name = "Tags")]
     public List<int> SelectedTagIds { get; init; } = [];
 

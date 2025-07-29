@@ -4,13 +4,13 @@ namespace WebApplication1.ViewModels;
 
 public class BlogIndexViewModel
 {
-    public List<PostCardViewModel> Posts { get; set; } = [];
-    public List<CategoryViewModel> Categories { get; set; } = [];
-    public List<TagViewModel> Tags { get; set; } = [];
-    public int CurrentPage { get; set; }
-    public int TotalPages { get; set; }
-    public string? Category { get; set; }
-    public string? Tag { get; set; }
-    public string? CurrentCategory { get; set; }
-    public string? CurrentTag { get; set; }
+    public List<PostCardViewModel> Posts { get; init; } = [];
+    public List<CategoryViewModel> Categories { get; init; } = [];
+    public List<TagViewModel> Tags { get; init; } = [];
+    public int CurrentPage { get; init; }
+    public int TotalPages { get; init; }
+    public string? Category { get; init; }
+    public string? Tag { get; init; }
+    public string? CurrentCategory { get; init; }
+    public string? CurrentTag { get; init; }
 }
