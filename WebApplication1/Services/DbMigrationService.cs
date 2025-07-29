@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Reflection;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 using WebApplication1.Data;
@@ -102,7 +101,7 @@ public class DbMigrationService : BackgroundService
     {
         _logger.LogInformation("Seeding database");
         using var scope = _serviceProvider.CreateScope();
-        await SeedData.Initialize(scope.ServiceProvider);
+        await SeedData.Initialize(scope.ServiceProvider, stoppingToken);
     }
 
     private static async Task RepairMigrationHistoryAsync(ApplicationDbContext context, ILogger logger)
