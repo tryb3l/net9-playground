@@ -13,7 +13,7 @@ public class PostViewModel
     public string? AuthorName { get; init; } = string.Empty;
     public string? AuthorId { get; init; } = string.Empty;
     public List<string> Tags { get; init; } = [];
-    public string? Status { get; init; }
-    public string? Actions { get; init; }
+    public string? Status { get; set; }
+    public string? Actions { get; set; }
     
 }
