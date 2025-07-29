@@ -107,6 +107,11 @@ try
     })
     .AddInMemoryStorage();
 
+    builder.Services.AddAutoMapper(cfg =>
+    {
+        cfg.AddMaps(typeof(Program));
+    });
+
     var app = builder.Build();
 
     app.UseGlobalExceptionHandler();
