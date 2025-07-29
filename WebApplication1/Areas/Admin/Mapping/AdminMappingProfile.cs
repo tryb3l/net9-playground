@@ -1,0 +1,49 @@
+using AutoMapper;
+using WebApplication1.Areas.Admin.ViewModels.Dashboard;
+using WebApplication1.Areas.Admin.ViewModels.Post;
+using WebApplication1.Models;
+using WebApplication1.ViewModels;
+
+namespace WebApplication1.Areas.Admin.Mapping;
+
+public class AdminMappingProfile : Profile
+{
+    public AdminMappingProfile()
+    {
+        CreateMap<Post, RecentPostViewModel>()
+            .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author!.UserName ?? "N/A"));
+
+        CreateMap<CreatePostViewModel, Post>();
+
+        CreateMap<Post, EditPostViewModel>()
+            .ForMember(dest => dest.SelectedTagIds, opt => opt.MapFrom(src => src.PostTags.Select(pt => pt.TagId).ToList()));
+
+        CreateMap<EditPostViewModel, Post>()
+            .ForMember(dest => dest.PostTags, opt => opt.Ignore());
+
+        CreateMap<Post, PostViewModel>()
+            .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author!.UserName ?? "N/A"))
+            .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.PostTags.Select(pt => pt.Tag!.Name).ToList()))
+            .ForMember(dest => dest.Actions, opt => opt.Ignore())
+            .ForMember(dest => dest.Status, opt => opt.Ignore());
+
+        CreateMap<Post, PostCardViewModel>()
+            .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : "Uncategorized"))
+            .ForMember(dest => dest.CategorySlug, opt => opt.MapFrom(src => src.Category != null ? src.Category.Slug : string.Empty))
+            .ForMember(dest => dest.PublishDate, opt => opt.MapFrom(src => src.PublishedDate ?? src.CreatedAt))
+            .ForMember(dest => dest.ShortDescription, opt => opt.MapFrom(src =>
+                !string.IsNullOrEmpty(src.Content) && src.Content.Length > 200
+                    ? src.Content.Substring(0, 200) + "..."
+                    : src.Content ?? string.Empty))
+            .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.PostTags.Select(pt => pt.Tag)));
+
+        CreateMap<Post, PostSummaryViewModel>()
+            .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author!.UserName ?? "N/A"))
+            .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.PostTags.Select(pt => pt.Tag!.Name).ToList()));
+
+        CreateMap<Tag, TagViewModel>();
+
+        CreateMap<Category, CategoryViewModel>()
+            .ForMember(dest => dest.PostCount, opt => opt.MapFrom(src => src.Posts.Count(p => p.IsPublished && !p.IsDeleted)));
+    }
+}
