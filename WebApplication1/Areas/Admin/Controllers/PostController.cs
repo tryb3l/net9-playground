@@ -90,12 +90,9 @@ public class PostController : Controller
         if (!ModelState.IsValid)
         {
             _logger.LogWarning("ModelState is invalid. Returning view with validation errors.");
-            foreach (var modelState in ViewData.ModelState.Values)
+            foreach (var error in ViewData.ModelState.Values.SelectMany(modelState => modelState.Errors))
             {
-                foreach (var error in modelState.Errors)
-                {
-                    _logger.LogWarning("Validation Error: {ErrorMessage}", error.ErrorMessage);
-                }
+                _logger.LogWarning("Validation Error: {ErrorMessage}", error.ErrorMessage);
             }
 
             viewModel.AvailableTags = await _tagService.GetAvailableTagsAsync();

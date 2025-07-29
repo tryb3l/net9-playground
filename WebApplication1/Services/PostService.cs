@@ -179,12 +179,7 @@ public class PostService : IPostService
         await _postRepository.AddAsync(post);
         await _postRepository.SaveChangesAsync();
 
-        bool? any = false;
-        foreach (var id in viewModel.SelectedTagIds)
-        {
-            any = true;
-            break;
-        }
+        bool? any = viewModel.SelectedTagIds.Count != 0;
 
         if (any != true) return post;
         foreach (var postTag in viewModel.SelectedTagIds.Select(tagId => new PostTag
@@ -466,5 +461,11 @@ public class PostService : IPostService
             await _postRepository.UpdateAsync(post);
         }
         await _postRepository.SaveChangesAsync();
+    }
+    
+    public async Task<Post?> GetPostBySlugAsync(string slug)
+    {
+        var posts = await _postRepository.GetAllAsync();
+        return posts.FirstOrDefault(p => p.Slug == slug);
     }
 }
