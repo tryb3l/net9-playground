@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace WebApplication1.Utils;
 
-public static class SlugHelper
+public static partial class SlugHelper
 {
     public static string GenerateSlug(string text)
     {
@@ -17,30 +17,33 @@ public static class SlugHelper
         var normalizedString = text.Normalize(NormalizationForm.FormD);
         var stringBuilder = new StringBuilder();
 
-        foreach (var c in normalizedString)
+        foreach (var c in from c in normalizedString let unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c) where unicodeCategory != UnicodeCategory.NonSpacingMark select c)
         {
-            var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
-            if (unicodeCategory != UnicodeCategory.NonSpacingMark)
-            {
-                stringBuilder.Append(c);
-            }
+            stringBuilder.Append(c);
         }
 
         // Convert to lowercase, replace spaces with hyphens
         var slug = stringBuilder.ToString().Normalize(NormalizationForm.FormC).ToLowerInvariant();
 
         // Remove invalid characters
-        slug = Regex.Replace(slug, @"[^a-z0-9\s-]", string.Empty);
+        slug = MyRegex().Replace(slug, string.Empty);
 
         // Replace spaces with hyphens
-        slug = Regex.Replace(slug, @"\s+", "-");
+        slug = MyRegex1().Replace(slug, "-");
 
         // Remove multiple consecutive hyphens
-        slug = Regex.Replace(slug, @"-+", "-");
+        slug = MyRegex2().Replace(slug, "-");
 
         // Trim hyphens from start and end
         slug = slug.Trim('-');
 
         return slug;
     }
+
+    [GeneratedRegex(@"[^a-z0-9\s-]")]
+    private static partial Regex MyRegex();
+    [GeneratedRegex(@"\s+")]
+    private static partial Regex MyRegex1();
+    [GeneratedRegex(@"-+")]
+    private static partial Regex MyRegex2();
 }
