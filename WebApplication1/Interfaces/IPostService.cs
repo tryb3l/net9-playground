@@ -10,6 +10,7 @@ public interface IPostService
 {
     Task<BlogIndexViewModel> GetBlogIndexViewModelAsync(int page, string? category, string? tag);
     Task<Post?> GetPostByIdAsync(int id, bool includeUnpublished = false, bool includeDeleted = false);
+    Task<Post?> GetPostBySlugAsync(string slug);
     Task<PostListViewModel> GetPostListAsync(int page, string? searchTerm, string? tagFilter, bool? publishedOnly);
     Task<PostViewModel?> GetPostViewModelAsync(int id);
     Task<EditPostViewModel?> GetPostForEditAsync(int id);
