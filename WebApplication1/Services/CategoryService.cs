@@ -22,7 +22,7 @@ public class CategoryService : ICategoryService
         {
             Id = c.Id,
             Name = c.Name,
-            PostCount = c.Posts?.Count ?? 0
+            PostCount = c.Posts.Count
         });
     }
 
@@ -42,7 +42,7 @@ public class CategoryService : ICategoryService
         {
             Id = category.Id,
             Name = category.Name,
-            PostCount = category.Posts?.Count ?? 0
+            PostCount = category.Posts.Count
         };
     }
 
