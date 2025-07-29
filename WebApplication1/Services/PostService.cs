@@ -1,3 +1,4 @@
+using AutoMapper;
 using Ganss.Xss;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
@@ -18,17 +19,20 @@ public class PostService : IPostService
     private readonly IPostRepository _postRepository;
     private readonly ITagRepository _tagRepository;
     private readonly IUrlHelper? _urlHelper;
+    private readonly IMapper _mapper;
 
     public PostService(
         IPostRepository postRepository,
         ICategoryRepository categoryRepository,
         ITagRepository tagRepository,
         IUrlHelperFactory urlHelperFactory,
-        IActionContextAccessor actionContextAccessor)
+        IActionContextAccessor actionContextAccessor,
+        IMapper mapper)
     {
         _postRepository = postRepository;
         _categoryRepository = categoryRepository;
         _tagRepository = tagRepository;
+        _mapper = mapper;
         if (actionContextAccessor.ActionContext != null)
             _urlHelper = urlHelperFactory.GetUrlHelper(actionContextAccessor.ActionContext);
     }
@@ -44,39 +48,11 @@ public class PostService : IPostService
         var categories = await _categoryRepository.GetAllAsync();
         var popularTags = await _tagRepository.GetPopularTagsAsync(10);
 
-        var postCards = postsData.Select(p => new PostCardViewModel
-        {
-            Id = p.Id,
-            Title = p.Title,
-            Slug = p.Slug ?? string.Empty,
-            ShortDescription = !string.IsNullOrEmpty(p.Content) && p.Content.Length > 200
-                ? p.Content.Substring(0, 200) + "..."
-                : p.Content ?? string.Empty,
-            PublishDate = p.PublishedDate ?? p.CreatedAt,
-            CategoryName = p.Category?.Name ?? "Uncategorized",
-            CategorySlug = p.Category?.Slug ?? string.Empty,
-            Tags = p.PostTags.Select(pt => new TagViewModel
-            {
-                Name = pt.Tag!.Name,
-                Slug = SlugHelper.GenerateSlug(pt.Tag!.Name)
-            })
-        }).ToList();
-
         return new BlogIndexViewModel
         {
-            Posts = postCards,
-            Categories = categories.Select(c => new CategoryViewModel
-            {
-                Name = c.Name,
-                Slug = c.Slug ?? SlugHelper.GenerateSlug(c.Name),
-                PostCount = c.Posts?.Count(p => p.IsPublished && !p.IsDeleted) ?? 0
-            }).ToList(),
-            Tags = popularTags.Select(t => new TagViewModel
-            {
-                Name = t.Name,
-                Slug = SlugHelper.GenerateSlug(t.Name),
-                PostCount = t.PostTags?.Count(pt => pt.Post != null && pt.Post.IsPublished && !pt.Post.IsDeleted) ?? 0
-            }).ToList(),
+            Posts = _mapper.Map<List<PostCardViewModel>>(postsData),
+            Categories = _mapper.Map<List<CategoryViewModel>>(categories),
+            Tags = _mapper.Map<List<TagViewModel>>(popularTags),
             CurrentPage = page,
             TotalPages = (int)Math.Ceiling(totalPosts / (double)pageSize),
             CurrentCategory = category,
@@ -99,17 +75,7 @@ public class PostService : IPostService
             pageSize);
         var totalPosts = await _postRepository.CountPostsWithFiltersAsync(searchTerm, tagFilter, publishedOnly);
 
-        var postSummaries = posts.Select(p => new PostSummaryViewModel
-        {
-            Id = p.Id,
-            Title = p.Title,
-            CreatedAt = p.CreatedAt,
-            IsPublished = p.IsPublished,
-            IsDeleted = p.IsDeleted,
-            PublishedDate = p.PublishedDate,
-            AuthorName = p.Author!.DisplayName ?? p.Author.UserName ?? "Unknown",
-            Tags = p.PostTags.Select(pt => pt.Tag!.Name).ToList()
-        }).ToList();
+        var postSummaries = _mapper.Map<List<PostSummaryViewModel>>(posts);
 
         return new PostListViewModel
         {
@@ -125,54 +91,33 @@ public class PostService : IPostService
     public async Task<PostViewModel?> GetPostViewModelAsync(int id)
     {
         var post = await _postRepository.GetPostWithDetailsAsync(id);
+        if (post == null) return null;
 
-        return new PostViewModel
-        {
-            Id = post.Id,
-            Title = post.Title,
-            Content = post.Content,
-            CreatedAt = post.CreatedAt,
-            PublishedDate = post.PublishedDate,
-            IsPublished = post.IsPublished,
-            AuthorName = post.Author?.DisplayName ?? post.Author?.UserName ?? "Unknown",
-            AuthorId = post.AuthorId ?? string.Empty,
-            Tags = post.PostTags.Select(pt => pt.Tag!.Name).ToList()
-        };
+        return _mapper.Map<PostViewModel>(post);
     }
 
     public async Task<EditPostViewModel?> GetPostForEditAsync(int id)
     {
         var post = await _postRepository.GetPostWithDetailsAsync(id);
 
-        return new EditPostViewModel
-        {
-            Id = post.Id,
-            Title = post.Title,
-            Content = post.Content,
-            IsPublished = post.IsPublished,
-            PublishedDate = post.PublishedDate,
-            CreatedAt = post.CreatedAt,
-            CategoryId = post.CategoryId,
-            SelectedTagIds = post.PostTags.Select(pt => pt.TagId).ToList(),
-            AvailableTags = await GetAvailableTagsAsync(),
-            AvailableCategories = (await _categoryRepository.GetAllAsync())
-                .Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Name }).ToList()
-        };
+        var viewModel = _mapper.Map<EditPostViewModel>(post);
+
+        viewModel.AvailableTags = await GetAvailableTagsAsync();
+        viewModel.AvailableCategories = (await _categoryRepository.GetAllAsync())
+            .Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Name }).ToList();
+
+        return viewModel;
     }
 
     public async Task<Post> CreatePostAsync(CreatePostViewModel viewModel, string userId)
     {
-        var post = new Post
-        {
-            Title = viewModel.Title,
-            Content = SanitizeContent(viewModel.Content),
-            CreatedAt = DateTime.UtcNow,
-            IsPublished = viewModel.PublishNow,
-            PublishedDate = viewModel.PublishNow ? DateTime.UtcNow : null,
-            AuthorId = userId,
-            Slug = SlugHelper.GenerateSlug(viewModel.Title),
-            CategoryId = viewModel.CategoryId == 0 ? null : viewModel.CategoryId
-        };
+        var post = _mapper.Map<Post>(viewModel);
+        post.CreatedAt = DateTime.UtcNow;
+        post.PublishedDate = viewModel.PublishNow ? DateTime.UtcNow : null;
+        post.AuthorId = userId;
+        post.Slug = SlugHelper.GenerateSlug(viewModel.Title);
+        post.CategoryId = viewModel.CategoryId == 0 ? null : viewModel.CategoryId;
+        post.Content = SanitizeContent(viewModel.Content);
 
         post.Slug = await EnsureUniqueSlugAsync(post.Slug);
 
@@ -187,6 +132,7 @@ public class PostService : IPostService
             PostId = post.Id,
             TagId = tagId
         }))
+
             await _postRepository.AddPostTagAsync(postTag);
         await _postRepository.SaveChangesAsync();
 
@@ -197,35 +143,36 @@ public class PostService : IPostService
     {
         var post = await _postRepository.GetPostWithDetailsAsync(id);
 
-        if (post.Title != viewModel.Title)
+        var originalTitle = post.Title;
+        var wasPublished = post.IsPublished;
+
+        _mapper.Map(viewModel, post);
+        if (originalTitle != viewModel.Title)
         {
             post.Slug = SlugHelper.GenerateSlug(viewModel.Title);
             post.Slug = await EnsureUniqueSlugAsync(post.Slug, post.Id);
         }
 
-        post.Title = viewModel.Title;
         post.Content = SanitizeContent(viewModel.Content);
-        post.CategoryId = viewModel.CategoryId;
 
-        if (post.IsDeleted)
+        if (!wasPublished && viewModel.PublishNow)
         {
-            post.IsDeleted = false;
-            post.DeletedAt = null;
+            post.PublishedDate = DateTime.UtcNow;
         }
-
-        if (!post.IsPublished && viewModel.IsPublished) post.PublishedDate = DateTime.UtcNow;
-
-        post.IsPublished = viewModel.IsPublished;
+        post.IsPublished = viewModel.PublishNow;
 
         await _postRepository.DeletePostTagsAsync(post.PostTags);
-
         if (viewModel.SelectedTagIds.Count != 0)
+        {
             foreach (var tagId in viewModel.SelectedTagIds)
+            {
                 await _postRepository.AddPostTagAsync(new PostTag
                 {
                     PostId = post.Id,
                     TagId = tagId
                 });
+            }
+        }
 
         await _postRepository.UpdateAsync(post);
         await _postRepository.SaveChangesAsync();
@@ -327,61 +274,36 @@ public class PostService : IPostService
             request.StatusFilter
         );
 
-        var postViewModels = posts.Select(p =>
+        var postViewModels = _mapper.Map<List<PostViewModel>>(posts);
+
+        var postsList = posts.ToList();
+
+        foreach (var vm in postViewModels)
         {
-            if (_urlHelper == null) return null;
+            var post = postsList.First(p => p.Id == vm.Id);
+            vm.Status = post.IsDeleted
+                ? "<span class='badge bg-danger'>In Trash</span>"
+                : post.IsPublished
+                    ? "<span class='badge bg-success'>Published</span>"
+                    : "<span class='badge bg-secondary'>Draft</span>";
 
-            var editUrl = _urlHelper.Action("Edit", "Post", new { id = p.Id, area = "Admin" });
-            var deleteUrl = _urlHelper.Action("SoftDelete", "Post", new { id = p.Id, area = "Admin" });
-            var restoreUrl = _urlHelper.Action("Restore", "Post", new { id = p.Id, area = "Admin" });
+            if (_urlHelper == null) continue;
+            var editUrl = _urlHelper.Action("Edit", "Post", new { id = vm.Id, area = "Admin" });
+            var deleteUrl = _urlHelper.Action("SoftDelete", "Post", new { id = vm.Id, area = "Admin" });
+            var restoreUrl = _urlHelper.Action("Restore", "Post", new { id = vm.Id, area = "Admin" });
 
-            var actionsHtml = $"""
-                                  <div class='btn-group' role='group'>
-                                      <a href='{editUrl}' class='btn btn-sm btn-outline-primary' title='Edit'><i class='bi bi-pencil'></i></a>
-                               """;
-
-            if (p.IsDeleted)
+            var actionsHtml = $"<div class='btn-group' role='group'><a href='{editUrl}' class='btn btn-sm btn-outline-primary' title='Edit'><i class='bi bi-pencil'></i></a>";
+            if (post.IsDeleted)
             {
-                actionsHtml += $"""
-                                   <form method='post' action='{restoreUrl}' class='d-inline restore-form'>
-                                       <button type='submit' class='btn btn-sm btn-outline-success' title='Restore'>
-                                           <i class='bi bi-arrow-counterclockwise'></i>
-                                       </button>
-                                   </form>
-                                """;
+                actionsHtml += $"<form method='post' action='{restoreUrl}' class='d-inline restore-form'><button type='submit' class='btn btn-sm btn-outline-success' title='Restore'><i class='bi bi-arrow-counterclockwise'></i></button></form>";
             }
             else
             {
-                actionsHtml += $"""
-                                    <form method='post' action='{deleteUrl}' class='d-inline delete-form' data-post-title='{p.Title}'>
-                                        <button type='submit' class='btn btn-sm btn-outline-danger' title='Delete'>
-                                            <i class='bi bi-trash'></i>
-                                        </button>
-                                    </form>
-                                """;
+                actionsHtml += $"<form method='post' action='{deleteUrl}' class='d-inline delete-form' data-post-title='{post.Title}'><button type='submit' class='btn btn-sm btn-outline-danger' title='Delete'><i class='bi bi-trash'></i></button></form>";
             }
-
             actionsHtml += "</div>";
-
-            return new PostViewModel
-            {
-                Id = p.Id,
-                Title = p.Title,
-                AuthorName = p.Author?.UserName ?? "N/A",
-                CreatedAt = p.CreatedAt,
-                PublishedDate = p.PublishedDate,
-                IsPublished = p.IsPublished,
-                IsDeleted = p.IsDeleted,
-                Status = p.IsDeleted
-                    ? "<span class='badge bg-danger'>In Trash</span>"
-                    : p.IsPublished
-                        ? "<span class='badge bg-success'>Published</span>"
-                        : "<span class='badge bg-secondary'>Draft</span>",
-                Actions = actionsHtml
-            };
-        })
-        .Where(vm => vm != null)
-        .ToList();
+            vm.Actions = actionsHtml;
+        }
 
         return new DataTablesResponse<PostViewModel>
         {
@@ -462,7 +384,7 @@ public class PostService : IPostService
         }
         await _postRepository.SaveChangesAsync();
     }
-    
+
     public async Task<Post?> GetPostBySlugAsync(string slug)
     {
         var posts = await _postRepository.GetAllAsync();
