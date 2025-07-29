@@ -91,8 +91,6 @@ public class PostService : IPostService
     public async Task<PostViewModel?> GetPostViewModelAsync(int id)
     {
         var post = await _postRepository.GetPostWithDetailsAsync(id);
-        if (post == null) return null;
-
         return _mapper.Map<PostViewModel>(post);
     }
 
@@ -310,7 +308,7 @@ public class PostService : IPostService
             Draw = request.Draw,
             RecordsTotal = totalCount,
             RecordsFiltered = filteredCount,
-            Data = postViewModels!
+            Data = postViewModels
         };
     }
 
