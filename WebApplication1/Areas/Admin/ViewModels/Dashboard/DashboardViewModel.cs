@@ -1,8 +1,7 @@
-using System.Collections.Generic;
 using WebApplication1.Models;
 
-namespace WebApplication1.Areas.Admin.ViewModels.Dashboard
-{
+namespace WebApplication1.Areas.Admin.ViewModels.Dashboard;
+
     public class RecentPostViewModel
     {
         public int Id { get; set; }
@@ -15,11 +14,10 @@ namespace WebApplication1.Areas.Admin.ViewModels.Dashboard
 
     public class DashboardViewModel
     {
-        public int TotalPosts { get; set; }
-        public int TotalCategories { get; set; }
-        public int TotalTags { get; set; }
-        public int TotalUsers { get; set; }
+        public int TotalPosts { get; init; }
+        public int TotalCategories { get; init; }
+        public int TotalTags { get; init; }
+        public int TotalUsers { get; init; }
         public IEnumerable<ActivityLog> RecentActivities { get; init; } = new List<ActivityLog>();
-        public IEnumerable<RecentPostViewModel> RecentPosts { get; set; } = new List<RecentPostViewModel>();
+        public IEnumerable<RecentPostViewModel> RecentPosts { get; init; } = new List<RecentPostViewModel>();
     }
-}

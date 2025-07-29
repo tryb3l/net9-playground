@@ -2,8 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApplication1.Interfaces;
 
-namespace WebApplication1.Areas.Admin.Controllers
-{
+namespace WebApplication1.Areas.Admin.Controllers;
+
     [Area("Admin")]
     [Authorize]
     public class DashboardController : Controller
@@ -21,4 +21,3 @@ namespace WebApplication1.Areas.Admin.Controllers
             return View(viewModel);
         }
     }
-}
