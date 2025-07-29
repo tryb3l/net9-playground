@@ -8,9 +8,9 @@ namespace WebApplication1.Data;
 
 public class ApplicationDbContext : IdentityDbContext<User>
 {
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceProvider? _serviceProvider;
 
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IServiceProvider serviceProvider = null)
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IServiceProvider? serviceProvider = null)
         : base(options)
     {
         _serviceProvider = serviceProvider;
