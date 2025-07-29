@@ -18,18 +18,14 @@ public class BlogController : Controller
         return View(viewModel);
     }
 
-    public async Task<IActionResult> Post(int id, string? slug)
+    [HttpGet("blog/{slug}")]
+    public async Task<IActionResult> Post(string slug)
     {
-        var post = await _postService.GetPostByIdAsync(id, includeUnpublished: false);
+        var post = await _postService.GetPostBySlugAsync(slug);
 
         if (post == null)
         {
             return NotFound();
-        }
-
-        if (!string.IsNullOrEmpty(post.Slug) && slug != post.Slug)
-        {
-            return RedirectToAction(nameof(Post), new { id = post.Id, slug = post.Slug });
         }
 
         return View(post);
