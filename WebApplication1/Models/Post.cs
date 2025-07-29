@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 using WebApplication1.Interfaces;
 
 namespace WebApplication1.Models;
@@ -6,7 +7,9 @@ namespace WebApplication1.Models;
 public class Post : ISoftDelete
 {
     public int Id { get; init; }
+    [MaxLength(128)]
     public required string Title { get; set; }
+    [MaxLength(64)]
     public string? Slug { get; set; }
     public string? Content { get; set; }
     public DateTime CreatedAt { get; init; }
