@@ -8,7 +8,7 @@ namespace WebApplication1.Data;
 
 public static class SeedData
 {
-    public static async Task Initialize(IServiceProvider serviceProvider)
+    public static async Task Initialize(IServiceProvider serviceProvider, CancellationToken cancellationToken = default)
     {
         var root = Directory.GetCurrentDirectory();
         var envFile = Path.Combine(root, ".dev.env");
@@ -29,11 +29,11 @@ public static class SeedData
 
         try
         {
-            await using var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
-            await context.Database.EnsureCreatedAsync();
+            await using var scope = serviceProvider.CreateAsyncScope();
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            await SeedCoreDataAsync(context, serviceProvider, adminEmail, adminUsername, adminPassword, regularEmail,
-                regularUserName, regularPassword);
+            await SeedCoreDataAsync(context, scope.ServiceProvider, adminEmail, adminUsername, adminPassword, regularEmail,
+                regularUserName, regularPassword, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -47,7 +47,7 @@ public static class SeedData
         }
     }
 
-    public static void SeedSync(ApplicationDbContext context, IServiceProvider serviceProvider)
+    public static void SeedSync(ApplicationDbContext context, IServiceProvider? serviceProvider)
     {
         ArgumentNullException.ThrowIfNull(serviceProvider);
 
@@ -87,7 +87,7 @@ public static class SeedData
         }
     }
 
-    public static async Task SeedAsync(ApplicationDbContext context, IServiceProvider serviceProvider,
+    public static async Task SeedAsync(ApplicationDbContext context, IServiceProvider? serviceProvider,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(serviceProvider);
@@ -127,206 +127,211 @@ public static class SeedData
         }
     }
 
-    private static async Task SeedCoreDataAsync(ApplicationDbContext context, IServiceProvider serviceProvider,
+    private static async Task SeedCoreDataAsync(ApplicationDbContext context, IServiceProvider? serviceProvider,
         string adminEmail, string adminUsername, string adminPassword, string regularEmail, string regularUserName,
         string regularPassword, CancellationToken cancellationToken = default)
     {
         try
         {
             Console.WriteLine("Starting core data seeding...");
-            
-            var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-            string[] roleNames = { "Admin", "User" };
-            foreach (var roleName in roleNames)
+
+            if (serviceProvider != null)
             {
-                if (!await roleManager.RoleExistsAsync(roleName))
+                var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+                string[] roleNames = { "Admin", "User" };
+                foreach (var roleName in roleNames)
                 {
-                    await roleManager.CreateAsync(new IdentityRole(roleName));
-                    Console.WriteLine($"Role '{roleName}' created.");
-                }
-                else
-                {
-                    Console.WriteLine($"Role '{roleName}' already exists.");
+                    if (!await roleManager.RoleExistsAsync(roleName))
+                    {
+                        await roleManager.CreateAsync(new IdentityRole(roleName));
+                        Console.WriteLine($"Role '{roleName}' created.");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Role '{roleName}' already exists.");
+                    }
                 }
             }
 
-            var userManager = serviceProvider.GetRequiredService<UserManager<User>>();
-            
-            if (!await userManager.Users.AnyAsync(u => u.UserName == adminUsername, cancellationToken))
+            if (serviceProvider != null)
             {
-                var adminUser = new User
+                var userManager = serviceProvider.GetRequiredService<UserManager<User>>();
+            
+                if (!await userManager.Users.AnyAsync(u => u.UserName == adminUsername, cancellationToken))
                 {
-                    UserName = adminUsername, Email = adminEmail, EmailConfirmed = true, DisplayName = "Admin User"
-                };
-                var adminResult = await userManager.CreateAsync(adminUser, adminPassword);
-                if (adminResult.Succeeded)
-                {
-                    await userManager.AddToRoleAsync(adminUser, "Admin");
-                    Console.WriteLine($"Admin user '{adminUsername}' created and assigned to Admin role.");
+                    var adminUser = new User
+                    {
+                        UserName = adminUsername, Email = adminEmail, EmailConfirmed = true, DisplayName = "Admin User"
+                    };
+                    var adminResult = await userManager.CreateAsync(adminUser, adminPassword);
+                    if (adminResult.Succeeded)
+                    {
+                        await userManager.AddToRoleAsync(adminUser, "Admin");
+                        Console.WriteLine($"Admin user '{adminUsername}' created and assigned to Admin role.");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Failed to create admin user '{adminUsername}':");
+                        foreach (var error in adminResult.Errors) Console.WriteLine($"- {error.Description}");
+                    }
                 }
                 else
                 {
-                    Console.WriteLine($"Failed to create admin user '{adminUsername}':");
-                    foreach (var error in adminResult.Errors) Console.WriteLine($"- {error.Description}");
+                    Console.WriteLine($"Admin user '{adminUsername}' already exists.");
                 }
-            }
-            else
-            {
-                Console.WriteLine($"Admin user '{adminUsername}' already exists.");
-            }
             
-            var regularUser = await userManager.FindByNameAsync(regularUserName);
-            if (regularUser == null)
-            {
-                regularUser = new User
+                var regularUser = await userManager.FindByNameAsync(regularUserName);
+                if (regularUser == null)
                 {
-                    UserName = regularUserName,
-                    Email = regularEmail,
-                    EmailConfirmed = true,
-                    DisplayName = "Regular User"
-                };
-                var regularUserResult = await userManager.CreateAsync(regularUser, regularPassword);
-                if (regularUserResult.Succeeded)
-                {
-                    await userManager.AddToRoleAsync(regularUser, "User");
-                    Console.WriteLine($"Regular user '{regularUserName}' created and assigned to User role.");
+                    regularUser = new User
+                    {
+                        UserName = regularUserName,
+                        Email = regularEmail,
+                        EmailConfirmed = true,
+                        DisplayName = "Regular User"
+                    };
+                    var regularUserResult = await userManager.CreateAsync(regularUser, regularPassword);
+                    if (regularUserResult.Succeeded)
+                    {
+                        await userManager.AddToRoleAsync(regularUser, "User");
+                        Console.WriteLine($"Regular user '{regularUserName}' created and assigned to User role.");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Failed to create regular user '{regularUserName}':");
+                        foreach (var error in regularUserResult.Errors) Console.WriteLine($"- {error.Description}");
+                        return;
+                    }
                 }
                 else
                 {
-                    Console.WriteLine($"Failed to create regular user '{regularUserName}':");
-                    foreach (var error in regularUserResult.Errors) Console.WriteLine($"- {error.Description}");
-                    return;
+                    Console.WriteLine($"Regular user '{regularUserName}' already exists.");
                 }
-            }
-            else
-            {
-                Console.WriteLine($"Regular user '{regularUserName}' already exists.");
-            }
-
-
-            var categoriesToUse = new List<Category>();
-            if (!await context.Categories.AnyAsync(cancellationToken))
-            {
-                var sampleCategories = new List<Category>
+            
+                var categoriesToUse = new List<Category>();
+                if (!await context.Categories.AnyAsync(cancellationToken))
                 {
-                    new Category { Name = "Technology", Description = "All about tech.", Slug = "technology" },
-                    new Category { Name = "Lifestyle", Description = "Everyday life topics.", Slug = "lifestyle" },
-                    new Category { Name = "Travel", Description = "Adventures and explorations.", Slug = "travel" }
-                };
-                context.Categories.AddRange(sampleCategories);
+                    var sampleCategories = new List<Category>
+                    {
+                        new Category { Name = "Technology", Description = "All about tech.", Slug = "technology" },
+                        new Category { Name = "Lifestyle", Description = "Everyday life topics.", Slug = "lifestyle" },
+                        new Category { Name = "Travel", Description = "Adventures and explorations.", Slug = "travel" }
+                    };
+                    context.Categories.AddRange(sampleCategories);
+                    try
+                    {
+                        await context.SaveChangesAsync(cancellationToken);
+                        Console.WriteLine("Sample categories created and saved.");
+                        categoriesToUse.AddRange(sampleCategories);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error saving categories: {ex.Message}");                                                            
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Categories already exist. Fetching them.");
+                    categoriesToUse = await context.Categories.ToListAsync(cancellationToken);
+                }
+
+                var firstCategory = categoriesToUse.FirstOrDefault();
+                if (firstCategory == null)
+                {
+                    Console.WriteLine(
+                        "Warning: No categories found or created. Posts will be created without a category if CategoryId is nullable, or may fail if not.");
+                }
+            
+                if (!await context.Posts.AnyAsync(p => p.AuthorId == regularUser.Id,
+                        cancellationToken))
+                {
+                    var post1 = new Post
+                    {
+                        Title = "Welcome to My Blog",
+                        Content = "This is my first post on this blog platform.",
+                        CreatedAt = DateTime.UtcNow,
+                        PublishedDate = DateTime.UtcNow,
+                        IsPublished = true,
+                        AuthorId = regularUser.Id,
+                        CategoryId = firstCategory?.Id
+                    };
+
+                    var post2 = new Post
+                    {
+                        Title = "Getting Started with .NET 9",
+                        Content = "Here are some tips for getting started with the latest version of .NET.",
+                        CreatedAt = DateTime.UtcNow,
+                        IsPublished = false,
+                        AuthorId = regularUser.Id,
+                        CategoryId = firstCategory?.Id
+                    };
+                    context.Posts.AddRange(post1, post2);
+                    Console.WriteLine("Sample posts prepared.");
+                }
+                else
+                {
+                    Console.WriteLine($"User '{regularUserName}' already has posts. Skipping post seeding for this user.");
+                }
+            
+                var tagsToUse = new List<Tag>();
+                if (!await context.Tags.AnyAsync(cancellationToken))
+                {
+                    var sampleTags = new List<Tag>
+                    {
+                        new Tag { Name = "Introduction" }, new Tag { Name = ".NET" }, new Tag { Name = "Tutorials" }
+                    };
+                    context.Tags.AddRange(sampleTags);
+                    Console.WriteLine("Sample tags prepared.");
+                    tagsToUse.AddRange(sampleTags);
+                }
+                else
+                {
+                    Console.WriteLine("Tags already exist. Fetching them for PostTag associations.");
+                    tagsToUse = await context.Tags.ToListAsync(cancellationToken);
+                }
+            
                 try
                 {
                     await context.SaveChangesAsync(cancellationToken);
-                    Console.WriteLine("Sample categories created and saved.");
-                    categoriesToUse.AddRange(sampleCategories);
+                    Console.WriteLine("Posts and Tags (and potentially Categories) saved successfully.");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error saving categories: {ex.Message}");                                                            
+                    Console.WriteLine($"Error saving posts/tags: {ex.Message}");
                 }
-            }
-            else
-            {
-                Console.WriteLine("Categories already exist. Fetching them.");
-                categoriesToUse = await context.Categories.ToListAsync(cancellationToken);
-            }
-
-            var firstCategory = categoriesToUse.FirstOrDefault();
-            if (firstCategory == null)
-            {
-                Console.WriteLine(
-                    "Warning: No categories found or created. Posts will be created without a category if CategoryId is nullable, or may fail if not.");
-            }
-            
-            if (!await context.Posts.AnyAsync(p => p.AuthorId == regularUser.Id,
-                    cancellationToken))
-            {
-                var post1 = new Post
-                {
-                    Title = "Welcome to My Blog",
-                    Content = "This is my first post on this blog platform.",
-                    CreatedAt = DateTime.UtcNow,
-                    PublishedDate = DateTime.UtcNow,
-                    IsPublished = true,
-                    AuthorId = regularUser.Id,
-                    CategoryId = firstCategory?.Id
-                };
-
-                var post2 = new Post
-                {
-                    Title = "Getting Started with .NET 9",
-                    Content = "Here are some tips for getting started with the latest version of .NET.",
-                    CreatedAt = DateTime.UtcNow,
-                    IsPublished = false,
-                    AuthorId = regularUser.Id,
-                    CategoryId = firstCategory?.Id
-                };
-                context.Posts.AddRange(post1, post2);
-                Console.WriteLine("Sample posts prepared.");
-            }
-            else
-            {
-                Console.WriteLine($"User '{regularUserName}' already has posts. Skipping post seeding for this user.");
-            }
-            
-            var tagsToUse = new List<Tag>();
-            if (!await context.Tags.AnyAsync(cancellationToken))
-            {
-                var sampleTags = new List<Tag>
-                {
-                    new Tag { Name = "Introduction" }, new Tag { Name = ".NET" }, new Tag { Name = "Tutorials" }
-                };
-                context.Tags.AddRange(sampleTags);
-                Console.WriteLine("Sample tags prepared.");
-                tagsToUse.AddRange(sampleTags);
-            }
-            else
-            {
-                Console.WriteLine("Tags already exist. Fetching them for PostTag associations.");
-                tagsToUse = await context.Tags.ToListAsync(cancellationToken);
-            }
-            
-            try
-            {
-                await context.SaveChangesAsync(cancellationToken);
-                Console.WriteLine("Posts and Tags (and potentially Categories) saved successfully.");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error saving posts/tags: {ex.Message}");
-            }
                       
-            var welcomePost =
-                await context.Posts.FirstOrDefaultAsync(
-                    p => p.Title == "Welcome to My Blog" && p.AuthorId == regularUser.Id, cancellationToken);
-            var dotnetPost = await context.Posts.FirstOrDefaultAsync(
-                p => p.Title == "Getting Started with .NET 9" && p.AuthorId == regularUser.Id, cancellationToken);
-            var introTag = tagsToUse.FirstOrDefault(t => t.Name == "Introduction") ??
-                           await context.Tags.FirstOrDefaultAsync(t => t.Name == "Introduction", cancellationToken);
-            var dotnetTag = tagsToUse.FirstOrDefault(t => t.Name == ".NET") ??
-                            await context.Tags.FirstOrDefaultAsync(t => t.Name == ".NET", cancellationToken);
-            var tutorialsTag = tagsToUse.FirstOrDefault(t => t.Name == "Tutorials") ??
-                               await context.Tags.FirstOrDefaultAsync(t => t.Name == "Tutorials", cancellationToken);
+                var welcomePost =
+                    await context.Posts.FirstOrDefaultAsync(
+                        p => p.Title == "Welcome to My Blog" && p.AuthorId == regularUser.Id, cancellationToken);
+                var dotnetPost = await context.Posts.FirstOrDefaultAsync(
+                    p => p.Title == "Getting Started with .NET 9" && p.AuthorId == regularUser.Id, cancellationToken);
+                var introTag = tagsToUse.FirstOrDefault(t => t.Name == "Introduction") ??
+                               await context.Tags.FirstOrDefaultAsync(t => t.Name == "Introduction", cancellationToken);
+                var dotnetTag = tagsToUse.FirstOrDefault(t => t.Name == ".NET") ??
+                                await context.Tags.FirstOrDefaultAsync(t => t.Name == ".NET", cancellationToken);
+                var tutorialsTag = tagsToUse.FirstOrDefault(t => t.Name == "Tutorials") ??
+                                   await context.Tags.FirstOrDefaultAsync(t => t.Name == "Tutorials", cancellationToken);
 
-            if (welcomePost != null && introTag != null &&
-                !await context.PostTags.AnyAsync(pt => pt.PostId == welcomePost.Id && pt.TagId == introTag.Id,
-                    cancellationToken))
-            {
-                context.PostTags.Add(new PostTag { PostId = welcomePost.Id, TagId = introTag.Id });
-            }
+                if (welcomePost != null && introTag != null &&
+                    !await context.PostTags.AnyAsync(pt => pt.PostId == welcomePost.Id && pt.TagId == introTag.Id,
+                        cancellationToken))
+                {
+                    context.PostTags.Add(new PostTag { PostId = welcomePost.Id, TagId = introTag.Id });
+                }
 
-            if (dotnetPost != null && dotnetTag != null &&
-                !await context.PostTags.AnyAsync(pt => pt.PostId == dotnetPost.Id && pt.TagId == dotnetTag.Id,
-                    cancellationToken))
-            {
-                context.PostTags.Add(new PostTag { PostId = dotnetPost.Id, TagId = dotnetTag.Id });
-            }
+                if (dotnetPost != null && dotnetTag != null &&
+                    !await context.PostTags.AnyAsync(pt => pt.PostId == dotnetPost.Id && pt.TagId == dotnetTag.Id,
+                        cancellationToken))
+                {
+                    context.PostTags.Add(new PostTag { PostId = dotnetPost.Id, TagId = dotnetTag.Id });
+                }
 
-            if (dotnetPost != null && tutorialsTag != null &&
-                !await context.PostTags.AnyAsync(pt => pt.PostId == dotnetPost.Id && pt.TagId == tutorialsTag.Id,
-                    cancellationToken))
-            {
-                context.PostTags.Add(new PostTag { PostId = dotnetPost.Id, TagId = tutorialsTag.Id });
+                if (dotnetPost != null && tutorialsTag != null &&
+                    !await context.PostTags.AnyAsync(pt => pt.PostId == dotnetPost.Id && pt.TagId == tutorialsTag.Id,
+                        cancellationToken))
+                {
+                    context.PostTags.Add(new PostTag { PostId = dotnetPost.Id, TagId = tutorialsTag.Id });
+                }
             }
 
             if (context.ChangeTracker.HasChanges())
