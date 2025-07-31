@@ -385,7 +385,6 @@ public class PostService : IPostService
 
     public async Task<Post?> GetPostBySlugAsync(string slug)
     {
-        var posts = await _postRepository.GetAllAsync();
-        return posts.FirstOrDefault(p => p.Slug == slug);
+        return await _postRepository.GetBySlugAsync(slug);
     }
 }
