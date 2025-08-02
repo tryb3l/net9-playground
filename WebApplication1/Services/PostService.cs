@@ -192,12 +192,7 @@ public class PostService : IPostService
     public async Task<List<SelectListItem>> GetAvailableTagsAsync()
     {
         var tags = await _tagRepository.GetAllAsync();
-        return tags
-            .Select(t => new SelectListItem
-            {
-                Value = t.Id.ToString(),
-                Text = t.Name
-            }).ToList();
+        return _mapper.Map<List<SelectListItem>>(tags);
     }
 
     public async Task PublishPostAsync(int id)

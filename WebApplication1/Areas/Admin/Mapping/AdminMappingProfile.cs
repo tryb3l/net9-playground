@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using WebApplication1.Areas.Admin.ViewModels.Dashboard;
 using WebApplication1.Areas.Admin.ViewModels.Post;
 using WebApplication1.Models;
@@ -45,5 +46,9 @@ public class AdminMappingProfile : Profile
 
         CreateMap<Category, CategoryViewModel>()
             .ForMember(dest => dest.PostCount, opt => opt.MapFrom(src => src.Posts.Count(p => p.IsPublished && !p.IsDeleted)));
+
+        CreateMap<Tag, SelectListItem>()
+            .ForMember(dest => dest.Value, opt => opt.MapFrom(src => src.Id.ToString()))
+            .ForMember(dest => dest.Text, opt => opt.MapFrom(src => src.Name));
     }
 }
