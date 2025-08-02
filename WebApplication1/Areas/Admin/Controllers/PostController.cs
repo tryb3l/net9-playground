@@ -59,6 +59,7 @@ public class PostController : Controller
     }
 
     [HttpGet]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create()
     {
         try
@@ -127,6 +128,7 @@ public class PostController : Controller
     }
 
     [HttpGet]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int? id)
     {
         if (id == null)
@@ -145,7 +147,7 @@ public class PostController : Controller
         return View(viewModel);
     }
 
-[HttpPost]
+    [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, EditPostViewModel viewModel)
     {
@@ -205,6 +207,7 @@ public class PostController : Controller
 
 
     [HttpGet]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int? id)
     {
         if (id == null)
@@ -243,6 +246,7 @@ public class PostController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> GetPostsData([FromForm] DataTablesRequest request)
     {
         var pagedData = await _postService.GetPostListForDataTableAsync(request);
