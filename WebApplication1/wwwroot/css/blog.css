@@ -327,18 +327,25 @@
     margin-bottom: 3rem;
 }
 
+.post-featured-image {
+    border-radius: 16px;
+    width: 100%;
+    height: auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
 .mat-post-card {
     background: var(--surface-color);
     border-radius: 20px;
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
     height: 100%;
 }
 
 .mat-post-card:hover {
-    transform: translateY(-4px);
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+    background-color: rgba(var(--primary-color-rgb), 0.04); /* ADD: Subtle background change on hover */
 }
 
 .post-card-link {

@@ -3,6 +3,7 @@
     --surface-color: #f8f9fa;
     --on-surface-color: #212529;
     --primary-color: #0d6efd;
+    --primary-color-rgb: 13, 110, 253;
     --on-primary-color: #fff;
     --border-color: #dee2e6;
     --shadow-color-rgb: 0, 0, 0;
@@ -91,6 +92,7 @@
     --surface-color: #2d2e30;
     --on-surface-color: #e8eaed;
     --primary-color: #8ab4f8;
+    --primary-color-rgb: 138, 180, 248;
     --on-primary-color: #202124;
     --border-color: rgba(255, 255, 255, 0.1);
     --shadow-color-rgb: 0, 0, 0;
