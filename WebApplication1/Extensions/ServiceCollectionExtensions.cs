@@ -20,6 +20,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IActivityLogService, ActivityLogService>();
+        services.AddScoped<IAttachmentService, AttachmentService>();
 
         return services;
     }
