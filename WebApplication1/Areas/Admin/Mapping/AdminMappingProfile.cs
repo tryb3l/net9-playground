@@ -14,13 +14,16 @@ public class AdminMappingProfile : Profile
         CreateMap<Post, RecentPostViewModel>()
             .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author!.UserName ?? "N/A"));
 
-        CreateMap<CreatePostViewModel, Post>();
+        CreateMap<CreatePostViewModel, Post>()
+    .ForMember(dest => dest.FeaturedImageUrl, opt => opt.MapFrom(src => src.FeaturedImageUrl));
 
         CreateMap<Post, EditPostViewModel>()
-            .ForMember(dest => dest.SelectedTagIds, opt => opt.MapFrom(src => src.PostTags.Select(pt => pt.TagId).ToList()));
+            .ForMember(dest => dest.SelectedTagIds, opt => opt.MapFrom(src => src.PostTags.Select(pt => pt.TagId).ToList()))
+            .ForMember(dest => dest.FeaturedImageUrl, opt => opt.MapFrom(src => src.FeaturedImageUrl));
 
         CreateMap<EditPostViewModel, Post>()
-            .ForMember(dest => dest.PostTags, opt => opt.Ignore());
+            .ForMember(dest => dest.PostTags, opt => opt.Ignore())
+            .ForMember(dest => dest.FeaturedImageUrl, opt => opt.MapFrom(src => src.FeaturedImageUrl));
 
         CreateMap<Post, PostViewModel>()
             .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author!.UserName ?? "N/A"))

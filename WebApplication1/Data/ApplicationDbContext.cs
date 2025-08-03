@@ -56,16 +56,19 @@ public class ApplicationDbContext : IdentityDbContext<User>
     {
         base.OnConfiguring(optionsBuilder);
 
-        optionsBuilder
-            .UseSeeding((context, seedingData) =>
-            {
-                var serviceProvider = ((ApplicationDbContext)context)._serviceProvider;
-                SeedData.SeedSync((ApplicationDbContext)context, serviceProvider);
-            })
-            .UseAsyncSeeding(async (context, seedingData, cancellationToken) =>
-            {
-                var serviceProvider = ((ApplicationDbContext)context)._serviceProvider;
-                await SeedData.SeedAsync((ApplicationDbContext)context, serviceProvider, cancellationToken);
-            });
+        if (_serviceProvider != null)
+        {
+            optionsBuilder
+                .UseSeeding((context, seedingData) =>
+                {
+                    var serviceProvider = ((ApplicationDbContext)context)._serviceProvider;
+                    SeedData.SeedSync((ApplicationDbContext)context, serviceProvider);
+                })
+                .UseAsyncSeeding(async (context, seedingData, cancellationToken) =>
+                {
+                    var serviceProvider = ((ApplicationDbContext)context)._serviceProvider;
+                    await SeedData.SeedAsync((ApplicationDbContext)context, serviceProvider, cancellationToken);
+                });
+        }
     }
 }
