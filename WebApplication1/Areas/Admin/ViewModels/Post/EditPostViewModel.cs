@@ -14,6 +14,7 @@ public class EditPostViewModel
 
     [Display(Name = "Content")]
     public string? Content { get; init; }
+    public string? FeaturedImageUrl { get; set; }
 
     [Display(Name = "Published")]
     public bool IsPublished { get; init; }

@@ -11,6 +11,7 @@ public class CreatePostViewModel
 
     [Display(Name = "Content")]
     public string? Content { get; init; }
+    public string? FeaturedImageUrl { get; set; }
 
     [Display(Name = "Category")]
     public int? CategoryId { get; init; }
