@@ -4,6 +4,7 @@
 }
 
 <div class="container-fluid">
+    @Html.AntiForgeryToken()
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1>Posts</h1>
         <a asp-action="Create" class="btn btn-primary">
@@ -33,14 +34,14 @@
             <div class="table-responsive">
                 <table id="postsTable" class="table table-hover align-middle" style="width:100%">
                     <thead class="table-light">
-                        <tr>
-                            <th>Title</th>
-                            <th>Author</th>
-                            <th>Created</th>
-                            <th>Status</th>
-                            <th>Published</th>
-                            <th class="text-end no-sort">Actions</th>
-                        </tr>
+                    <tr>
+                        <th>Title</th>
+                        <th>Author</th>
+                        <th>Created</th>
+                        <th>Status</th>
+                        <th>Published</th>
+                        <th class="text-end no-sort">Actions</th>
+                    </tr>
                     </thead>
                     <tbody>
                     </tbody>
@@ -84,6 +85,7 @@
                     type: "POST",
                     dataType: "json",
                     data: function (d) {
+                        d.__RequestVerificationToken = $('input[name="__RequestVerificationToken"]').val();
                         d.statusFilter = currentFilter;
                         return d;
                     }
@@ -225,7 +227,6 @@
             });
 
             $('#trashActions').hide();
-            $('body').append(`<input type="hidden" name="__RequestVerificationToken" value="@Html.AntiForgeryToken().GetRawString()" />`);
         });
     </script>
 }
