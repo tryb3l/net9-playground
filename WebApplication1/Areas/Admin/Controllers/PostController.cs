@@ -59,7 +59,6 @@ public class PostController : Controller
     }
 
     [HttpGet]
-    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create()
     {
         try
@@ -128,7 +127,6 @@ public class PostController : Controller
     }
 
     [HttpGet]
-    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int? id)
     {
         if (id == null)
@@ -207,7 +205,6 @@ public class PostController : Controller
 
 
     [HttpGet]
-    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int? id)
     {
         if (id == null)
