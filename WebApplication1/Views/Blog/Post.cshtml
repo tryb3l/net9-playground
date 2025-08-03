@@ -30,6 +30,14 @@
                     }
                 </header>
 
+                <!-- Featured image-->
+                @if(!string.IsNullOrEmpty(Model.FeaturedImageUrl))
+                {
+                    <figure class="mb-4">
+                        <img class="img-fluid rounded post-featured-image" src="@Model.FeaturedImageUrl" alt="@Model.Title"/>
+                    </figure>
+                }
+
                 <!-- Post content-->
                 <section class="mb-5">
                     <p class="fs-5 mb-4">@Html.Raw(Model.Content)</p>
