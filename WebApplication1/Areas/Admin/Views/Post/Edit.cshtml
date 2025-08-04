@@ -1,11 +1,12 @@
 @model WebApplication1.Areas.Admin.ViewModels.Post.EditPostViewModel
 @{
-    ViewData["Title"] = "Edit New Post";
+    ViewData["Title"] = "Edit Post";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 }
 
 <form asp-area="Admin" asp-controller="Post" asp-action="Edit" method="post" class="container-fluid">
     @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
 
     <!-- Header -->
     <div class="row mb-4 align-items-center">
@@ -18,7 +19,7 @@
                     <i class="bi bi-x-circle me-1"></i>Cancel
                 </a>
                 <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-save me-1"></i>Save Post
+                    <i class="bi bi-save me-1"></i>Save Changes
                 </button>
             </div>
         </div>
@@ -62,6 +63,22 @@
                             <small class="d-block text-muted">If unchecked, the post will be saved as a draft.</small>
                         </label>
                     </div>
+                </div>
+            </div>
+
+            <!-- Featured Image -->
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-image me-1"></i>Featured Image</div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(Model.FeaturedImageUrl))
+                    {
+                        <div class="mb-3 text-center">
+                            <img src="@Model.FeaturedImageUrl" alt="Current Featured Image" class="img-fluid rounded" style="max-height: 200px;" />
+                            <small class="d-block mt-2 text-muted">Current Image</small>
+                        </div>
+                    }
+                    <input type="file" class="filepond" data-max-file-size="10MB" data-max-files="1" />
+                    <input type="hidden" asp-for="FeaturedImageUrl" />
                 </div>
             </div>
 
