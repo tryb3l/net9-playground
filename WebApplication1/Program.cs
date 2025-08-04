@@ -83,7 +83,7 @@ try
         });
 
     builder.Services.AddTransient<GlobalExceptionHandlerMiddleware>();
-    
+
     builder.Services.AddSingleton<IAuthorizationHandler, AdminOrApiKeyHandler>();
 
     builder.Services.AddApplicationServices();
@@ -95,11 +95,11 @@ try
 
     builder.Services.AddHealthChecks()
         .AddNpgSql(connectionString);
-    
+
     builder.Services.AddHealthChecksUI(setup =>
     {
         setup.AddHealthCheckEndpoint("API", "https://web/health");
-        
+
         setup.UseApiEndpointHttpMessageHandler(_ => new HealthCheckHttpClientHandler(
             healthCheckApiKey,
             builder.Environment.IsDevelopment()
@@ -111,6 +111,8 @@ try
     {
         cfg.AddMaps(typeof(Program));
     });
+    
+    builder.Services.AddResponseCaching();
 
     var app = builder.Build();
 
@@ -123,7 +125,38 @@ try
     }
 
     app.UseHttpsRedirection();
-    app.UseStaticFiles();
+    
+    app.UseResponseCaching();
+
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            OnPrepareResponse = ctx =>
+            {
+                ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+                ctx.Context.Response.Headers.Append("Pragma", "no-cache");
+                ctx.Context.Response.Headers.Append("Expires", "0");
+            }
+        });
+    }
+    else
+    {
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            OnPrepareResponse = ctx =>
+            {
+                if (ctx.Context.Request.Path.StartsWithSegments("/uploads"))
+                {
+                    var headers = ctx.Context.Response.Headers;
+                    // Cache for 1 year
+                    headers.CacheControl = "public,max-age=31536000,immutable";
+                }
+            }
+        });
+    }
+    
+
     app.UseRouting();
 
     app.UseSerilogRequestLogging(options =>
