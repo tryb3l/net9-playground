@@ -1,4 +1,6 @@
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Extensions.Caching.Memory;
 using WebApplication1.Areas.Admin.ViewModels.Category;
 using WebApplication1.Interfaces;
 using WebApplication1.Models;
@@ -9,31 +11,45 @@ namespace WebApplication1.Services;
 public class CategoryService : ICategoryService
 {
     private readonly ICategoryRepository _categoryRepository;
+    private readonly IMapper _mapper;
+    private readonly IMemoryCache _cache;
 
-    public CategoryService(ICategoryRepository categoryRepository)
+    private static class CacheKeys
     {
-        _categoryRepository = categoryRepository;
+        public static string AllCategories => "AllCategories";
+        public static string AvailableCategoriesSelectList => "AvailableCategoriesSelectList";
+        public static string CategoryById(int id) => $"Category-{id}";
     }
 
-    public async Task<IEnumerable<CategoryViewModel>> GetAllCategoriesAsync()
+    public CategoryService(ICategoryRepository categoryRepository, IMapper mapper, IMemoryCache cache)
     {
-        var categories = await _categoryRepository.GetAllAsync();
-        return categories.Select(c => new CategoryViewModel
+        _categoryRepository = categoryRepository;
+        _mapper = mapper;
+        _cache = cache;
+    }
+
+    public async Task<IEnumerable<CategoryViewModel>?> GetAllCategoriesAsync()
+    {
+        return await _cache.GetOrCreateAsync(CacheKeys.AllCategories, async entry =>
         {
-            Id = c.Id,
-            Name = c.Name,
-            PostCount = c.Posts.Count
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+            var categories = await _categoryRepository.GetAllAsync();
+            return _mapper.Map<List<CategoryViewModel>>(categories);
         });
     }
 
     public async Task<Category?> GetCategoryByIdAsync(int id)
     {
-        return await _categoryRepository.GetByIdAsync(id);
+        return await _cache.GetOrCreateAsync(CacheKeys.CategoryById(id), async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+            return await _categoryRepository.GetByIdAsync(id);
+        });
     }
 
     public async Task<CategoryViewModel?> GetCategoryViewModelByIdAsync(int id)
     {
-        var category = await _categoryRepository.GetByIdAsync(id);
+        var category = await GetCategoryByIdAsync(id);
         if (category == null)
         {
             return null;
@@ -53,16 +69,20 @@ public class CategoryService : ICategoryService
         {
             throw new KeyNotFoundException($"Category with ID {model.Id} not found");
         }
+
+        var originalName = category.Name;
         category.Name = model.Name;
         category.Description = model.Description;
 
-        if (category.Name != model.Name)
+        if (originalName != model.Name)
         {
             category.Slug = SlugHelper.GenerateSlug(model.Name);
         }
 
         await _categoryRepository.UpdateAsync(category);
         await _categoryRepository.SaveChangesAsync();
+
+        InvalidateCategoryCache(model.Id);
     }
 
     public async Task DeleteCategoryAsync(int id)
@@ -75,11 +95,13 @@ public class CategoryService : ICategoryService
 
         await _categoryRepository.DeleteAsync(category);
         await _categoryRepository.SaveChangesAsync();
+
+        InvalidateCategoryCache(id);
     }
 
     public async Task<bool> CategoryExistingAsync(int id)
     {
-        return await _categoryRepository.ExistingAsync(id);
+        return await GetCategoryByIdAsync(id) != null;
     }
 
     public async Task<ServiceResult> CreateCategoryAsync(CreateCategoryViewModel viewModel)
@@ -96,6 +118,9 @@ public class CategoryService : ICategoryService
             await _categoryRepository.AddAsync(category);
             await _categoryRepository.SaveChangesAsync();
 
+            _cache.Remove(CacheKeys.AllCategories);
+            _cache.Remove(CacheKeys.AvailableCategoriesSelectList);
+
             return ServiceResult.Success();
         }
         catch (Exception ex)
@@ -106,12 +131,23 @@ public class CategoryService : ICategoryService
 
     public async Task<List<SelectListItem>> GetAvailableCategoriesAsync()
     {
-        var categories = await _categoryRepository.GetAllAsync();
-        return categories
-            .Select(c => new SelectListItem
-            {
-                Value = c.Id.ToString(),
-                Text = c.Name
-            }).ToList();
+        return await _cache.GetOrCreateAsync(CacheKeys.AvailableCategoriesSelectList, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+            var categories = await _categoryRepository.GetAllAsync();
+            return categories
+                .Select(c => new SelectListItem
+                {
+                    Value = c.Id.ToString(),
+                    Text = c.Name
+                }).ToList();
+        }) ?? new List<SelectListItem>();
+    }
+
+    private void InvalidateCategoryCache(int id)
+    {
+        _cache.Remove(CacheKeys.CategoryById(id));
+        _cache.Remove(CacheKeys.AllCategories);
+        _cache.Remove(CacheKeys.AvailableCategoriesSelectList);
     }
 }

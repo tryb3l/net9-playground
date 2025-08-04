@@ -6,7 +6,7 @@ namespace WebApplication1.Interfaces;
 
 public interface ICategoryService
 {
-    Task<IEnumerable<CategoryViewModel>> GetAllCategoriesAsync();
+    Task<IEnumerable<CategoryViewModel>?> GetAllCategoriesAsync();
     Task<Category?> GetCategoryByIdAsync(int id);
     Task<List<SelectListItem>> GetAvailableCategoriesAsync();
     Task<CategoryViewModel?> GetCategoryViewModelByIdAsync(int id);
