@@ -15,6 +15,7 @@ services:
     volumes:
       - ${HOME}/.aspnet/https:/https:ro
       - dataprotection-keys:/root/.aspnet/DataProtection-Keys
+      - ./WebApplication1/wwwroot/uploads:/app/wwwroot/uploads
 
   postgres:
     image: postgres:17-alpine
