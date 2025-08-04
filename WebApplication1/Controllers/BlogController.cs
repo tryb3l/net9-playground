@@ -12,6 +12,7 @@ public class BlogController : Controller
         _postService = postService;
     }
 
+    [ResponseCache(Duration = 60, VaryByQueryKeys = new[] { "page", "category", "tag" }, Location = ResponseCacheLocation.Any)]
     public async Task<ActionResult> Index(int page = 1, string? category = null, string? tag = null)
     {
         var viewModel = await _postService.GetBlogIndexViewModelAsync(page, category, tag);
@@ -19,6 +20,7 @@ public class BlogController : Controller
     }
 
     [HttpGet("blog/{slug}")]
+    [ResponseCache(Duration = 300, VaryByHeader = "User-Agent", Location = ResponseCacheLocation.Any)]
     public async Task<IActionResult> Post(string slug)
     {
         var post = await _postService.GetPostBySlugAsync(slug);

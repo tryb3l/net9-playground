@@ -154,38 +154,25 @@ public class PostController : Controller
             return NotFound();
         }
 
-        var isPublishAction = HttpContext.Request.Form["PublishNow"].Contains("true");
-
-        var updatedViewModel = new EditPostViewModel
-        {
-            Id = viewModel.Id,
-            Title = viewModel.Title,
-            Content = viewModel.Content,
-            CategoryId = viewModel.CategoryId,
-            SelectedTagIds = viewModel.SelectedTagIds,
-            IsPublished = isPublishAction,
-            AvailableCategories = viewModel.AvailableCategories,
-            AvailableTags = viewModel.AvailableTags
-        };
         if (!ModelState.IsValid)
         {
             _logger.LogWarning("Edit POST - ModelState is invalid. Returning view with validation errors.");
-            updatedViewModel.AvailableCategories = await _categoryService.GetAvailableCategoriesAsync();
-            updatedViewModel.AvailableTags = await _tagService.GetAvailableTagsAsync();
-            return View(updatedViewModel);
+            viewModel.AvailableCategories = await _categoryService.GetAvailableCategoriesAsync();
+            viewModel.AvailableTags = await _tagService.GetAvailableTagsAsync();
+            return View(viewModel);
         }
 
         try
         {
             var currentUser = await _userManager.GetUserAsync(User);
-            await _postService.UpdatePostAsync(id, updatedViewModel);
+            await _postService.UpdatePostAsync(id, viewModel);
 
             if (currentUser != null)
             {
-                await _activityLogService.LogActivityAsync(currentUser.Id, "Updated", "Post", $"Updated post: '{updatedViewModel.Title}'");
+                await _activityLogService.LogActivityAsync(currentUser.Id, "Updated", "Post", $"Updated post: '{viewModel.Title}'");
             }
 
-            TempData["SuccessMessage"] = isPublishAction ? "Post has been published successfully." : "Draft has been saved successfully.";
+            TempData["SuccessMessage"] = viewModel.PublishNow ? "Post has been published successfully." : "Draft has been saved successfully.";
             return RedirectToAction(nameof(Index));
         }
         catch (KeyNotFoundException)
@@ -197,12 +184,11 @@ public class PostController : Controller
             _logger.LogError(ex, "An error occurred while updating post with ID {PostId}", id);
             TempData["ErrorMessage"] = "An unexpected error occurred while saving the post.";
 
-            updatedViewModel.AvailableCategories = await _categoryService.GetAvailableCategoriesAsync();
-            updatedViewModel.AvailableTags = await _tagService.GetAvailableTagsAsync();
-            return View(updatedViewModel);
+            viewModel.AvailableCategories = await _categoryService.GetAvailableCategoriesAsync();
+            viewModel.AvailableTags = await _tagService.GetAvailableTagsAsync();
+            return View(viewModel);
         }
     }
-
 
     [HttpGet]
     public async Task<IActionResult> Delete(int? id)
