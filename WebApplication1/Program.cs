@@ -155,7 +155,6 @@ try
             }
         });
     }
-    
 
     app.UseRouting();
 

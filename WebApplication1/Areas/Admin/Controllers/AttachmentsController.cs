@@ -11,7 +11,7 @@ public class AttachmentsController : Controller
 {
     private readonly IAttachmentService _attachmentService;
     private readonly ILogger<AttachmentsController> _logger;
-    private static readonly string[] AllowedMimeTypes = { "image/png", "image/jpeg", "image/gif", "image/webp" };
+    private static readonly string[] AllowedMimeTypes = ["image/png", "image/jpeg", "image/gif", "image/webp"];
 
     public AttachmentsController(IAttachmentService attachmentService, ILogger<AttachmentsController> logger)
     {
