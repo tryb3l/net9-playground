@@ -1,29 +1,34 @@
 .post-card {
-  background-color: var(--surface-color);
-  color: var(--on-surface-color);
-  border-radius: 12px;
-  overflow: hidden;
-  position: relative;
-  text-decoration: none;
+    background-color: var(--surface-color);
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 4px rgba(var(--shadow-color-rgb), var(--shadow-strength-1));
+    transition: background-color 0.3s var(--animation-spring);
+    height: 100%;
+    display: flex;
+}
 
-  box-shadow: 0 1px 3px rgba(var(--shadow-color), var(--shadow-strength-1));
-
-
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+.post-card:hover {
+    background-color: rgba(var(--on-surface-color-rgb, 33, 37, 41), 0.04);
 }
 
 .post-card-link {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    width: 100%;
     color: inherit;
     text-decoration: none;
 }
 
+/* === CONTENT (TOP) === */
 .post-card-image-container {
-    width: 100%;
-    height: 180px;
+    width: auto;
+    aspect-ratio: 16 / 9;
+    background-color: rgba(var(--on-surface-color-rgb, 33, 37, 41), 0.05);
+    flex-shrink: 0;
+    margin: 0 0 0;
+    border-radius: 12px;
     overflow: hidden;
 }
 
@@ -31,14 +36,33 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.3s ease-out;
 }
 
+/* === CONTENT (BOTTOM) === */
+.post-card-image-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(var(--on-surface-color-rgb, 33, 37, 41), 0.3);
+    font-size: 3rem;
+}
+
+/* === CONTENT (BOTTOM) === */
 .post-card-content {
-    padding: 16px;
+    /* FINAL FIX: Adjust padding to align with the inset image. */
+    padding: 1.25rem 1.5rem 1.5rem;
     display: flex;
     flex-direction: column;
     flex-grow: 1;
+}
+
+.post-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
 }
 
 .post-card-category {
@@ -46,85 +70,43 @@
     font-weight: 600;
     color: var(--primary-color);
     text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.post-card-date {
+    font-size: 0.8rem;
+    color: rgba(var(--on-surface-color-rgb, 33, 37, 41), 0.6);
 }
 
 .post-card-title {
     font-size: 1.25rem;
-    font-weight: 700;
-    line-height: 1.3;
-    margin: 8px 0 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    margin: 0 0 0.75rem 0;
+    color: var(--on-surface-color);
 }
 
 .post-card-excerpt {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     line-height: 1.6;
+    color: rgba(var(--on-surface-color-rgb, 33, 37, 41), 0.7);
     flex-grow: 1;
+    margin: 0;
 }
 
 .post-card-footer {
-    margin-top: 16px;
+    margin-top: 1rem;
 }
 
 .post-card-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 0.5rem;
 }
 
 .post-card-tag {
     font-size: 0.75rem;
-    background-color: rgba(var(--on-surface-color), 0.08);
-    padding: 4px 10px;
+    background-color: rgba(var(--on-surface-color-rgb, 33, 37, 41), 0.08);
+    padding: 0.25rem 0.6rem;
     border-radius: 8px;
-}
-
-
-/* ================================================================= */
-/* DESKTOP ENHANCEMENTS (Applies only when screen is 768px or wider) */
-/* ================================================================= */
-
-@media (min-width: 768px) {
-  .post-card {
-    border-radius: 16px;
-
-    /* The more complex, layered shadow for desktop */
-    box-shadow:
-      0 2px 4px rgba(var(--shadow-color), var(--shadow-strength-1)),
-      0 4px 8px rgba(var(--shadow-color), var(--shadow-strength-2));
-  }
-
-  .post-card:hover {
-    transform: translateY(-4px);
-    box-shadow:
-      0 4px 8px rgba(var(--shadow-color), var(--shadow-strength-1)),
-      0 8px 16px rgba(var(--shadow-color), var(--shadow-strength-2));
-  }
-
-  .post-card:hover .post-card-image {
-    transform: scale(1.05);
-  }
-
-  .post-card-image-container {
-    height: 200px;
-  }
-
-  .post-card-content {
-    padding: 24px;
-  }
-
-  .post-card-category {
-    font-size: 0.875rem;
-  }
-
-  .post-card-title {
-    font-size: 1.5rem;
-  }
-
-  .post-card-excerpt {
-    font-size: 1rem;
-  }
-
-  .post-card-tag {
-    font-size: 0.8rem;
-  }
 }

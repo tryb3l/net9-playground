@@ -64,6 +64,8 @@
     /* === BORDERS & SHADOWS === */
     --border-default: 1px solid var(--border-color);
     --shadow-sm: 0 0.125rem 0.25rem rgba(var(--shadow-color-rgb), var(--shadow-strength));
+    --shadow-strength-1: 0.05;
+    --shadow-strength-2: 0.1;
 
     /* === ANIMATION VARIABLES === */
     --animation-duration-fast: 0.2s;
@@ -97,6 +99,8 @@
     --border-color: rgba(255, 255, 255, 0.1);
     --shadow-color-rgb: 0, 0, 0;
     --shadow-strength: 0.3;
+    --shadow-strength-1: 0.2;
+    --shadow-strength-2: 0.4;
 
     /* === DARK THEME NAVIGATION === */
     --navbar-bg: rgba(45, 46, 48, 0.95);

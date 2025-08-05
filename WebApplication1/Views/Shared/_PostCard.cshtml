@@ -1,35 +1,32 @@
-@using WebApplication1.ViewModels
-@model PostCardViewModel
+@model WebApplication1.ViewModels.PostCardViewModel
 
-<article class="mat-post-card">
-    <a asp-controller="Blog" asp-action="Post" asp-route-slug="@Model.Slug"
-       class="post-card-link">
-        @if (!string.IsNullOrEmpty(Model.FeaturedImageUrl))
-        {
-            <div class="post-image-container">
-                <img src="@Model.FeaturedImageUrl" alt="@Model.Title" class="post-image" loading="lazy">
-                <div class="image-overlay"></div>
-            </div>
-        }
-
-        <div class="post-content">
-            <div class="post-meta">
-                <span class="post-category">@Model.CategoryName</span>
-                <span class="post-date">@Model.PublishDate.ToString("MMM dd")</span>
-            </div>
-
-            <h3 class="post-title">@Model.Title</h3>
-            <p class="post-excerpt">@Model.ShortDescription</p>
-
-            <div class="post-footer">
-                <div class="post-tags">
-                    @foreach (var tag in Model.Tags.Take(2))
-                    {
-                        <span class="post-tag">#@tag.Name</span>
-                    }
+<article class="post-card">
+    <a asp-controller="Blog" asp-action="Post" asp-route-slug="@Model.Slug" class="post-card-link">
+        <div class="post-card-image-container">
+            @if (!string.IsNullOrEmpty(Model.FeaturedImageUrl))
+            {
+                <img src="@Model.FeaturedImageUrl" class="post-card-image" alt="@Model.Title" loading="lazy">
+            }
+            else
+            {
+                <div class="post-card-image-placeholder">
+                    <i class="bi bi-card-image"></i>
                 </div>
-                <div class="read-more">
-                    <i class="bi bi-arrow-right"></i>
+            }
+        </div>
+        <div class="post-card-content">
+            <div class="post-card-header">
+                <span class="post-card-category">@Model.CategoryName</span>
+                <span class="post-card-date">@Model.PublishDate.ToString("MMM dd, yyyy")</span>
+            </div>
+            <h3 class="post-card-title">@Model.Title</h3>
+            <p class="post-card-excerpt">@Model.ShortDescription</p>
+            <div class="post-card-footer">
+                <div class="post-card-tags">
+                    @foreach (var tag in Model.Tags.Take(3))
+                    {
+                        <span class="post-card-tag">#@tag.Name</span>
+                    }
                 </div>
             </div>
         </div>
