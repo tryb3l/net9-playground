@@ -6,7 +6,7 @@ body.admin-body {
 }
 
 body.admin-body {
-    background-color: var(--color-gray-100);
+    background-color: var(--surface-color);
 }
 
 .admin-container {
@@ -47,7 +47,7 @@ body.admin-body {
     width: var(--sidebar-width-expanded);
     flex-shrink: 0;
     background-color: var(--sidebar-bg);
-    color: var(--text-color-light);
+    color: var(--sidebar-text);
     display: flex;
     flex-direction: column;
     height: 100vh;
@@ -64,7 +64,7 @@ body.admin-body {
 }
 
 .sidebar-brand {
-    color: var(--text-color-light);
+    color: var(--sidebar-text-active);
     text-decoration: none;
     font-weight: bold;
     font-size: 1.2rem;
@@ -98,7 +98,7 @@ body.admin-body {
 
 /* === SIDEBAR TOGGLE BUTTON === */
 .sidebar-toggle {
-    color: var(--color-gray-800);
+    color: var(--on-surface-color);
     background: none;
     border: none;
     font-size: 1.5rem;
@@ -107,7 +107,7 @@ body.admin-body {
 }
 
 .sidebar-toggle:hover {
-    color: var(--color-black);
+    color: var(--primary-color);
 }
 
 /* === SIDEBAR FOOTER & USER PROFILE === */
@@ -200,6 +200,6 @@ body.admin-body {
 
     .sidebar.active {
         margin-left: 0;
-        box-shadow: 0 0 15px var(--navbar-shadow-color);
+        box-shadow: var(--mobile-menu-shadow);
     }
 }

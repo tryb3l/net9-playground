@@ -107,10 +107,10 @@ public class PostController : Controller
             var createdPost = await _postService.CreatePostAsync(viewModel, currentUser.Id);
 
             await _activityLogService.LogActivityAsync(currentUser.Id, "Created", "Post",
-                $"Created new post: '{createdPost?.Title ?? "Untitled"}'");
+                $"Created new post: '{createdPost.Title}'");
 
 
-            TempData["SuccessMessage"] = $"Post '{createdPost?.Title}' created successfully.";
+            TempData["SuccessMessage"] = $"Post '{createdPost.Title}' created successfully.";
             Debug.Assert(createdPost != null, nameof(createdPost) + " != null");
             _logger.LogInformation("Post created successfully with ID {PostId}", createdPost.Id);
             return RedirectToAction(nameof(Index));
@@ -310,7 +310,7 @@ public class PostController : Controller
             await _postService.PublishPostAsync(id);
             Debug.Assert(currentUser != null, nameof(currentUser) + " != null");
             await _activityLogService.LogActivityAsync(currentUser.Id, "Published", "Post",
-                $"Published post: '{post.Title ?? "Untitled"}'");
+                $"Published post: '{post.Title}'");
 
             // Return JSON for AJAX requests
             return Json(new { success = true, message = "Post published successfully." });
@@ -339,9 +339,7 @@ public class PostController : Controller
             await _postService.UnpublishPostAsync(id);
             if (currentUser != null)
                 await _activityLogService.LogActivityAsync(currentUser.Id, "Unpublished", "Post",
-                    $"Unpublished post: '{post.Title ?? "Untitled"}'");
-
-            // Return JSON for AJAX requests
+                    $"Unpublished post: '{post.Title}'");
             return Json(new { success = true, message = "Post unpublished successfully." });
         }
         catch (KeyNotFoundException)
