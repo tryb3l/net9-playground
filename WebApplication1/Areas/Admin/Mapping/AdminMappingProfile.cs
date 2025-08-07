@@ -45,7 +45,8 @@ public class AdminMappingProfile : Profile
             .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author!.UserName ?? "N/A"))
             .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.PostTags.Select(pt => pt.Tag!.Name).ToList()));
 
-        CreateMap<Tag, TagViewModel>();
+        CreateMap<Tag, TagViewModel>()
+            .ForMember(dest => dest.PostCount, opt => opt.MapFrom(src => src.PostTags.Count));
         
         CreateMap<Category, WebApplication1.ViewModels.CategoryViewModel>()
             .ForMember(dest => dest.PostCount, opt => opt.MapFrom(src => src.Posts.Count(p => p.IsPublished && !p.IsDeleted)));
