@@ -20,6 +20,7 @@ public class PostService : IPostService
     private readonly ITagRepository _tagRepository;
     private readonly IUrlHelper? _urlHelper;
     private readonly IMapper _mapper;
+    private readonly ITagService _tagService;
 
     public PostService(
         IPostRepository postRepository,
@@ -27,12 +28,13 @@ public class PostService : IPostService
         ITagRepository tagRepository,
         IUrlHelperFactory urlHelperFactory,
         IActionContextAccessor actionContextAccessor,
-        IMapper mapper)
+        IMapper mapper, ITagService tagService)
     {
         _postRepository = postRepository;
         _categoryRepository = categoryRepository;
         _tagRepository = tagRepository;
         _mapper = mapper;
+        _tagService = tagService;
         if (actionContextAccessor.ActionContext != null)
             _urlHelper = urlHelperFactory.GetUrlHelper(actionContextAccessor.ActionContext);
     }
@@ -191,8 +193,7 @@ public class PostService : IPostService
 
     public async Task<List<SelectListItem>> GetAvailableTagsAsync()
     {
-        var tags = await _tagRepository.GetAllAsync();
-        return _mapper.Map<List<SelectListItem>>(tags);
+        return await _tagService.GetAvailableTagsAsync();
     }
 
     public async Task PublishPostAsync(int id)
