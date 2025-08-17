@@ -4,6 +4,7 @@ using WebApplication1.Areas.Admin.ViewModels.Dashboard;
 using WebApplication1.Areas.Admin.ViewModels.Post;
 using WebApplication1.Models;
 using WebApplication1.ViewModels;
+using TagViewModel = WebApplication1.Areas.Admin.ViewModels.Tag.TagViewModel;
 
 namespace WebApplication1.Areas.Admin.Mapping;
 
@@ -47,10 +48,10 @@ public class AdminMappingProfile : Profile
 
         CreateMap<Tag, TagViewModel>()
             .ForMember(dest => dest.PostCount, opt => opt.MapFrom(src => src.PostTags.Count));
-        
+
         CreateMap<Category, WebApplication1.ViewModels.CategoryViewModel>()
             .ForMember(dest => dest.PostCount, opt => opt.MapFrom(src => src.Posts.Count(p => p.IsPublished && !p.IsDeleted)));
-        
+
         CreateMap<Category, WebApplication1.Areas.Admin.ViewModels.Category.CategoryViewModel>()
             .ForMember(dest => dest.PostCount, opt => opt.MapFrom(src => src.Posts.Count));
 
