@@ -16,6 +16,8 @@ services:
       - ${HOME}/.aspnet/https:/https:ro
       - dataprotection-keys:/root/.aspnet/DataProtection-Keys
       - ./WebApplication1/wwwroot/uploads:/app/wwwroot/uploads
+    logging:
+      driver: "json-file"
 
   postgres:
     image: postgres:17-alpine
@@ -28,6 +30,8 @@ services:
       POSTGRES_PASSWORD: yourpassword
     volumes:
       - pgdata:/var/lib/postgresql/data
+    logging:
+      driver: "json-file"
 
 volumes:
   pgdata:
