@@ -36,7 +36,7 @@ public class AttachmentsController : Controller
 
         try
         {
-            var (imageUrl, errorMessage) = await _attachmentService.ProcessAndSaveImageAsync(file, "posts");
+            var (urls, errorMessage) = await _attachmentService.ProcessAndSaveImageAsync(file, "posts");
 
             if (errorMessage != null)
             {
@@ -44,8 +44,8 @@ public class AttachmentsController : Controller
                 return BadRequest(new { message = errorMessage });
             }
 
-            _logger.LogInformation("Successfully uploaded file {FileName} to {ImageUrl}", file.FileName, imageUrl);
-            return Ok(new { url = imageUrl });
+            _logger.LogInformation("Successfully uploaded file {FileName} and generated image sizes.", file.FileName);
+            return Ok(new { urls });
         }
         catch (Exception ex)
         {
