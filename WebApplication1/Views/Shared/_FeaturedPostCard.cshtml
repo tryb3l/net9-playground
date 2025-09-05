@@ -4,10 +4,10 @@
 <article class="featured-post-card">
     <a asp-controller="Blog" asp-action="Post" asp-route-slug="@Model.Slug"
        class="featured-post-link">
-        @if (!string.IsNullOrEmpty(Model.FeaturedImageUrl))
+        @if (!string.IsNullOrEmpty(Model.FeaturedImageUrls.ToString()))
         {
             <div class="featured-image-container">
-                <img src="@Model.FeaturedImageUrl" alt="@Model.Title" class="featured-image" loading="lazy">
+                <img src="@Model.FeaturedImageUrls" alt="@Model.Title" class="featured-image" loading="lazy">
                 <div class="featured-overlay"></div>
             </div>
         }

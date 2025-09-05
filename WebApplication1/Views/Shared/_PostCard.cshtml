@@ -3,9 +3,9 @@
 <article class="post-card">
     <a asp-controller="Blog" asp-action="Post" asp-route-slug="@Model.Slug" class="post-card-link">
         <div class="post-card-image-container">
-            @if (!string.IsNullOrEmpty(Model.FeaturedImageUrl))
+            @if (Model.FeaturedImageUrls.TryGetValue("medium", out var imageUrl))
             {
-                <img src="@Model.FeaturedImageUrl" class="post-card-image" alt="@Model.Title" loading="lazy">
+                <img src="@imageUrl" class="post-card-image" alt="@Model.Title" loading="lazy">
             }
             else
             {
