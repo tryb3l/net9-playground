@@ -5,7 +5,7 @@ public class PostCardViewModel
     public int Id { get; init; }
     public string Title { get; init; } = string.Empty;
     public string Slug { get; init; } = string.Empty;
-    public string? FeaturedImageUrl { get; init; }
+    public Dictionary<string, string> FeaturedImageUrls { get; init; } = [];
     public string ShortDescription { get; init; } = string.Empty;
     public string CategoryName { get; init; } = string.Empty;
     public string CategorySlug { get; init; } = string.Empty;

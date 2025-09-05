@@ -141,7 +141,7 @@ public class CategoryService : ICategoryService
                     Value = c.Id.ToString(),
                     Text = c.Name
                 }).ToList();
-        }) ?? new List<SelectListItem>();
+        }) ?? [];
     }
 
     private void InvalidateCategoryCache(int id)

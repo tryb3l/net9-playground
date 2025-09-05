@@ -11,7 +11,7 @@ public class Post : ISoftDelete
     [MaxLength(64)]
     public string? Slug { get; set; }
     public string? Content { get; set; }
-    public string? FeaturedImageUrl { get; set; }
+    public string? FeaturedImageUrls { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? PublishedDate { get; set; }
     public bool IsPublished { get; set; } = false;

@@ -31,10 +31,10 @@
                 </header>
 
                 <!-- Featured image-->
-                @if(!string.IsNullOrEmpty(Model.FeaturedImageUrl))
+                @if(!string.IsNullOrEmpty(Model.FeaturedImageUrls))
                 {
                     <figure class="mb-4">
-                        <img class="img-fluid rounded post-featured-image" src="@Model.FeaturedImageUrl" alt="@Model.Title"/>
+                        <img class="img-fluid rounded post-featured-image" src="@Model.FeaturedImageUrls" alt="@Model.Title"/>
                     </figure>
                 }
 

@@ -2,5 +2,5 @@ namespace WebApplication1.Interfaces;
 
 public interface IAttachmentService
 {
-    Task<(string? Url, string?ErrorMessage)> ProcessAndSaveImageAsync(IFormFile file, string subfolder);
+    Task<(Dictionary<string, string>? Urls, string? ErrorMessage)> ProcessAndSaveImageAsync(IFormFile file, string subfolder);
 }
