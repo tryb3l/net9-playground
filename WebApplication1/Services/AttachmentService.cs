@@ -8,14 +8,20 @@ namespace WebApplication1.Services;
 public class AttachmentService : IAttachmentService
 {
     private readonly IWebHostEnvironment _env;
-    private static readonly string[] AllowedExtensions = { ".png", ".jpg", ".jpeg", ".gif", ".webp" };
+    private static readonly string[] AllowedExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
+    private static readonly Dictionary<string, Size> ImageSizes = new()
+    {
+        { "large", new Size(1280, 720) },
+        { "medium", new Size(800, 450) },
+        { "thumbnail", new Size(400, 225) }
+    };
 
     public AttachmentService(IWebHostEnvironment env)
     {
         _env = env;
     }
 
-    public async Task<(string? Url, string? ErrorMessage)> ProcessAndSaveImageAsync(IFormFile file, string subfolder)
+    public async Task<(Dictionary<string, string>? Urls, string? ErrorMessage)> ProcessAndSaveImageAsync(IFormFile file, string subfolder)
     {
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (string.IsNullOrEmpty(extension) || !AllowedExtensions.Contains(extension))
@@ -38,20 +44,26 @@ public class AttachmentService : IAttachmentService
             }
 
             using var image = await Image.LoadAsync(tempFilePath);
-            image.Mutate(x => x.Resize(new ResizeOptions
-            {
-                Size = new Size(1200, 0),
-                Mode = ResizeMode.Max
-            }));
+            var originalSize = image.Size;
+            var urls = new Dictionary<string, string>();
+            var baseFileName = Guid.NewGuid().ToString();
 
-            var webpEncoder = new WebpEncoder { Quality = 80 };
-            var webpFileName = $"{Guid.NewGuid()}.webp";
-            var finalFilePath = Path.Combine(uploadsFolderPath, webpFileName);
-            
-            await image.SaveAsync(finalFilePath, webpEncoder);
-                
-            var imageUrl = $"/uploads/{subfolder}/{webpFileName}";
-            return (imageUrl, null);
+            foreach (var (key, size) in ImageSizes)
+            {
+                var resizedImage = image.Clone(ctx => ctx.Resize(new ResizeOptions
+                {
+                    Size = size,
+                    Mode = ResizeMode.Crop
+                }));
+
+                var webpEncoder = new WebpEncoder { Quality = 80 };
+                var webpFileName = $"{baseFileName}-{key}.webp";
+                var finalFilePath = Path.Combine(uploadsFolderPath, webpFileName);
+                await resizedImage.SaveAsync(finalFilePath, webpEncoder);
+                urls[key] = $"/uploads/{subfolder}/{webpFileName}";
+            }
+
+            return (urls, null);
         }
         catch (Exception ex) when (ex is UnknownImageFormatException or NotSupportedException)
         {
