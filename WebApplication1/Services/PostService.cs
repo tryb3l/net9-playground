@@ -132,8 +132,8 @@ public class PostService : IPostService
             PostId = post.Id,
             TagId = tagId
         }))
-
-            await _postRepository.AddPostTagAsync(postTag);
+            
+        await _postRepository.AddPostTagAsync(postTag);
         await _postRepository.SaveChangesAsync();
 
         return post;
