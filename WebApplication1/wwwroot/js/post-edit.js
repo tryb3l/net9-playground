@@ -18,8 +18,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 onload: (response) => {
                     try {
                         const data = JSON.parse(response);
-                        featuredImageUrlInput.value = data.url;
-                        return data.url;
+                        featuredImageUrlInput.value = JSON.stringify(data.urls);
+                        return data.urls.thumbnail;
                     } catch (e) {
                         console.error("Failed to parse server response:", response);
                         return null;
