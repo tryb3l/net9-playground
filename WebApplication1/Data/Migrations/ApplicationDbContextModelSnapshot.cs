@@ -17,7 +17,7 @@ namespace WebApplication1.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.7")
+                .HasAnnotation("ProductVersion", "9.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -241,7 +241,7 @@ namespace WebApplication1.Data.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("FeaturedImageUrl")
+                    b.Property<string>("FeaturedImageUrls")
                         .HasColumnType("text");
 
                     b.Property<bool>("IsDeleted")
