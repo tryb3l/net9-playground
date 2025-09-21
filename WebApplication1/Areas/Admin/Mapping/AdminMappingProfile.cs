@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using WebApplication1.Areas.Admin.ViewModels.Dashboard;
@@ -8,6 +9,35 @@ using TagViewModel = WebApplication1.Areas.Admin.ViewModels.Tag.TagViewModel;
 
 namespace WebApplication1.Areas.Admin.Mapping;
 
+public class FeaturedImageUrlConverter : IValueConverter<string?, Dictionary<string, string>>
+{
+    private static readonly JsonSerializerOptions JsonSerializerOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
+    public Dictionary<string, string> Convert(string? sourceMember, ResolutionContext context)
+    {
+        if (string.IsNullOrEmpty(sourceMember))
+        {
+            return [];
+        }
+
+        if (!sourceMember.Trim().StartsWith("{")) return new Dictionary<string, string> { { "medium", sourceMember } };
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, string>>(sourceMember, JsonSerializerOptions)
+                   ?? new Dictionary<string, string>();
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+
+        return new Dictionary<string, string> { { "medium", sourceMember } };
+    }
+}
+
 public class AdminMappingProfile : Profile
 {
     public AdminMappingProfile()
@@ -16,32 +46,36 @@ public class AdminMappingProfile : Profile
             .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author!.UserName ?? "N/A"));
 
         CreateMap<CreatePostViewModel, Post>()
-            .ForMember(dest => dest.FeaturedImageUrl, opt => opt.MapFrom(src => src.FeaturedImageUrl));
+            .ForMember(dest => dest.FeaturedImageUrls, opt => opt.MapFrom(src => src.FeaturedImageUrl));
 
         CreateMap<Post, EditPostViewModel>()
-            .ForMember(dest => dest.SelectedTagIds, opt => opt.MapFrom(src => src.PostTags.Select(pt => pt.TagId).ToList()))
-            .ForMember(dest => dest.FeaturedImageUrl, opt => opt.MapFrom(src => src.FeaturedImageUrl));
+            .ForMember(dest => dest.SelectedTagIds,
+                opt => opt.MapFrom(src => src.PostTags.Select(pt => pt.TagId).ToList()))
+            .ForMember(dest => dest.FeaturedImageUrl, opt => opt.MapFrom(src => src.FeaturedImageUrls));
 
         CreateMap<EditPostViewModel, Post>()
             .ForMember(dest => dest.PostTags, opt => opt.Ignore())
-            .ForMember(dest => dest.FeaturedImageUrl, opt => opt.MapFrom(src => src.FeaturedImageUrl));
+            .ForMember(dest => dest.FeaturedImageUrls, opt => opt.MapFrom(src => src.FeaturedImageUrl));
 
         CreateMap<Post, PostViewModel>()
-            .ForMember(dest => dest.FeaturedImageUrl, opt => opt.MapFrom(src => src.FeaturedImageUrl))
+            .ForMember(dest => dest.FeaturedImageUrl, opt => opt.MapFrom(src => src.FeaturedImageUrls))
             .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author!.UserName ?? "N/A"))
             .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.PostTags.Select(pt => pt.Tag!.Name).ToList()));
 
         CreateMap<Post, PostCardViewModel>()
-            .ForMember(dest => dest.FeaturedImageUrl, opt => opt.MapFrom(src => src.FeaturedImageUrl))
-            .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : "Uncategorized"))
-            .ForMember(dest => dest.CategorySlug, opt => opt.MapFrom(src => src.Category != null ? src.Category.Slug : string.Empty))
+            .ForMember(dest => dest.FeaturedImageUrls,
+                opt => opt.ConvertUsing(new FeaturedImageUrlConverter(), src => src.FeaturedImageUrls))
+            .ForMember(dest => dest.CategoryName,
+                opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : "Uncategorized"))
+            .ForMember(dest => dest.CategorySlug,
+                opt => opt.MapFrom(src => src.Category != null ? src.Category.Slug : string.Empty))
             .ForMember(dest => dest.PublishDate, opt => opt.MapFrom(src => src.PublishedDate ?? src.CreatedAt))
             .ForMember(dest => dest.ShortDescription, opt => opt.MapFrom(src =>
                 !string.IsNullOrEmpty(src.Content) && src.Content.Length > 200
                     ? src.Content.Substring(0, 200) + "..."
                     : src.Content ?? string.Empty))
             .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.PostTags.Select(pt => pt.Tag)));
-
+        
         CreateMap<Post, PostSummaryViewModel>()
             .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author!.UserName ?? "N/A"))
             .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.PostTags.Select(pt => pt.Tag!.Name).ToList()));
@@ -53,7 +87,8 @@ public class AdminMappingProfile : Profile
             .ForMember(dest => dest.PostCount, opt => opt.MapFrom(src => src.PostTags.Count));
 
         CreateMap<Category, WebApplication1.ViewModels.CategoryViewModel>()
-            .ForMember(dest => dest.PostCount, opt => opt.MapFrom(src => src.Posts.Count(p => p.IsPublished && !p.IsDeleted)));
+            .ForMember(dest => dest.PostCount,
+                opt => opt.MapFrom(src => src.Posts.Count(p => p.IsPublished && !p.IsDeleted)));
 
         CreateMap<Category, WebApplication1.Areas.Admin.ViewModels.Category.CategoryViewModel>()
             .ForMember(dest => dest.PostCount, opt => opt.MapFrom(src => src.Posts.Count));
