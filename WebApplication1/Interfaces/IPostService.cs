@@ -13,6 +13,7 @@ public interface IPostService
     Task<Post?> GetPostBySlugAsync(string slug);
     Task<PostListViewModel> GetPostListAsync(int page, string? searchTerm, string? tagFilter, bool? publishedOnly);
     Task<PostViewModel?> GetPostViewModelAsync(int id);
+    Task<PostViewModel?> GetPostViewModelBySlugAsync(string slug);
     Task<EditPostViewModel?> GetPostForEditAsync(int id);
     Task<Post> CreatePostAsync(CreatePostViewModel viewModel, string userId);
     Task UpdatePostAsync(int id, EditPostViewModel viewModel);
