@@ -23,20 +23,64 @@ public class FeaturedImageUrlConverter : IValueConverter<string?, Dictionary<str
             return [];
         }
 
-        if (!sourceMember.Trim().StartsWith("{")) return new Dictionary<string, string> { { "medium", sourceMember } };
-        try
+        if (sourceMember.Trim().StartsWith("{"))
         {
-            return JsonSerializer.Deserialize<Dictionary<string, string>>(sourceMember, JsonSerializerOptions)
-                   ?? new Dictionary<string, string>();
-        }
-        catch (JsonException)
-        {
-            return [];
+            try
+            {
+                return JsonSerializer.Deserialize<Dictionary<string, string>>(sourceMember, JsonSerializerOptions)
+                       ?? new Dictionary<string, string>();
+            }
+            catch (JsonException)
+            {
+                return [];
+            }
         }
 
         return new Dictionary<string, string> { { "medium", sourceMember } };
     }
 }
+
+public class SingleUrlConverter : IValueConverter<string?, string>
+{
+    private readonly string _key;
+    private static readonly JsonSerializerOptions JsonSerializerOptions = new() { PropertyNameCaseInsensitive = true };
+
+    public SingleUrlConverter(string key)
+    {
+        _key = key;
+    }
+
+    public string Convert(string? sourceMember, ResolutionContext context)
+    {
+        if (string.IsNullOrEmpty(sourceMember))
+        {
+            return string.Empty;
+        }
+
+        if (sourceMember.Trim().StartsWith("{"))
+        {
+            try
+            {
+                var urls = JsonSerializer.Deserialize<Dictionary<string, string>>(sourceMember, JsonSerializerOptions);
+                if (urls != null && urls.TryGetValue(_key, out var url))
+                {
+                    return url;
+                }
+            }
+            catch (JsonException)
+            {
+                return string.Empty;
+            }
+        }
+        else
+        {
+            return sourceMember;
+        }
+
+        return string.Empty;
+    }
+}
+
 
 public class AdminMappingProfile : Profile
 {
@@ -51,16 +95,17 @@ public class AdminMappingProfile : Profile
         CreateMap<Post, EditPostViewModel>()
             .ForMember(dest => dest.SelectedTagIds,
                 opt => opt.MapFrom(src => src.PostTags.Select(pt => pt.TagId).ToList()))
-            .ForMember(dest => dest.FeaturedImageUrl, opt => opt.MapFrom(src => src.FeaturedImageUrls));
+            .ForMember(dest => dest.FeaturedImageUrl, opt => opt.ConvertUsing(new SingleUrlConverter("large"), src => src.FeaturedImageUrls));
 
         CreateMap<EditPostViewModel, Post>()
             .ForMember(dest => dest.PostTags, opt => opt.Ignore())
             .ForMember(dest => dest.FeaturedImageUrls, opt => opt.MapFrom(src => src.FeaturedImageUrl));
 
         CreateMap<Post, PostViewModel>()
-            .ForMember(dest => dest.FeaturedImageUrl, opt => opt.MapFrom(src => src.FeaturedImageUrls))
+            .ForMember(dest => dest.FeaturedImageUrl, opt => opt.ConvertUsing(new SingleUrlConverter("large"), src => src.FeaturedImageUrls))
             .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author!.UserName ?? "N/A"))
-            .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.PostTags.Select(pt => pt.Tag!.Name).ToList()));
+            .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.PostTags.Select(pt => pt.Tag!.Name).ToList()))
+            .ForMember(dest => dest.PublishedDate, opt => opt.MapFrom(src => src.PublishedDate ?? src.CreatedAt));
 
         CreateMap<Post, PostCardViewModel>()
             .ForMember(dest => dest.FeaturedImageUrls,
@@ -75,7 +120,7 @@ public class AdminMappingProfile : Profile
                     ? src.Content.Substring(0, 200) + "..."
                     : src.Content ?? string.Empty))
             .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.PostTags.Select(pt => pt.Tag)));
-        
+
         CreateMap<Post, PostSummaryViewModel>()
             .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author!.UserName ?? "N/A"))
             .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.PostTags.Select(pt => pt.Tag!.Name).ToList()));
