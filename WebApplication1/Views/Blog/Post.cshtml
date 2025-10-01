@@ -1,64 +1,43 @@
-﻿@model WebApplication1.Models.Post
+﻿@model WebApplication1.Areas.Admin.ViewModels.Post.PostViewModel
 @{
     ViewData["Title"] = Model.Title;
 }
 
-<div class="container">
+<div class="container mt-5">
     <div class="row">
-        <div class="col-lg-8">
-            <!-- Post content-->
-            <article>
-                <!-- Post header-->
-                <header class="mb-4">
-                    <!-- Post title-->
-                    <h1 class="fw-bolder mb-1">@Model.Title</h1>
-                    <!-- Post meta content-->
-                    <div class="text-muted fst-italic mb-2">
-                        Posted on @Model.PublishedDate?.ToString("MMMM dd, yyyy") by
-                        @(Model.Author?.DisplayName ?? Model.Author?.UserName ?? "Unknown")
+        <div class="col-lg-8 offset-lg-2">
+            <article class="post-full">
+                <header class="post-full-header">
+                    <h1 class="post-full-title">@Model.Title</h1>
+                    <div class="post-full-meta">
+                        <time datetime="@Model.PublishedDate.ToString("yyyy-MM-dd")">@Model.PublishedDate.ToString("MMMM dd, yyyy")</time>
+                        <span class="bull">&bull;</span> @Model.AuthorName
                     </div>
-                    <!-- Post categories-->
-                    @if (Model.Category != null)
-                    {
-                        <a asp-action="Index" asp-route-category="@Model.Category.Slug"
-                            class="badge bg-secondary text-decoration-none link-light">@Model.Category.Name</a>
-                    }
-                    @foreach (var postTag in Model.PostTags)
-                    {
-                        <a asp-action="Index" asp-route-tag="@postTag.Tag?.Name"
-                            class="badge bg-secondary text-decoration-none link-light">@postTag.Tag?.Name</a>
-                    }
                 </header>
 
-                <!-- Featured image-->
-                @if(!string.IsNullOrEmpty(Model.FeaturedImageUrls))
+                @if (!string.IsNullOrEmpty(Model.FeaturedImageUrl))
                 {
-                    <figure class="mb-4">
-                        <img class="img-fluid rounded post-featured-image" src="@Model.FeaturedImageUrls" alt="@Model.Title"/>
+                    <figure class="post-full-image">
+                        <img class="img-fluid rounded post-featured-image" src="@Model.FeaturedImageUrl" alt="@Model.Title">
                     </figure>
                 }
 
-                <!-- Post content-->
-                <section class="mb-5">
-                    <p class="fs-5 mb-4">@Html.Raw(Model.Content)</p>
+                <section class="post-full-content">
+                    @Html.Raw(Model.Content)
                 </section>
+
+                @if (Model.Tags.Any())
+                {
+                    <footer class="post-full-footer">
+                        <div class="post-tags">
+                            @foreach (var tagName in Model.Tags)
+                            {
+                                <a href="@Url.Action("Index", "Blog", new { tag = tagName })" class="tag-link">#@tagName</a>
+                            }
+                        </div>
+                    </footer>
+                }
             </article>
-
-            <!-- Back button -->
-            <a asp-action="Index" class="btn btn-primary">&larr; Back to Blog</a>
-        </div>
-
-        <!-- Side widgets-->
-        <div class="col-lg-4">
-            <!-- Author info -->
-            <div class="card mb-4">
-                <div class="card-header">About the Author</div>
-                <div class="card-body">
-                    <p>@(Model.Author?.DisplayName ?? Model.Author?.UserName ?? "Unknown")</p>
-                </div>
-            </div>
-
-            <!-- Related posts can go here -->
         </div>
     </div>
 </div>
