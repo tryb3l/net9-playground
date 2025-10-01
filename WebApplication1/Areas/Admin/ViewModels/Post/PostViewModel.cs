@@ -8,7 +8,7 @@ public class PostViewModel
     public string? Content { get; set; }
     public string? FeaturedImageUrl { get; set; }
     public DateTime CreatedAt { get; init; }
-    public DateTime? PublishedDate { get; init; }
+    public DateTime PublishedDate { get; set; }
     public bool IsPublished { get; init; }
     public bool IsDeleted { get; init; }
     public string? AuthorName { get; init; } = string.Empty;
