@@ -23,13 +23,13 @@ public class BlogController : Controller
     [ResponseCache(Duration = 300, VaryByHeader = "User-Agent", Location = ResponseCacheLocation.Any)]
     public async Task<IActionResult> Post(string slug)
     {
-        var post = await _postService.GetPostBySlugAsync(slug);
+        var viewModel = await _postService.GetPostViewModelBySlugAsync(slug);
 
-        if (post == null)
+        if (viewModel == null)
         {
             return NotFound();
         }
 
-        return View(post);
+        return View(viewModel);
     }
 }
