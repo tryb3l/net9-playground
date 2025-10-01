@@ -59,10 +59,11 @@ public class AttachmentService : IAttachmentService
                 var resizedImage = image.Clone(ctx => ctx.Resize(new ResizeOptions
                 {
                     Size = size,
-                    Mode = ResizeMode.Crop
+                    Mode = ResizeMode.Pad,
+                    PadColor = Color.Transparent
                 }));
 
-                var webpEncoder = new WebpEncoder { Quality = 80 };
+                var webpEncoder = new WebpEncoder { Quality = 90 };
                 var webpFileName = $"{baseFileName}-{key}.webp";
                 var finalFilePath = Path.Combine(uploadsFolderPath, webpFileName);
                 await resizedImage.SaveAsync(finalFilePath, webpEncoder);
