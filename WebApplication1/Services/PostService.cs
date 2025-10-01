@@ -96,6 +96,12 @@ public class PostService : IPostService
         return _mapper.Map<PostViewModel>(post);
     }
 
+    public async Task<PostViewModel?> GetPostViewModelBySlugAsync(string slug)
+    {
+        var post = await _postRepository.GetBySlugAsync(slug);
+        return _mapper.Map<PostViewModel>(post);
+    }
+
     public async Task<EditPostViewModel?> GetPostForEditAsync(int id)
     {
         var post = await _postRepository.GetPostWithDetailsAsync(id);
@@ -132,8 +138,8 @@ public class PostService : IPostService
             PostId = post.Id,
             TagId = tagId
         }))
-            
-        await _postRepository.AddPostTagAsync(postTag);
+
+            await _postRepository.AddPostTagAsync(postTag);
         await _postRepository.SaveChangesAsync();
 
         return post;
