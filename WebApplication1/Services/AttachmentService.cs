@@ -44,9 +44,15 @@ public class AttachmentService : IAttachmentService
             }
 
             using var image = await Image.LoadAsync(tempFilePath);
-            var originalSize = image.Size;
             var urls = new Dictionary<string, string>();
             var baseFileName = Guid.NewGuid().ToString();
+
+            var originalWebpEncoder = new WebpEncoder { Quality = 90 };
+            var originalWebpFileName = $"{baseFileName}-original.webp";
+            var originalFinalFilePath = Path.Combine(uploadsFolderPath, originalWebpFileName);
+            await image.SaveAsync(originalFinalFilePath, originalWebpEncoder);
+            urls["original"] = $"/uploads/{subfolder}/{originalWebpFileName}";
+
 
             foreach (var (key, size) in ImageSizes)
             {
