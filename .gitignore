@@ -1,6 +1,6 @@
 # General ignores
-bin/
-obj/
+**/bin
+**/obj
 [Bb]uild/
 [Bb]uildOutput/
 _PublishedWebsites/

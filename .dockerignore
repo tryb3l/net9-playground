@@ -1,3 +1,11 @@
-bin/
-obj/
+**/bin
+**/obj
 **/node_modules/
+**/.idea
+**/.vscode
+**/*.DotSettings.user
+.git
+.gitignore
+WebApplication1/wwwroot/uploads
+**/.dev.env
+_ReSharper.Caches
