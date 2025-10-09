@@ -13,5 +13,4 @@ public interface ICategoryService
     Task<ServiceResult> CreateCategoryAsync(CreateCategoryViewModel viewModel);
     Task UpdateCategoryAsync(EditCategoryViewModel viewModel);
     Task DeleteCategoryAsync(int id);
-    Task<bool> CategoryExistingAsync(int id);
 }
