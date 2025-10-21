@@ -1,0 +1,116 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - WebApp</title>
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/_variables.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/layout.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/blog.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/postcard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/mobile-filters.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/WebApp.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+
+<body class="mat-layout">
+    <header class="mat-header">
+        <nav class="mat-navbar">
+            <div class="navbar-container">
+                <div class="navbar-brand-section">
+                    <a class="mat-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                        <span class="brand-icon">📝</span>
+                        <span class="brand-text">WebApp</span>
+                    </a>
+                </div>
+
+                <button class="mobile-menu-toggle" type="button" aria-controls="navbarContent" aria-expanded="false"
+                    aria-label="Toggle navigation">
+                    <span class="menu-icon">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </span>
+                </button>
+
+                <div class="navbar-content">
+                    <ul class="nav-links">
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["Action"]?.ToString() == "Index" ? "active" : "")"
+                                asp-area="" asp-controller="Home" asp-action="Index">
+                                <i class="bi bi-house"></i>
+                                <span>Home</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "About" ? "active" : "")"
+                                asp-area="" asp-controller="About" asp-action="Index">
+                                <i class="bi bi-person"></i>
+                                <span>About</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Blog" ? "active" : "")"
+                                asp-area="" asp-controller="Blog" asp-action="Index">
+                                <i class="bi bi-journal-text"></i>
+                                <span>Blog</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "Privacy" ? "active" : "")"
+                                asp-area="" asp-controller="Home" asp-action="Privacy">
+                                <i class="bi bi-shield-lock"></i>
+                                <span>Privacy</span>
+                            </a>
+                        </li>
+                    </ul>
+
+                    <div class="nav-actions">
+                        <partial name="_LoginPartial" />
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content Area -->
+    <div class="main-content-wrapper">
+        <main class="main-content" role="main">
+            @RenderBody()
+        </main>
+    </div>
+
+    <!-- Footer Card -->
+    <footer class="mat-footer">
+        <div class="footer-container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <span class="brand-icon">📝</span>
+                    <span class="brand-text">WebApp</span>
+                </div>
+                <div class="footer-links">
+                    <a asp-area="" asp-controller="Home" asp-action="Privacy" class="footer-link">Privacy</a>
+                    <a asp-area="" asp-controller="About" asp-action="Index" class="footer-link">About</a>
+                    <a asp-area="" asp-controller="Blog" asp-action="Index" class="footer-link">Blog</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 WebApp. Built with passion using ASP.NET Core</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/layout.js" asp-append-version="true"></script>
+    <script src="~/js/mobile-filters.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+
+</html>

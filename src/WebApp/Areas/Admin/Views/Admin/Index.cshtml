@@ -1,0 +1,59 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<!-- Hero Section -->
+<div class="text-center bg-light p-5 rounded mb-4">
+    <h1 class="display-4">Welcome!</h1>
+    <p class="lead">I'm a Software Developer.</p>
+    <p>This is my personal space on the web where I share thoughts, projects, and insights.</p>
+    <hr class="my-4">
+    <p>Explore the site to learn more about my work.</p>
+    <a class="btn btn-primary btn-lg" asp-controller="Blog" asp-action="Index" role="button">Visit the Blog</a>
+</div>
+
+<!-- About Me Section -->
+<div class="row mb-4">
+    <div class="col-md-8 offset-md-2">
+        <h2>About Me</h2>
+        <p>
+            Welcome to my corner of the internet! I'm passionate about [mention a key passion, e.g., building scalable
+            web applications, solving complex problems, clean code].
+        </p>
+        <p>
+            This website serves as a platform to document my journey, share technical articles on the <a
+                asp-controller="Blog" asp-action="Index">blog</a>, and showcase projects
+        </p>
+    </div>
+</div>
+
+<!-- Placeholder Sections -->
+<div class="row text-center">
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Skills & Expertise</h5>
+                <p class="card-text"> Backend
+                    Development, Cloud Architecture, DevOps).</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Projects</h5>
+                <p class="card-text"> personal or professional projects</p>
+                <a asp-controller="Blog" asp-action="Index" class="btn btn-outline-secondary">See Blog Posts</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Get In Touch</h5>
+                <p class="card-text">LinkedIn, GitHub,
+                    Contact Form page.</p>
+            </div>
+        </div>
+    </div>
+</div>

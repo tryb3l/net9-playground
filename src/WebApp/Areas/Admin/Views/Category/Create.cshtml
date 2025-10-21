@@ -1,0 +1,31 @@
+﻿@model WebApp.Areas.Admin.ViewModels.Category.CreateCategoryViewModel
+@{
+    ViewData["Title"] = "Create New Category";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Create New Category</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" action="/Admin/Category/Create">
+                @Html.AntiForgeryToken()
+
+                <div class="mb-3">
+                    <label for="Name">Category Name:</label>
+                    <input type="text" id="Name" name="Name" class="form-control" required />
+                </div>
+
+                <div class="mb-3">
+                    <label for="Description">Description:</label>
+                    <textarea id="Description" name="Description" class="form-control"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Create Category</button>
+                <a href="/Admin/Category" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>

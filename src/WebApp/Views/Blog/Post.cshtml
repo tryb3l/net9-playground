@@ -1,0 +1,43 @@
+﻿@model WebApp.Areas.Admin.ViewModels.Post.PostViewModel
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <article class="post-full">
+                <header class="post-full-header">
+                    <h1 class="post-full-title">@Model.Title</h1>
+                    <div class="post-full-meta">
+                        <time datetime="@Model.PublishedDate.ToString("yyyy-MM-dd")">@Model.PublishedDate.ToString("MMMM dd, yyyy")</time>
+                        <span class="bull">&bull;</span> @Model.AuthorName
+                    </div>
+                </header>
+
+                @if (!string.IsNullOrEmpty(Model.FeaturedImageUrl))
+                {
+                    <figure class="post-full-image">
+                        <img class="img-fluid rounded post-featured-image" src="@Model.FeaturedImageUrl" alt="@Model.Title">
+                    </figure>
+                }
+
+                <section class="post-full-content">
+                    @Html.Raw(Model.Content)
+                </section>
+
+                @if (Model.Tags.Any())
+                {
+                    <footer class="post-full-footer">
+                        <div class="post-tags">
+                            @foreach (var tagName in Model.Tags)
+                            {
+                                <a href="@Url.Action("Index", "Blog", new { tag = tagName })" class="tag-link">#@tagName</a>
+                            }
+                        </div>
+                    </footer>
+                }
+            </article>
+        </div>
+    </div>
+</div>
