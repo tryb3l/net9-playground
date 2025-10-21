@@ -1,45 +1,57 @@
-# General ignores
-**/bin
-**/obj
-[Bb]uild/
-[Bb]uildOutput/
-_PublishedWebsites/
-*.log
-*.tmp
-*.vspscc
+# User-specific files
 *.suo
 *.user
-*.opentest
-*.testsettings
-*.*env
+*.userosscache
+*.sln.docstates
 
-# Visual Studio ignores
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Bb]uild/
+[Bb]uilds/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio / Rider
 .vs/
+.idea/
+*.sln.DotSettings.user
 *.csproj.user
+
+# VS Code specific
+.vscode/
+
+# Environment files - Do not commit secrets
+*.env
+.dev.env
+
+# Rider temporary files
+_ReSharper*/
+*.[Rr]esharper
+*.DotSettings.user
+
+# Other common ignores
+*.log
+*.tmp
+*.DS_Store
+_PublishedWebsites/
+[Pp]ublish/
+packages/
+*.nupkg
 *.pfx
+
+# Ignore generated files
 *.asax.designer.cs
 *.aspx.designer.cs
-*.config
+
+# Ignore compiled output
 *.dll
 *.exe
-*.idb
 *.pdb
-/Properties/PublishProfiles/*
-[Pp]ublish/
-
-# Rider ignores
-.idea/
-*.iml
-/contentModel.xml
-/modules.xml
-/projectSettingsUpdater.xml
-
-# VS Code ignores
-.vscode/
-*.code-workspace
-
-# NuGet Packages
-packages/
-
-# Other
-*.DS_Store
+*.idb
