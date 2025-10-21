@@ -2,9 +2,9 @@ services:
   web:
     build:
       context: .
-      dockerfile: WebApplication1/Dockerfile
+      dockerfile: src/WebApp/Dockerfile
     env_file:
-      - ./WebApplication1/.dev.env
+      - ./src/WebApp/.dev.env
     ports:
       - "5008:80"
       - "7024:443"
@@ -15,7 +15,7 @@ services:
     volumes:
       - ${HOME}/.aspnet/https:/https:ro
       - dataprotection-keys:/root/.aspnet/DataProtection-Keys
-      - ./WebApplication1/wwwroot/uploads:/app/wwwroot/uploads
+      - ./src/WebApp/wwwroot/uploads:/app/wwwroot/uploads
     logging:
       driver: "json-file"
 

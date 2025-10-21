@@ -6,6 +6,6 @@
 **/*.DotSettings.user
 .git
 .gitignore
-WebApplication1/wwwroot/uploads
+WebApp/wwwroot/uploads
 **/.dev.env
 _ReSharper.Caches
