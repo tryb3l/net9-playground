@@ -28,8 +28,7 @@ public class PostServiceTests
             Mock.Of<ICategoryRepository>(),
             Mock.Of<ITagRepository>(),
             Mock.Of<IUrlHelperFactory>(),
-            Mock.Of<IActionContextAccessor>(),
-            _mockMapper.Object,
+            Mock.Of<IActionContextAccessor>(), _mockMapper.Object,
             Mock.Of<ITagService>()
         );
     }
