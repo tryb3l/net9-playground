@@ -111,7 +111,7 @@ try
     {
         cfg.AddMaps(typeof(Program));
     });
-    
+
     builder.Services.AddResponseCaching();
 
     var app = builder.Build();
@@ -125,7 +125,7 @@ try
     }
 
     app.UseHttpsRedirection();
-    
+
     app.UseResponseCaching();
 
     if (app.Environment.IsDevelopment())
@@ -170,7 +170,7 @@ try
         {
             if (ex == null && httpContext.Response.StatusCode == 200 && httpContext.Request.Path.StartsWithSegments("/health"))
             {
-                return LogEventLevel.Debug; 
+                return LogEventLevel.Debug;
             }
             return LogEventLevel.Information;
         };
@@ -214,3 +214,5 @@ finally
     Log.Information("Shut down complete");
     Log.CloseAndFlush();
 }
+
+public partial class Program { }
