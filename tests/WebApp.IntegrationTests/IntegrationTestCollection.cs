@@ -1,5 +1,3 @@
-using Xunit;
-
 namespace WebApp.IntegrationTests;
 
 [CollectionDefinition("Integration Tests")]

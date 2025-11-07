@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
-using Xunit;
 
 namespace WebApp.IntegrationTests;
 

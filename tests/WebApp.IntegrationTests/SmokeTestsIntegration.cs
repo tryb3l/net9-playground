@@ -1,6 +1,5 @@
 using System.Net;
 using Shouldly;
-using Xunit;
 
 namespace WebApp.IntegrationTests;
 

@@ -1,6 +1,3 @@
-using System.Threading.Tasks;
-using Xunit;
-
 namespace WebApp.IntegrationTests;
 
 public sealed class IntegrationTestFixture : IAsyncLifetime
