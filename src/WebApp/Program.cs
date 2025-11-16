@@ -89,7 +89,6 @@ try
     builder.Services.AddApplicationServices();
 
     builder.Services.AddHttpContextAccessor();
-    builder.Services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
     builder.Services.AddSingleton<DbMigrationService>();
     builder.Services.AddHostedService(sp => sp.GetRequiredService<DbMigrationService>());
 
