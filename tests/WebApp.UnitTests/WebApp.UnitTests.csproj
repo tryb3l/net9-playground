@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
@@ -10,8 +10,8 @@
 
   <ItemGroup>
     <!-- Core Test SDK -->
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
-    <PackageReference Include="Microsoft.Testing.Platform" Version="2.0.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageReference Include="Microsoft.Testing.Platform" Version="2.0.2" />
     <PackageReference Include="Solid.Testing.AspNetCore.Extensions.XUnit" Version="4.0.2" />
 
     <!-- xUnit Framework and Runner for IDE integration -->
