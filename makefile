@@ -34,7 +34,7 @@ publish:
 # --- Docker Targets ---
 # Bring up Docker containers (app + Postgres)
 docker-up du:
-	docker-compose -f $(COMPOSE_FILE) up --build -d
+	docker-compose -f $(COMPOSE_FILE) up --build
 
 # Bring down Docker containers
 docker-down dd:
