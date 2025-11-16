@@ -1,9 +1,6 @@
 using AutoMapper;
 using Ganss.Xss;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.AspNetCore.Mvc.Routing;
 using WebApp.Areas.Admin.ViewModels.Post;
 using WebApp.Helpers;
 using WebApp.Interfaces;
@@ -18,7 +15,8 @@ public class PostService : IPostService
     private readonly ICategoryRepository _categoryRepository;
     private readonly IPostRepository _postRepository;
     private readonly ITagRepository _tagRepository;
-    private readonly IUrlHelper? _urlHelper;
+    private readonly LinkGenerator _linkGenerator;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IMapper _mapper;
     private readonly ITagService _tagService;
 
@@ -26,17 +24,18 @@ public class PostService : IPostService
         IPostRepository postRepository,
         ICategoryRepository categoryRepository,
         ITagRepository tagRepository,
-        IUrlHelperFactory urlHelperFactory,
-        IActionContextAccessor actionContextAccessor,
-        IMapper mapper, ITagService tagService)
+        LinkGenerator linkGenerator,
+        IHttpContextAccessor httpContextAccessor,
+        IMapper mapper,
+        ITagService tagService)
     {
         _postRepository = postRepository;
         _categoryRepository = categoryRepository;
         _tagRepository = tagRepository;
+        _linkGenerator = linkGenerator;
+        _httpContextAccessor = httpContextAccessor;
         _mapper = mapper;
         _tagService = tagService;
-        if (actionContextAccessor.ActionContext != null)
-            _urlHelper = urlHelperFactory.GetUrlHelper(actionContextAccessor.ActionContext);
     }
 
     public async Task<BlogIndexViewModel> GetBlogIndexViewModelAsync(int page, string? category, string? tag)
@@ -117,29 +116,30 @@ public class PostService : IPostService
 
     public async Task<Post> CreatePostAsync(CreatePostViewModel viewModel, string userId)
     {
-        var post = _mapper.Map<Post>(viewModel);
-        post.CreatedAt = DateTime.UtcNow;
-        post.PublishedDate = viewModel.PublishNow ? DateTime.UtcNow : null;
-        post.AuthorId = userId;
-        post.Slug = SlugHelper.GenerateSlug(viewModel.Title);
-        post.CategoryId = viewModel.CategoryId == 0 ? null : viewModel.CategoryId;
-        post.Content = SanitizeContent(viewModel.Content);
+        var sanitizedContent = SanitizeContent(viewModel.Content);
+        var slug = await EnsureUniqueSlugAsync(SlugHelper.GenerateSlug(viewModel.Title));
 
-        post.Slug = await EnsureUniqueSlugAsync(post.Slug);
+        var post = new Post
+        {
+            Title = viewModel.Title,
+            Content = sanitizedContent,
+            Slug = slug,
+            AuthorId = userId,
+            CategoryId = viewModel.CategoryId,
+            IsPublished = viewModel.PublishNow,
+            PublishedDate = viewModel.PublishNow ? DateTime.UtcNow : null,
+            FeaturedImageUrls = viewModel.FeaturedImageUrl
+        };
 
         await _postRepository.AddAsync(post);
         await _postRepository.SaveChangesAsync();
 
-        bool? any = viewModel.SelectedTagIds.Count != 0;
-
-        if (any != true) return post;
-        foreach (var postTag in viewModel.SelectedTagIds.Select(tagId => new PostTag
+        if (viewModel.SelectedTagIds is not { Count: > 0 }) return post;
+        foreach (var tagId in viewModel.SelectedTagIds)
         {
-            PostId = post.Id,
-            TagId = tagId
-        }))
-
+            var postTag = new PostTag { PostId = post.Id, TagId = tagId };
             await _postRepository.AddPostTagAsync(postTag);
+        }
         await _postRepository.SaveChangesAsync();
 
         return post;
@@ -275,32 +275,62 @@ public class PostService : IPostService
         );
 
         var postViewModels = _mapper.Map<List<PostViewModel>>(posts);
+        var postsById = posts.ToDictionary(p => p.Id);
 
-        var postsList = posts.ToList();
+        var httpContext = _httpContextAccessor.HttpContext;
 
         foreach (var vm in postViewModels)
         {
-            var post = postsList.First(p => p.Id == vm.Id);
+            if (!postsById.TryGetValue(vm.Id, out var post))
+            {
+                vm.Actions = string.Empty;
+                continue;
+            }
+
             vm.Status = post.IsDeleted
                 ? "<span class='badge bg-danger'>In Trash</span>"
                 : post.IsPublished
                     ? "<span class='badge bg-success'>Published</span>"
                     : "<span class='badge bg-secondary'>Draft</span>";
 
-            if (_urlHelper == null) continue;
-            var editUrl = _urlHelper.Action("Edit", "Post", new { id = vm.Id, area = "Admin" });
-            var deleteUrl = _urlHelper.Action("SoftDelete", "Post", new { id = vm.Id, area = "Admin" });
-            var restoreUrl = _urlHelper.Action("Restore", "Post", new { id = vm.Id, area = "Admin" });
+            if (httpContext == null)
+            {
+                vm.Actions = string.Empty;
+                continue;
+            }
 
-            var actionsHtml = $"<div class='btn-group' role='group'><a href='{editUrl}' class='btn btn-sm btn-outline-primary' title='Edit'><i class='bi bi-pencil'></i></a>";
+            var editUrl = _linkGenerator.GetPathByAction(
+                httpContext,
+                action: "Edit",
+                controller: "Post",
+                values: new { id = vm.Id, area = "Admin" });
+
+            var deleteUrl = _linkGenerator.GetPathByAction(
+                httpContext,
+                action: "SoftDelete",
+                controller: "Post",
+                values: new { id = vm.Id, area = "Admin" });
+
+            var restoreUrl = _linkGenerator.GetPathByAction(
+                httpContext,
+                action: "Restore",
+                controller: "Post",
+                values: new { id = vm.Id, area = "Admin" });
+
+            var actionsHtml =
+                $"<div class='btn-group' role='group'><a href='{editUrl}' class='btn btn-sm btn-outline-primary' title='Edit'><i class='bi bi-pencil'></i></a>";
+
             if (post.IsDeleted)
             {
-                actionsHtml += $"<form method='post' action='{restoreUrl}' class='d-inline restore-form'><button type='submit' class='btn btn-sm btn-outline-success' title='Restore'><i class='bi bi-arrow-counterclockwise'></i></button></form>";
+                actionsHtml +=
+                    $"<form method='post' action='{restoreUrl}' class='d-inline restore-form'><button type='submit' class='btn btn-sm btn-outline-success' title='Restore'><i class='bi bi-arrow-counterclockwise'></i></button></form>";
             }
             else
             {
-                actionsHtml += $"<form method='post' action='{deleteUrl}' class='d-inline delete-form' data-post-title='{post.Title}'><button type='submit' class='btn btn-sm btn-outline-danger' title='Delete'><i class='bi bi-trash'></i></button></form>";
+                actionsHtml +=
+                    $"<form method='post' action='{deleteUrl}' class='d-inline delete-form' data-post-title='{post.Title}'><button type='submit' class='btn btn-sm btn-outline-danger' title='Delete'><i class='bi bi-trash'></i></button></form>";
             }
+
             actionsHtml += "</div>";
             vm.Actions = actionsHtml;
         }
