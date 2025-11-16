@@ -44,8 +44,14 @@ public class PostServiceTests
 
         _mockMapper.Setup(m => m.Map<Post>(viewModel)).Returns(post);
         _mockPostRepository.Setup(r => r.SlugExistsAsync(It.IsAny<string>(), null)).ReturnsAsync(false);
-        _mockPostRepository.Setup(r => r.AddAsync(It.IsAny<Post>())).Returns(Task.CompletedTask);
-        _mockPostRepository.Setup(r => r.SaveChangesAsync()).Returns(Task.FromResult(1));
+
+        _mockPostRepository.As<IRepository<Post>>()
+            .Setup(r => r.AddAsync(It.IsAny<Post>()))
+            .Returns(Task.CompletedTask);
+
+        _mockPostRepository.As<IRepository<Post>>()
+            .Setup(r => r.SaveChangesAsync())
+            .Returns(Task.CompletedTask);
 
         // Act
         var result = await _postService.CreatePostAsync(viewModel, userId);
@@ -55,7 +61,10 @@ public class PostServiceTests
         result.AuthorId.ShouldBe(userId);
         result.Slug.ShouldNotBeNullOrEmpty();
 
-        _mockPostRepository.Verify(r => r.AddAsync(post), Times.Once);
-        _mockPostRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
+        _mockPostRepository.As<IRepository<Post>>()
+            .Verify(r => r.AddAsync(It.IsAny<Post>()), Times.Once);
+
+        _mockPostRepository.As<IRepository<Post>>()
+            .Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 }
