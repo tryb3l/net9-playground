@@ -62,7 +62,7 @@ public static class ModelBuilderExtensions
     {
         SetQueryFilterMethod
             .MakeGenericMethod(entityType, typeof(TEntityInterface))
-            .Invoke(null, new object?[] { builder, filterExpression });
+            .Invoke(null, [builder, filterExpression]);
     }
 
     private static void SetQueryFilter<TEntity, TEntityInterface>(
@@ -91,7 +91,7 @@ public static class ModelBuilderExtensions
             var existingFilters =
                 from queryFilter in declaredFilters
                 select queryFilter.Expression into expr
-                where expr is LambdaExpression
+                where expr != null
                 let lambda = (LambdaExpression)expr
                 let existingParam = lambda.Parameters.Single()
                 select ReplacingExpressionVisitor.Replace(
