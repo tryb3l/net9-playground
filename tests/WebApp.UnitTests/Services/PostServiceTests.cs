@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using AutoMapper;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
-using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Moq;
 using WebApp.Areas.Admin.ViewModels.Post;
 using WebApp.Interfaces;
@@ -27,8 +27,9 @@ public class PostServiceTests
             _mockPostRepository.Object,
             Mock.Of<ICategoryRepository>(),
             Mock.Of<ITagRepository>(),
-            Mock.Of<IUrlHelperFactory>(),
-            Mock.Of<IActionContextAccessor>(), _mockMapper.Object,
+            Mock.Of<LinkGenerator>(),
+            Mock.Of<IHttpContextAccessor>(),
+            _mockMapper.Object,
             Mock.Of<ITagService>()
         );
     }
