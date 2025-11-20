@@ -1,4 +1,4 @@
-namespace WebApp.IntegrationTests;
+namespace WebApp.IntegrationTests.Fixtures;
 
 [CollectionDefinition("Integration Tests")]
 public sealed class IntegrationTestCollection : ICollectionFixture<IntegrationTestFixture>

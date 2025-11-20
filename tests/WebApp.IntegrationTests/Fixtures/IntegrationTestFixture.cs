@@ -1,4 +1,4 @@
-namespace WebApp.IntegrationTests;
+namespace WebApp.IntegrationTests.Fixtures;
 
 public sealed class IntegrationTestFixture : IAsyncLifetime
 {
@@ -12,6 +12,9 @@ public sealed class IntegrationTestFixture : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        await Factory.DisposeAsync();
+        if (Factory is not null)
+        {
+            await Factory.DisposeAsync();
+        }
     }
 }
