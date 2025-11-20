@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
-namespace WebApp.IntegrationTests;
+namespace WebApp.IntegrationTests.Support.Logging;
 
 internal sealed class LoggingHttpMessageHandler(ILogger<LoggingHttpMessageHandler> logger) : DelegatingHandler
 {

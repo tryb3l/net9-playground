@@ -1,4 +1,7 @@
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
@@ -10,9 +13,11 @@ using Npgsql;
 using Respawn;
 using Testcontainers.PostgreSql;
 using WebApp.Data;
+using WebApp.IntegrationTests.Support.Auth;
+using WebApp.IntegrationTests.Support.Logging;
 using Xunit.Sdk;
 
-namespace WebApp.IntegrationTests;
+namespace WebApp.IntegrationTests.Fixtures;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
@@ -81,12 +86,25 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
 
         builder.ConfigureTestServices(services =>
         {
+            services.AddSingleton<TestUserContext>();
+            
+            services.AddAuthentication(options =>
+                {
+                    options.DefaultAuthenticateScheme = TestAuthHandler.AuthenticationScheme;
+                    options.DefaultChallengeScheme = TestAuthHandler.AuthenticationScheme;
+                    options.DefaultScheme = TestAuthHandler.AuthenticationScheme;
+                })
+                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
+                    TestAuthHandler.AuthenticationScheme, options => { });
+            services.AddSingleton<IAntiforgery, TestAntiforgery>();
             services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
             services.RemoveAll<IHostedService>();
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseNpgsql(_dbContainer.GetConnectionString()));
         });
     }
+    
+    public TestUserContext UserContext => Services.GetRequiredService<TestUserContext>();
 
     public async Task ResetDatabaseAsync()
     {
@@ -102,5 +120,33 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         await _dbContainer.DisposeAsync();
         GC.SuppressFinalize(this);
         await base.DisposeAsync();
+    }
+}
+
+public class TestAntiforgery : IAntiforgery
+{
+    public AntiforgeryTokenSet GetAndStoreTokens(HttpContext httpContext)
+    {
+        return new AntiforgeryTokenSet("test-token", "test-cookie", "form-field", "header-name");
+    }
+
+    public AntiforgeryTokenSet GetTokens(HttpContext httpContext)
+    {
+        return new AntiforgeryTokenSet("test-token", "test-cookie", "form-field", "header-name");
+    }
+
+    public Task<bool> IsRequestValidAsync(HttpContext httpContext)
+    {
+        return Task.FromResult(true); // Always valid
+    }
+
+    public Task ValidateRequestAsync(HttpContext httpContext)
+    {
+        return Task.CompletedTask; // Always valid
+    }
+
+    public void SetCookieTokenAndHeader(HttpContext httpContext)
+    {
+        // Do nothing
     }
 }
