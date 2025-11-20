@@ -1,7 +1,7 @@
 using MartinCostello.Logging.XUnit;
 using Xunit.Sdk;
 
-namespace WebApp.IntegrationTests;
+namespace WebApp.IntegrationTests.Support.Logging;
 
 public sealed class TestOutputHelperAccessor : IMessageSinkAccessor
 {
