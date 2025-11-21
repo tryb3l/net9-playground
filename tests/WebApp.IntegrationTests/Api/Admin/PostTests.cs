@@ -1,3 +1,4 @@
+using System.Net;
 using Shouldly;
 using WebApp.IntegrationTests.Fixtures;
 using WebApp.IntegrationTests.Support;
@@ -12,13 +13,8 @@ public class PostTests(IntegrationTestFixture fixture, ITestOutputHelper output)
     [Fact]
     public async Task Index_WhenAdmin_ReturnsOk()
     {
-        // Arrange
         await this.GivenAdminUserAsync();
-
-        // Act
         var response = await HttpClient.GetAsync("/Admin/Post", TestContext.Current.CancellationToken);
-
-        // Assert
         response.StatusCode.ShouldBe(OK);
     }
 
@@ -27,7 +23,6 @@ public class PostTests(IntegrationTestFixture fixture, ITestOutputHelper output)
     {
         // Arrange
         await this.GivenAdminUserAsync();
-        
         var categoryId = await this.SeedCategoryAsync("Integration Test Category");
 
         var createModel = new Dictionary<string, string>
@@ -46,7 +41,7 @@ public class PostTests(IntegrationTestFixture fixture, ITestOutputHelper output)
         // Assert
         response.StatusCode.ShouldBeOneOf(Redirect, MovedPermanently, SeeOther);
     }
-    
+
     [Fact]
     public async Task Details_WhenPostExists_ReturnsOk()
     {
@@ -54,7 +49,8 @@ public class PostTests(IntegrationTestFixture fixture, ITestOutputHelper output)
         await this.GivenAdminUserAsync();
         
         var catId = await this.SeedCategoryAsync("Tech");
-        var postId = await this.SeedPostAsync("Integration Testing 101", catId);
+        
+        var (postId, _) = await this.SeedPostAsync("Integration Testing 101", catId);
 
         // Act
         var response = await HttpClient.GetAsync($"/Admin/Post/Details/{postId}", TestContext.Current.CancellationToken);

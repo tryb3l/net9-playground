@@ -176,11 +176,10 @@ public class PostRepository : IPostRepository
     public async Task<Post?> GetBySlugAsync(string slug)
     {
         return await _context.Posts
-            .Include(p=>p.Category)
-            .Include(p=>p.Author)
-            .Include(p=>p.PostTags)
-            .ThenInclude(pt=>pt.Tag)
-            .FirstOrDefaultAsync(p => p.Slug == slug);
+            .Include(p => p.Category)
+            .Include(p => p.Author)
+            .Include(p => p.PostTags).ThenInclude(pt => pt.Tag)
+            .FirstOrDefaultAsync(p => p.Slug == slug && p.IsPublished && !p.IsDeleted);
     }
 
     public async Task<(IEnumerable<Post> Posts, int FilteredCount, int TotalCount)> GetPostsForDataTableAsync(

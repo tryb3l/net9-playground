@@ -156,7 +156,7 @@ public static class SeedData
             if (serviceProvider != null)
             {
                 var userManager = serviceProvider.GetRequiredService<UserManager<User>>();
-            
+
                 if (!await userManager.Users.AnyAsync(u => u.UserName == adminUsername, cancellationToken))
                 {
                     var adminUser = new User
@@ -179,7 +179,7 @@ public static class SeedData
                 {
                     Console.WriteLine($"Admin user '{adminUsername}' already exists.");
                 }
-            
+
                 var regularUser = await userManager.FindByNameAsync(regularUserName);
                 if (regularUser == null)
                 {
@@ -207,7 +207,7 @@ public static class SeedData
                 {
                     Console.WriteLine($"Regular user '{regularUserName}' already exists.");
                 }
-            
+
                 var categoriesToUse = new List<Category>();
                 if (!await context.Categories.AnyAsync(cancellationToken))
                 {
@@ -226,7 +226,7 @@ public static class SeedData
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error saving categories: {ex.Message}");                                                            
+                        Console.WriteLine($"Error saving categories: {ex.Message}");
                     }
                 }
                 else
@@ -241,13 +241,13 @@ public static class SeedData
                     Console.WriteLine(
                         "Warning: No categories found or created. Posts will be created without a category if CategoryId is nullable, or may fail if not.");
                 }
-            
-                if (!await context.Posts.AnyAsync(p => p.AuthorId == regularUser.Id,
-                        cancellationToken))
+
+                if (!await context.Posts.AnyAsync(p => p.AuthorId == regularUser.Id, cancellationToken))
                 {
                     var post1 = new Post
                     {
                         Title = "Welcome to My Blog",
+                        Slug = SlugHelper.GenerateSlug("Welcome to My Blog"),
                         Content = "This is my first post on this blog platform.",
                         CreatedAt = DateTime.UtcNow,
                         PublishedDate = DateTime.UtcNow,
@@ -259,12 +259,14 @@ public static class SeedData
                     var post2 = new Post
                     {
                         Title = "Getting Started with .NET 9",
+                        Slug = SlugHelper.GenerateSlug("Getting Started with .NET 9"),
                         Content = "Here are some tips for getting started with the latest version of .NET.",
                         CreatedAt = DateTime.UtcNow,
                         IsPublished = false,
                         AuthorId = regularUser.Id,
                         CategoryId = firstCategory?.Id
                     };
+
                     context.Posts.AddRange(post1, post2);
                     Console.WriteLine("Sample posts prepared.");
                 }
@@ -272,7 +274,22 @@ public static class SeedData
                 {
                     Console.WriteLine($"User '{regularUserName}' already has posts. Skipping post seeding for this user.");
                 }
-            
+
+                var postsMissingSlugs = await context.Posts
+                    .Where(p => string.IsNullOrEmpty(p.Slug))
+                    .ToListAsync(cancellationToken);
+
+                if (postsMissingSlugs.Count != 0)
+                {
+                    Console.WriteLine($"Found {postsMissingSlugs.Count} posts with missing slugs. Generating slugs...");
+                    foreach (var post in postsMissingSlugs)
+                    {
+                        post.Slug = SlugHelper.GenerateSlug(post.Title);
+                    }
+                    await context.SaveChangesAsync(cancellationToken);
+                    Console.WriteLine("Missing slugs generated and saved.");
+                }
+
                 var tagsToUse = new List<Tag>();
                 if (!await context.Tags.AnyAsync(cancellationToken))
                 {
@@ -289,7 +306,7 @@ public static class SeedData
                     Console.WriteLine("Tags already exist. Fetching them for PostTag associations.");
                     tagsToUse = await context.Tags.ToListAsync(cancellationToken);
                 }
-            
+
                 try
                 {
                     await context.SaveChangesAsync(cancellationToken);
@@ -299,7 +316,7 @@ public static class SeedData
                 {
                     Console.WriteLine($"Error saving posts/tags: {ex.Message}");
                 }
-                      
+
                 var welcomePost =
                     await context.Posts.FirstOrDefaultAsync(
                         p => p.Title == "Welcome to My Blog" && p.AuthorId == regularUser.Id, cancellationToken);
@@ -366,7 +383,7 @@ public static class SeedData
             {
                 Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
             }
-            
+
             throw;
         }
     }
