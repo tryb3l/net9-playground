@@ -57,24 +57,30 @@ public class PostRepository : IPostRepository
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Post>> GetPublishedPostsWithDetailsAsync(int skip, int take)
+    public async Task<IEnumerable<Post>> GetPublishedPostsWithDetailsAsync(int skip, int take, string? category = null, string? tag = null)
     {
-        return await _context.Posts
+        var query = _context.Posts
             .Where(p => p.IsPublished && !p.IsDeleted)
             .Include(p => p.Category)
             .Include(p => p.Author)
-            .Include(p => p.PostTags)
-            .ThenInclude(pt => pt.Tag)
-            .OrderByDescending(p => p.PublishedDate)
+            .Include(p => p.PostTags).ThenInclude(pt => pt.Tag)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            query = query.Where(p => p.Category != null && p.Category.Name == category);
+        }
+
+        if (!string.IsNullOrWhiteSpace(tag))
+        {
+            query = query.Where(p => p.PostTags.Any(pt => pt.Tag != null && pt.Tag.Name == tag));
+        }
+
+        return await query
+            .OrderByDescending(p => p.PublishedDate ?? p.CreatedAt)
             .Skip(skip)
             .Take(take)
             .ToListAsync();
-    }
-
-    public async Task<int> CountPublishedPostsAsync()
-    {
-        return await _context.Posts
-            .CountAsync(p => p.IsPublished);
     }
 
     public async Task<Post> GetPostWithDetailsAsync(int id)
@@ -88,6 +94,25 @@ public class PostRepository : IPostRepository
         .FirstOrDefaultAsync(p => p.Id == id);
 
         return post ?? throw new KeyNotFoundException($"Post with id {id} not found");
+    }
+
+    public async Task<int> CountPublishedPostsAsync(string? category = null, string? tag = null)
+    {
+        var query = _context.Posts
+            .Where(p => p.IsPublished && !p.IsDeleted)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            query = query.Where(p => p.Category != null && p.Category.Name == category);
+        }
+
+        if (!string.IsNullOrWhiteSpace(tag))
+        {
+            query = query.Where(p => p.PostTags.Any(pt => pt.Tag != null && pt.Tag.Name == tag));
+        }
+
+        return await query.CountAsync();
     }
 
     public async Task<IEnumerable<Post>> GetPostsWithFiltersAsync(string? searchTerm, string? tagFilter, bool? publishedOnly, int skip, int take)

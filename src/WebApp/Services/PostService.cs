@@ -43,7 +43,7 @@ public class PostService : IPostService
         const int pageSize = 5;
         var skip = (page - 1) * pageSize;
 
-        var postsData = await _postRepository.GetPublishedPostsWithDetailsAsync(skip, pageSize);
+        var postsData = await _postRepository.GetPublishedPostsWithDetailsAsync(skip, pageSize, category, tag);
         var totalPosts = await _postRepository.CountPublishedPostsAsync();
 
         var categories = await _categoryRepository.GetAllAsync();
@@ -57,7 +57,9 @@ public class PostService : IPostService
             CurrentPage = page,
             TotalPages = (int)Math.Ceiling(totalPosts / (double)pageSize),
             CurrentCategory = category,
-            CurrentTag = tag
+            CurrentTag = tag,
+            Category = category,
+            Tag = tag
         };
     }
 

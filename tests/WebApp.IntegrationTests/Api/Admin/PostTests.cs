@@ -1,4 +1,3 @@
-using System.Net;
 using Shouldly;
 using WebApp.IntegrationTests.Fixtures;
 using WebApp.IntegrationTests.Support;
