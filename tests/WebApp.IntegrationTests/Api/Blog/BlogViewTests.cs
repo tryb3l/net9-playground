@@ -5,6 +5,7 @@ using WebApp.IntegrationTests.Support;
 using WebApp.IntegrationTests.Support.Extensions;
 using WebApp.Models;
 using WebApp.Utils;
+using static System.Net.HttpStatusCode;
 
 namespace WebApp.IntegrationTests.Api.Blog;
 
@@ -23,10 +24,10 @@ public class BlogViewTests(IntegrationTestFixture fixture, ITestOutputHelper out
         this.GivenAnonymousUser();
 
         // Act
-        var response = await HttpClient.GetAsync("/Blog", TestContext.Current.CancellationToken);
+        var response = await HttpClient.GetAsync("/blog", TestContext.Current.CancellationToken);
 
         // Assert
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.StatusCode.ShouldBe(OK);
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         content.ShouldContain("My First Post");
     }
@@ -46,7 +47,7 @@ public class BlogViewTests(IntegrationTestFixture fixture, ITestOutputHelper out
         var response = await HttpClient.GetAsync($"/blog/{slug}", TestContext.Current.CancellationToken);
 
         // Assert
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.StatusCode.ShouldBe(OK);
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         content.ShouldContain("Breaking News");
     }
@@ -79,6 +80,58 @@ public class BlogViewTests(IntegrationTestFixture fixture, ITestOutputHelper out
         var response = await HttpClient.GetAsync($"/blog/{slug}", TestContext.Current.CancellationToken);
 
         // Assert
-        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        response.StatusCode.ShouldBe(NotFound);
+    }
+
+    [Fact]
+    public async Task Index_WithCategoryFilter_ShowsOnlyMatchingPosts()
+    {
+        // Arrange
+        await this.GivenAuthenticatedUserAsync();
+        const string tech = "Tech";
+        const string testing = "Testing";
+        var techId = await this.SeedCategoryAsync(tech);
+        var testingId = await this.SeedCategoryAsync(testing);
+        await this.SeedPostAsync("C# Tips", techId);
+        await this.SeedPostAsync("Test Integration Post", testingId);
+        this.GivenAnonymousUser();
+
+        // Act
+        var responseTech = await HttpClient.GetAsync($"/blog?category={tech}", TestContext.Current.CancellationToken);
+        var responseTesting = await HttpClient.GetAsync($"/blog?category={testing}", TestContext.Current.CancellationToken);
+
+        // Assert
+        var contentTech = await responseTech.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        var contentTesting = await responseTesting.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        
+        // Assert
+        responseTech.StatusCode.ShouldBe(OK);
+        responseTesting.StatusCode.ShouldBe(OK);
+        contentTech.ShouldContain("C# Tips");
+        contentTesting.ShouldContain("Test Integration Post");
+    }
+
+    [Fact]
+    public async Task Post_SoftDeleted_ReturnsNotFound()
+    {
+        // Arrange
+        await this.GivenAuthenticatedUserAsync();
+        var catId = await this.SeedCategoryAsync("General");
+        var (id, slug) = await this.SeedPostAsync("Deleted Post", catId);
+
+        await ExecuteDbContextAsync(async db =>
+        {
+            var p = await db.Posts.FindAsync(id);
+            p.IsDeleted = true;
+            await db.SaveChangesAsync();
+        });
+
+        this.GivenAnonymousUser();
+        
+        // Act
+        var response = await HttpClient.GetAsync($"/blog/{slug}", TestContext.Current.CancellationToken);
+        
+        // Assert
+        response.StatusCode.ShouldBe(NotFound);
     }
 }
