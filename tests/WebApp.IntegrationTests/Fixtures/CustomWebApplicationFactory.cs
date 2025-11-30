@@ -137,12 +137,12 @@ public class TestAntiforgery : IAntiforgery
 
     public Task<bool> IsRequestValidAsync(HttpContext httpContext)
     {
-        return Task.FromResult(true); // Always valid
+        return Task.FromResult(true);
     }
 
     public Task ValidateRequestAsync(HttpContext httpContext)
     {
-        return Task.CompletedTask; // Always valid
+        return Task.CompletedTask;
     }
 
     public void SetCookieTokenAndHeader(HttpContext httpContext)

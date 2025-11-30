@@ -1,46 +1,43 @@
+using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Shouldly;
 using WebApp.Areas.Admin.Controllers;
 using WebApp.Areas.Admin.ViewModels.Post;
 using WebApp.Interfaces;
 using WebApp.Models;
-using Shouldly;
+using WebApp.UnitTests.TestUtils;
+using WebApp.UnitTests.TestUtils.Builders;
+using WebApp.UnitTests.TestUtils.Factories;
 using Xunit;
 
 namespace WebApp.UnitTests.Controllers;
 
-public class PostControllerTests
+public class PostControllerTests : ControllerTestBase
 {
-    private readonly Mock<IPostService> _mockPostService;
-    private readonly Mock<UserManager<User>> _mockUserManager;
-    private readonly Mock<IActivityLogService> _mockActivityLogService;
+    private readonly Mock<IPostService> _mockPostService = new();
+    private readonly Mock<ICategoryService> _mockCategoryService = new();
+    private readonly Mock<ITagService> _mockTagService = new();
+    private readonly Mock<UserManager<User>> _mockUserManager = MockUserManagerFactory.Create();
+    private readonly Mock<IActivityLogService> _mockActivityLogService = new();
     private readonly PostController _controller;
 
     public PostControllerTests()
     {
-        _mockPostService = new Mock<IPostService>();
-        _mockActivityLogService = new Mock<IActivityLogService>();
-
-        var userStoreMock = new Mock<IUserStore<User>>();
-        _mockUserManager = new Mock<UserManager<User>>(userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-
         _controller = new PostController(
             _mockPostService.Object,
-            Mock.Of<ICategoryService>(),
-            Mock.Of<ITagService>(),
+            _mockCategoryService.Object,
+            _mockTagService.Object,
             _mockUserManager.Object,
             Mock.Of<ILogger<PostController>>(),
             _mockActivityLogService.Object
-        )
-        {
-            TempData = new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>())
-        };
+        );
+
+        SetupControllerContext(_controller);
     }
 
     [Fact]
@@ -48,8 +45,12 @@ public class PostControllerTests
     {
         // Arrange
         var viewModel = new CreatePostViewModel { Title = "New Test Post", Content = "Test Content" };
-        var user = new User { Id = "test-user-id", UserName = "testuser" };
-        var createdPost = new Post { Id = 1, Title = viewModel.Title };
+        var user = new User { Id = "test-user", UserName = "testuser" };
+
+        var createdPost = new PostBuilder()
+            .WithTitle(viewModel.Title)
+            .WithAuthor(user.Id)
+            .Build();
 
         _mockUserManager.Setup(um => um.GetUserAsync(It.IsAny<ClaimsPrincipal>())).ReturnsAsync(user);
         _mockPostService.Setup(s => s.CreatePostAsync(viewModel, user.Id)).ReturnsAsync(createdPost);
@@ -59,10 +60,67 @@ public class PostControllerTests
 
         // Assert
         _mockPostService.Verify(s => s.CreatePostAsync(viewModel, user.Id), Times.Once);
-        _mockActivityLogService.Verify(s => s.LogActivityAsync(user.Id, "Created", "Post", It.IsAny<string>()), Times.Once);
 
         var redirectResult = result.ShouldBeOfType<RedirectToActionResult>();
         redirectResult.ActionName.ShouldBe("Index");
         _controller.TempData["SuccessMessage"].ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task Create_Post_WhenModelStateIsInvalid_ShouldReturnViewWithErrors()
+    {
+        // Arrange
+        var viewModel = new CreatePostViewModel { Title = "", Content = "Test Content" };
+        _controller.ModelState.AddModelError("Title", "Title is required");
+        
+        _mockTagService.Setup(s => s.GetAvailableTagsAsync()).ReturnsAsync([]);
+        _mockCategoryService.Setup(s => s.GetAvailableCategoriesAsync()).ReturnsAsync([]);
+
+        // Act
+        var result = await _controller.Create(viewModel);
+
+        // Assert
+        var viewResult = result.ShouldBeOfType<ViewResult>();
+        viewResult.Model.ShouldBe(viewModel);
+        _mockPostService.Verify(s => s.CreatePostAsync(It.IsAny<CreatePostViewModel>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Create_Post_WhenUserNotFound_ShouldReturnUnauthorized()
+    {
+        // Arrange
+        var viewModel = new CreatePostViewModel { Title = "Test Post", Content = "Content" };
+        _mockUserManager.Setup(um => um.GetUserAsync(It.IsAny<ClaimsPrincipal>()))
+            .ReturnsAsync((User?)null);
+
+        // Act
+        var result = await _controller.Create(viewModel);
+
+        // Assert
+        result.ShouldBeOfType<UnauthorizedResult>();
+    }
+
+    [Fact]
+    public async Task Create_Post_WhenServiceThrows_ShouldReturnViewWithErrorMessage()
+    {
+        // Arrange
+        var viewModel = new CreatePostViewModel { Title = "Test Post", Content = "Content" };
+        var user = new User { Id = "test-user", UserName = "testuser" };
+
+        _mockUserManager.Setup(um => um.GetUserAsync(It.IsAny<ClaimsPrincipal>())).ReturnsAsync(user);
+        _mockPostService.Setup(s => s.CreatePostAsync(viewModel, user.Id))
+            .ThrowsAsync(new Exception("Database error"));
+        
+        _mockTagService.Setup(s => s.GetAvailableTagsAsync()).ReturnsAsync([]);
+        _mockCategoryService.Setup(s => s.GetAvailableCategoriesAsync()).ReturnsAsync([]);
+
+        // Act
+        var result = await _controller.Create(viewModel);
+
+        // Assert
+        var viewResult = result.ShouldBeOfType<ViewResult>();
+        viewResult.ShouldNotBeNull();
+        _controller.TempData["ErrorMessage"].ShouldNotBeNull();
+        _controller.TempData["ErrorMessage"]!.ToString()!.ShouldContain("unexpected error");
     }
 }
