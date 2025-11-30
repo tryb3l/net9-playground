@@ -21,7 +21,12 @@ public class PostController : Controller
     private readonly IActivityLogService _activityLogService;
 
 
-    public PostController(IPostService postService, ICategoryService categoryService, ITagService tagService, UserManager<User> userManager, ILogger<PostController> logger, IActivityLogService activityLogService)
+    public PostController(IPostService postService, 
+        ICategoryService categoryService, 
+        ITagService tagService, 
+        UserManager<User> userManager, 
+        ILogger<PostController> logger, 
+        IActivityLogService activityLogService)
     {
         _postService = postService;
         _categoryService = categoryService;
@@ -100,12 +105,16 @@ public class PostController : Controller
             return View(viewModel);
         }
 
+        var currentUser = await _userManager.GetUserAsync(User);
+        if (currentUser == null)
+        {
+            _logger.LogError("Current user not found during post creation");
+            return Unauthorized();
+        }
+
         try
         {
-            var currentUser = await _userManager.GetUserAsync(User);
-            Debug.Assert(currentUser != null, nameof(currentUser) + " != null");
             var createdPost = await _postService.CreatePostAsync(viewModel, currentUser.Id);
-
             await _activityLogService.LogActivityAsync(currentUser.Id, "Created", "Post",
                 $"Created new post: '{createdPost.Title}'");
 
