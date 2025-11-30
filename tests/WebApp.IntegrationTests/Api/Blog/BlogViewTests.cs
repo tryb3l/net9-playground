@@ -18,9 +18,9 @@ public class BlogViewTests(IntegrationTestFixture fixture, ITestOutputHelper out
         // Arrange
         await this.GivenAuthenticatedUserAsync();
         var catId = await this.SeedCategoryAsync("Public");
-
+        
         await this.SeedPostAsync("My First Post", catId);
-
+        
         this.GivenAnonymousUser();
 
         // Act
@@ -28,6 +28,12 @@ public class BlogViewTests(IntegrationTestFixture fixture, ITestOutputHelper out
 
         // Assert
         response.StatusCode.ShouldBe(OK);
+        
+        var document = await response.ParseHtmlAsync();
+        
+        var postCards = document.QuerySelectorAll(".post-card, article, .posts-grid > *");
+        postCards.Length.ShouldBeGreaterThan(0);
+        
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         content.ShouldContain("My First Post");
     }
@@ -39,7 +45,7 @@ public class BlogViewTests(IntegrationTestFixture fixture, ITestOutputHelper out
         await this.GivenAuthenticatedUserAsync();
         var catId = await this.SeedCategoryAsync("News");
 
-        var (_, slug) = await this.SeedPostAsync("Breaking News", catId);
+        var (_, slug) = await this.SeedPostAsync("News Post", catId);
 
         this.GivenAnonymousUser();
 
@@ -49,9 +55,8 @@ public class BlogViewTests(IntegrationTestFixture fixture, ITestOutputHelper out
         // Assert
         response.StatusCode.ShouldBe(OK);
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
-        content.ShouldContain("Breaking News");
+        content.ShouldContain("News Post");
     }
-
 
     [Fact]
     public async Task Post_Unpublished_ReturnsNotFound_ForGuest()
@@ -103,7 +108,7 @@ public class BlogViewTests(IntegrationTestFixture fixture, ITestOutputHelper out
         // Assert
         var contentTech = await responseTech.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var contentTesting = await responseTesting.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
-        
+
         // Assert
         responseTech.StatusCode.ShouldBe(OK);
         responseTesting.StatusCode.ShouldBe(OK);
@@ -122,15 +127,15 @@ public class BlogViewTests(IntegrationTestFixture fixture, ITestOutputHelper out
         await ExecuteDbContextAsync(async db =>
         {
             var p = await db.Posts.FindAsync(id);
-            p.IsDeleted = true;
+            p?.IsDeleted = true;
             await db.SaveChangesAsync();
         });
 
         this.GivenAnonymousUser();
-        
+
         // Act
         var response = await HttpClient.GetAsync($"/blog/{slug}", TestContext.Current.CancellationToken);
-        
+
         // Assert
         response.StatusCode.ShouldBe(NotFound);
     }
