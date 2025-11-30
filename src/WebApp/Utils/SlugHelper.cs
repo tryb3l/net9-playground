@@ -7,7 +7,7 @@ namespace WebApp.Utils;
 
 public static partial class SlugHelper
 {
-    public static string GenerateSlug(string text)
+    public static string GenerateSlug(string? text)
     {
         if (string.IsNullOrEmpty(text))
         {
