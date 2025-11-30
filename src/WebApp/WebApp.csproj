@@ -27,17 +27,15 @@
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         <PrivateAssets>all</PrivateAssets>
       </PackageReference>
-      <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.0" />
-      <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="10.0.0" />
       <PackageReference Include="Microsoft.Extensions.FileProviders.Physical" Version="10.0.0" />
       <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="10.0.0-rc.1.25458.5" />
       <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.0" />
-      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0-rc.2" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Abstractions" Version="10.0.0" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.0" />
       <PackageReference Include="Serilog" Version="4.3.0" />
-      <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+      <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
       <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
       <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
       <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
