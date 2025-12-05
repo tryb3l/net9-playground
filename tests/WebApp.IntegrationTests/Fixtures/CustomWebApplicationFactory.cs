@@ -127,12 +127,12 @@ public class TestAntiforgery : IAntiforgery
 {
     public AntiforgeryTokenSet GetAndStoreTokens(HttpContext httpContext)
     {
-        return new AntiforgeryTokenSet("test-token", "test-cookie", "form-field", "header-name");
+        return new AntiforgeryTokenSet(string.Empty, string.Empty, string.Empty, string.Empty);
     }
 
     public AntiforgeryTokenSet GetTokens(HttpContext httpContext)
     {
-        return new AntiforgeryTokenSet("test-token", "test-cookie", "form-field", "header-name");
+        return new AntiforgeryTokenSet(string.Empty, string.Empty, string.Empty, string.Empty);
     }
 
     public Task<bool> IsRequestValidAsync(HttpContext httpContext)
