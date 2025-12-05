@@ -89,9 +89,11 @@ try
     builder.Services.AddApplicationServices();
 
     builder.Services.AddHttpContextAccessor();
-    builder.Services.AddSingleton<DbMigrationService>();
-    builder.Services.AddHostedService(sp => sp.GetRequiredService<DbMigrationService>());
-
+    
+    if (Environment.GetEnvironmentVariable("DISABLE_DB_SEEDING") != "true")
+    {
+        builder.Services.AddHostedService<DbMigrationService>();
+    }
     builder.Services.AddHealthChecks()
         .AddNpgSql(connectionString);
 
@@ -213,5 +215,3 @@ finally
     Log.Information("Shut down complete");
     Log.CloseAndFlush();
 }
-
-public partial class Program { }

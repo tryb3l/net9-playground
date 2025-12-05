@@ -2,8 +2,8 @@
 
 # --- Configuration ---
 COMPOSE_FILE := ./docker-compose.yml
-APP_PROJECT := ./src/WebApp/WebApp.csproj
-TEST_PROJECT := ./tests/WebApp.UnitTests/WebApp.UnitTests.csproj
+APP_PROJECT_PATH := ./src/WebApp/WebApp.csproj
+SOLUTION_FILE := ./net-playground.sln 
 ENV_FILE := ./src/WebApp/.dev.env
 
 # --- Main Targets ---
@@ -12,20 +12,19 @@ all: build test
 
 # Build the project
 build:
-	dotnet build $(APP_PROJECT)
+	dotnet build $(SOLUTION_FILE)
 
 # Run the project (build first)
 run: build
-	dotnet run --project $(APP_PROJECT)
+	dotnet run --project $(APP_PROJECT_PATH)
 
 # Run all tests
 test:
-	dotnet run --project $(TEST_PROJECT)
+	dotnet test $(SOLUTION_FILE)
 
 # Clean the project
 clean:
-	dotnet clean $(APP_PROJECT)
-	dotnet clean $(TEST_PROJECT)
+	dotnet clean $(SOLUTION_FILE)
 
 # Publish the project (for Release mode)
 publish:
