@@ -1,0 +1,212 @@
+<!-- EasyMDE -->
+<link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
+<script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
+
+<!-- Choices.js -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+    // 1. Initialize Choices.js for Category and Tags
+    const categorySelect = new Choices('#category-select', {
+    searchEnabled: true,
+    itemSelectText: '',
+    placeholder: true,
+    placeholderValue: 'Select a category'
+    });
+
+    const tagsSelect = new Choices('#tags-select', {
+    removeItemButton: true,
+    searchEnabled: true,
+    placeholder: true,
+    placeholderValue: 'Select tags',
+    noChoicesText: 'No tags available'
+    });
+
+    // 2. Initialize EasyMDE
+    const easyMDE = new EasyMDE({
+    element: document.getElementById('Content'),
+    spellChecker: false,
+    placeholder: "Start writing your masterpiece...",
+    status: ["autosave", "lines", "words", "cursor"],
+    minHeight: "400px",
+    uploadImage: true,
+    imageUploadFunction: (file, onSuccess, onError) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    // Get CSRF token
+    const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+    fetch('/Admin/api/Attachments/editor-upload', {
+    method: 'POST',
+    body: formData,
+    headers: {
+    'RequestVerificationToken': token
+    }
+    })
+    .then(r => r.json())
+    .then(d => {
+    if (d.success) onSuccess(d.file.url);
+    else onError(d.message);
+    })
+    .catch(e => onError(e.message));
+    }
+    });
+
+    // 3. Featured Image Upload Logic
+    const fileInput = document.getElementById('featuredImageFile');
+    const hiddenInput = document.getElementById('FeaturedImageUrl');
+    const uploadPlaceholder = document.getElementById('upload-placeholder');
+    const previewContainer = document.getElementById('upload-preview-container');
+    const loadingContainer = document.getElementById('upload-loading');
+    const previewImg = document.getElementById('image-preview');
+    const removeBtn = document.getElementById('remove-image-btn');
+    const uploadError = document.getElementById('upload-error');
+
+    const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+    const MAX_BYTES = 10 * 1024 * 1024;
+
+    function showUploadError(msg) {
+    if (uploadError) {
+    uploadError.textContent = msg;
+    uploadError.classList.remove('d-none');
+    }
+    }
+
+    function clearUploadError() {
+    if (uploadError) {
+    uploadError.textContent = '';
+    uploadError.classList.add('d-none');
+    }
+    }
+
+    fileInput.addEventListener('change', function () {
+    if (this.files && this.files[0]) {
+    const file = this.files[0];
+    clearUploadError();
+
+    // Client-side validation
+    if (!ALLOWED_TYPES.includes(file.type)) {
+    showUploadError('Unsupported file type. Please upload a JPG, PNG, GIF, or WebP image.');
+    fileInput.value = '';
+    return;
+    }
+    if (file.size > MAX_BYTES) {
+    showUploadError('File is too large. Maximum allowed size is 10 MB.');
+    fileInput.value = '';
+    return;
+    }
+
+    // Show loading
+    uploadPlaceholder.classList.add('d-none');
+    previewContainer.classList.add('d-none');
+    loadingContainer.classList.remove('d-none');
+    markDirty();
+
+    const formData = new FormData();
+    formData.append('filepond', file); // Controller expects 'filepond'
+
+    const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+    fetch('/Admin/api/Attachments/upload', {
+    method: 'POST',
+    body: formData,
+    headers: {
+    'RequestVerificationToken': token
+    }
+    })
+    .then(response => response.json().then(data => ({ ok: response.ok, data })))
+    .then(({ ok, data }) => {
+    loadingContainer.classList.add('d-none');
+
+    if (!ok) {
+    const msg = data?.message || 'Upload failed. Please try again.';
+    showUploadError(msg);
+    uploadPlaceholder.classList.remove('d-none');
+    fileInput.value = '';
+    return;
+    }
+
+    if (data.urls) {
+    // Store JSON in hidden input
+    hiddenInput.value = JSON.stringify(data.urls);
+
+    // Show preview (use large or original)
+    previewImg.src = data.urls.large || data.urls.original;
+    previewContainer.classList.remove('d-none');
+    } else {
+    showUploadError('Unexpected server response. Please try again.');
+    uploadPlaceholder.classList.remove('d-none');
+    fileInput.value = '';
+    }
+    })
+    .catch(error => {
+    loadingContainer.classList.add('d-none');
+    uploadPlaceholder.classList.remove('d-none');
+    showUploadError('Network error during upload. Please try again.');
+    fileInput.value = '';
+    });
+    }
+    });
+
+    removeBtn.addEventListener('click', function () {
+    fileInput.value = '';
+    hiddenInput.value = '';
+    previewContainer.classList.add('d-none');
+    uploadPlaceholder.classList.remove('d-none');
+    clearUploadError();
+    markDirty();
+    });
+
+    // 4. Dirty-form detection
+    let formDirty = false;
+    let formSubmitted = false;
+
+    function markDirty() { formDirty = true; }
+
+    // Capture baselines after full initialization
+    const titleInput = document.getElementById('Title');
+    const publishSwitch = document.getElementById('publishSwitch');
+    const altInput = document.getElementById('FeaturedImageAlt');
+
+    if (titleInput) titleInput.addEventListener('input', markDirty);
+    if (publishSwitch) publishSwitch.addEventListener('change', markDirty);
+    if (altInput) altInput.addEventListener('input', markDirty);
+
+    categorySelect.passedElement.element.addEventListener('change', markDirty);
+    tagsSelect.passedElement.element.addEventListener('change', markDirty);
+
+    easyMDE.codemirror.on('change', markDirty);
+
+    const form = document.getElementById('createPostForm') || document.getElementById('editPostForm');
+    if (form) {
+    form.addEventListener('submit', function () { formSubmitted = true; });
+    }
+
+    window.addEventListener('beforeunload', function (e) {
+    if (formDirty && !formSubmitted) {
+    e.preventDefault();
+    e.returnValue = '';
+    }
+    });
+    });
+</script>
+
+<style>
+    .border-dashed {
+    border-style: dashed !important;
+    border-width: 2px !important;
+    }
+
+    /* Choices.js overrides for Bootstrap 5 consistency */
+    .choices__inner {
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    }
+
+    .choices__input {
+    background-color: transparent;
+    }
+</style>

@@ -4,112 +4,111 @@
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 }
 
-<form asp-area="Admin" asp-controller="Post" asp-action="Create" method="post" class="container-fluid">
-    @Html.AntiForgeryToken()
-
-    <!-- Header -->
-    <div class="row mb-4 align-items-center">
-        <div class="col">
-            <h1 class="h3 mb-0">Create New Post</h1>
+<div class="container-fluid">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3">
+            <h5 class="card-title mb-0 fw-bold text-primary"><i class="bi bi-pen me-2"></i>Create New Post</h5>
         </div>
-        <div class="col-auto">
-            <div class="d-flex gap-2">
-                <a asp-action="Index" class="btn btn-outline-secondary">
-                    <i class="bi bi-x-circle me-1"></i>Cancel
-                </a>
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-save me-1"></i>Save Post
-                </button>
-            </div>
-        </div>
-    </div>
+        <div class="card-body p-4">
+            <form asp-action="Create" method="post" id="createPostForm">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger rounded-3"></div>
 
-    @if (!ViewData.ModelState.IsValid)
-    {
-        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
-    }
-
-    <div class="row g-4">
-        <!-- Main Content Column -->
-        <div class="col-lg-8">
-            <!-- Title -->
-            <div class="form-floating mb-4">
-                <input asp-for="Title" class="form-control form-control-lg" placeholder="Enter post title" required />
-                <label asp-for="Title"><i class="bi bi-card-heading me-1"></i>Post Title *</label>
-                <span asp-validation-for="Title" class="text-danger"></span>
-            </div>
-
-            <!-- Content -->
-            <div class="card">
-                <div class="card-header"><i class="bi bi-file-earmark-text me-1"></i>Post Content</div>
-                <div class="card-body">
-                    <textarea asp-for="Content" class="form-control" rows="15" placeholder="Write your post content here..."></textarea>
-                    <span asp-validation-for="Content" class="text-danger"></span>
+                <!-- Title -->
+                <div class="mb-4">
+                    <label asp-for="Title" class="form-label fw-bold">Title</label>
+                    <input asp-for="Title" class="form-control form-control-lg" placeholder="Enter a catchy title..." />
+                    <span asp-validation-for="Title" class="text-danger"></span>
                 </div>
-            </div>
-        </div>
 
-        <!-- Sidebar Column -->
-        <div class="col-lg-4">
-            <!-- Publishing Options -->
-            <div class="card mb-4">
-                <div class="card-header"><i class="bi bi-gear me-1"></i>Publishing Options</div>
-                <div class="card-body">
-                    <div class="form-check form-switch">
-                        <input asp-for="PublishNow" class="form-check-input" type="checkbox" />
-                        <label asp-for="PublishNow" class="form-check-label">
-                            <strong>Publish immediately</strong>
-                            <small class="d-block text-muted">If unchecked, the post will be saved as a draft.</small>
-                        </label>
+                <!-- Featured Image Upload -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Featured Image</label>
+                    <div class="card border-dashed bg-light" id="image-upload-container">
+                        <div class="card-body text-center py-5" id="upload-placeholder">
+                            <div class="mb-3">
+                                <i class="bi bi-cloud-arrow-up text-muted" style="font-size: 3rem;"></i>
+                            </div>
+                            <h6 class="text-muted">Drag and drop or click to upload</h6>
+                            <p class="text-muted small mb-2">Supported formats: JPG, PNG, GIF, WebP</p>
+                            <p class="text-muted small mb-3">Max size: 10&nbsp;MB</p>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('featuredImageFile').click()">
+                                Choose File
+                            </button>
+                            <input type="file" id="featuredImageFile" class="d-none" accept="image/png, image/jpeg, image/gif, image/webp">
+                        </div>
+
+                        <div class="card-body text-center d-none position-relative p-0" id="upload-preview-container">
+                            <img id="image-preview" src="" class="img-fluid rounded" style="max-height: 400px; width: 100%; object-fit: cover;">
+                            <div class="position-absolute top-0 end-0 p-3">
+                                <button type="button" class="btn btn-light btn-sm shadow-sm text-danger" id="remove-image-btn" title="Remove Image">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="card-body text-center d-none py-5" id="upload-loading">
+                            <div class="spinner-border text-primary mb-3" role="status"></div>
+                            <p class="text-muted">Uploading image...</p>
+                        </div>
+                    </div>
+                    <div id="upload-error" class="text-danger small mt-1 d-none"></div>
+                    <!-- Hidden input stores the JSON or URL -->
+                    <input type="hidden" asp-for="FeaturedImageUrl" id="FeaturedImageUrl" />
+                    <span asp-validation-for="FeaturedImageUrl" class="text-danger"></span>
+                </div>
+
+                <!-- Featured Image Alt Text -->
+                <div class="mb-4">
+                    <label asp-for="FeaturedImageAlt" class="form-label fw-bold">Featured Image Alt Text</label>
+                    <input asp-for="FeaturedImageAlt" class="form-control" placeholder="Describe the image for screen readers and SEO" />
+                    <span asp-validation-for="FeaturedImageAlt" class="text-danger"></span>
+                </div>
+
+                <!-- Category & Tags -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-6">
+                        <label asp-for="CategoryId" class="form-label fw-bold">Category</label>
+                        <select asp-for="CategoryId" asp-items="Model.AvailableCategories" class="form-select" id="category-select">
+                            <option value="">Select a category...</option>
+                        </select>
+                        <span asp-validation-for="CategoryId" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="SelectedTagIds" class="form-label fw-bold">Tags</label>
+                        <select asp-for="SelectedTagIds" asp-items="Model.AvailableTags" class="form-select" multiple id="tags-select">
+                        </select>
+                        <span asp-validation-for="SelectedTagIds" class="text-danger"></span>
                     </div>
                 </div>
-            </div>
 
-            <!-- Featured Image -->
-            <div class="card mb-4">
-                <div class="card-header"><i class="bi bi-image me-1"></i>Featured Image</div>
-                <div class="card-body">
-                    <input type="file" class="filepond" data-max-file-size="10MB" data-max-files="1" />
-                    <input type="hidden" asp-for="FeaturedImageUrl" />
+                <!-- Content Editor -->
+                <div class="mb-4">
+                    <label asp-for="Content" class="form-label fw-bold">Content</label>
+                    <textarea asp-for="Content" class="form-control" rows="15"></textarea>
+                    <span asp-validation-for="Content" class="text-danger"></span>
                 </div>
-            </div>
 
-            <!-- Category -->
-            <div class="card mb-4">
-                <div class="card-header"><i class="bi bi-folder me-1"></i>Category</div>
-                <div class="card-body">
-                    <select asp-for="CategoryId" asp-items="Model.AvailableCategories" class="form-select">
-                        <option value="">-- Select Category --</option>
-                    </select>
+                <!-- Publish Options -->
+                <div class="card bg-light border-0 mb-4">
+                    <div class="card-body d-flex flex-column flex-md-row align-items-stretch align-items-md-center justify-content-between gap-3">
+                        <div class="form-check form-switch mb-0">
+                            <input asp-for="PublishNow" class="form-check-input" type="checkbox" role="switch" id="publishSwitch">
+                            <label class="form-check-label fw-bold" for="publishSwitch">Publish Immediately</label>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a asp-action="Index" class="btn btn-outline-secondary px-4 flex-fill flex-md-grow-0">Cancel</a>
+                            <button type="submit" class="btn btn-primary px-4 fw-bold flex-fill flex-md-grow-0">
+                                <i class="bi bi-check-lg me-1"></i> Create Post
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </div>
-
-            <!-- Tags -->
-            <div class="card">
-                <div class="card-header"><i class="bi bi-tags me-1"></i>Tags</div>
-                <div class="card-body" style="max-height: 250px; overflow-y: auto;">
-                    @if (Model.AvailableTags?.Any() == true)
-                    {
-                        @foreach (var tag in Model.AvailableTags)
-                        {
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="SelectedTagIds" value="@tag.Value" id="tag_@tag.Value"
-                                       @(Model.SelectedTagIds != null && Model.SelectedTagIds.Contains(int.Parse(tag.Value)) ? "checked" : "") />
-                                <label class="form-check-label" for="tag_@tag.Value">@tag.Text</label>
-                            </div>
-                        }
-                    }
-                    else
-                    {
-                        <small class="text-muted">No tags available.</small>
-                    }
-                </div>
-            </div>
+            </form>
         </div>
     </div>
-</form>
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-    <script src="~/js/post-edit.js" asp-append-version="true"></script>
+    <partial name="_EditorScripts" />
 }

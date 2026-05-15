@@ -3,28 +3,29 @@ using WebApp.Services;
 
 namespace WebApp.HealthChecks;
 
-public class DbMigrationHealthChecks : IHealthCheck
+public class DbMigrationHealthCheck : IHealthCheck
 {
-    private readonly DbMigrationService _dbMigration;
+    private readonly DbMigrationService _migrationService;
 
-    public DbMigrationHealthChecks(DbMigrationService dbMigration)
+    public DbMigrationHealthCheck(DbMigrationService migrationService)
     {
-        _dbMigration = dbMigration;
+        _migrationService = migrationService;
     }
 
-    public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context,
-    CancellationToken cancellationToken = default)
+    public Task<HealthCheckResult> CheckHealthAsync(
+        HealthCheckContext context,
+        CancellationToken cancellationToken = default)
     {
-        var task = _dbMigration.ExecuteTask;
-        return task switch
+        var task = _migrationService.ExecuteTask;
+
+        return Task.FromResult(task.Status switch
         {
-            { IsCompletedSuccessfully: true } => Task.FromResult(HealthCheckResult.Healthy("Database initialization completed successfully")),
-
-            { IsFaulted: true } => Task.FromResult(HealthCheckResult.Unhealthy(task.Exception?.InnerException?.Message, task.Exception)),
-
-            { IsCanceled: true } => Task.FromResult(HealthCheckResult.Unhealthy("Database initialization was canceled")),
-
-            _ => Task.FromResult(HealthCheckResult.Degraded("Database initialization is still in progress"))
-        };
+            TaskStatus.RanToCompletion => HealthCheckResult.Healthy("Database migration completed"),
+            TaskStatus.Faulted => HealthCheckResult.Unhealthy(
+                "Database migration failed",
+                task.Exception?.InnerException ?? task.Exception),
+            TaskStatus.Canceled => HealthCheckResult.Unhealthy("Database migration was canceled"),
+            _ => HealthCheckResult.Unhealthy("Database migration is still in progress")
+        });
     }
 }

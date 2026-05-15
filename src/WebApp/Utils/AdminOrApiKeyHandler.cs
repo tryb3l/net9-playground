@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 
 namespace WebApp.Utils;
@@ -23,12 +25,15 @@ public class AdminOrApiKeyHandler : AuthorizationHandler<AdminOrApiKeyRequiremen
             context.Succeed(requirement);
             return Task.CompletedTask;
         }
-        
+
         var httpContext = _httpContextAccessor.HttpContext;
         if (httpContext != null && httpContext.Request.Headers.TryGetValue(ApiKeyHeaderName, out var apiKeyFromHeader))
         {
-            var expectedApiKey = _configuration["HEALTHCHECKS_API_KEY"];
-            if (!string.IsNullOrEmpty(expectedApiKey) && expectedApiKey.Equals(apiKeyFromHeader))
+            var expectedApiKey = Environment.GetEnvironmentVariable("HEALTHCHECKS_API_KEY")
+                ?? _configuration["HEALTHCHECKS_API_KEY"];
+            var providedApiKey = apiKeyFromHeader.ToString();
+
+            if (!string.IsNullOrEmpty(expectedApiKey) && IsValidApiKey(expectedApiKey, providedApiKey))
             {
                 context.Succeed(requirement);
                 return Task.CompletedTask;
@@ -36,5 +41,14 @@ public class AdminOrApiKeyHandler : AuthorizationHandler<AdminOrApiKeyRequiremen
         }
 
         return Task.CompletedTask;
+    }
+
+    private static bool IsValidApiKey(string expectedApiKey, string providedApiKey)
+    {
+        var expectedBytes = Encoding.UTF8.GetBytes(expectedApiKey);
+        var providedBytes = Encoding.UTF8.GetBytes(providedApiKey);
+
+        return expectedBytes.Length == providedBytes.Length &&
+               CryptographicOperations.FixedTimeEquals(expectedBytes, providedBytes);
     }
 }

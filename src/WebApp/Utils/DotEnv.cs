@@ -9,15 +9,20 @@ public static class DotEnv
 
         foreach (var line in File.ReadAllLines(filePath))
         {
-            if (string.IsNullOrWhiteSpace(line) || line.StartsWith($"#"))
+            var trimmedLine = line.Trim();
+            
+            if (string.IsNullOrWhiteSpace(trimmedLine) || trimmedLine.StartsWith('#'))
                 continue;
 
-            var parts = line.Split('=', StringSplitOptions.RemoveEmptyEntries);
-
-            if (parts.Length != 2)
+            // Find the first '=' character
+            var splitIndex = trimmedLine.IndexOf('=');
+            if (splitIndex < 0)
                 continue;
 
-            Environment.SetEnvironmentVariable(parts[0], parts[1]);
+            var key = trimmedLine[..splitIndex].Trim();
+            var value = trimmedLine[(splitIndex + 1)..].Trim();
+
+            Environment.SetEnvironmentVariable(key, value);
         }
     }
 }

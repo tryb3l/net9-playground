@@ -56,17 +56,11 @@ public class ApplicationDbContext : IdentityDbContext<User>
     {
         base.OnConfiguring(optionsBuilder);
 
-        // Skip EF seeding when running integration tests
         var disableSeeding = Environment.GetEnvironmentVariable("DISABLE_DB_SEEDING");
         if (_serviceProvider != null &&
             !string.Equals(disableSeeding, "true", StringComparison.OrdinalIgnoreCase))
         {
             optionsBuilder
-                .UseSeeding((context, seedingData) =>
-                {
-                    var serviceProvider = ((ApplicationDbContext)context)._serviceProvider;
-                    SeedData.SeedSync((ApplicationDbContext)context, serviceProvider);
-                })
                 .UseAsyncSeeding(async (context, seedingData, cancellationToken) =>
                 {
                     var serviceProvider = ((ApplicationDbContext)context)._serviceProvider;

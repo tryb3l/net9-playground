@@ -26,13 +26,13 @@ public static partial class SlugHelper
         var slug = stringBuilder.ToString().Normalize(NormalizationForm.FormC).ToLowerInvariant();
 
         // Remove invalid characters
-        slug = MyRegex().Replace(slug, string.Empty);
+        slug = NonAlphanumericRegex().Replace(slug, string.Empty);
 
         // Replace spaces with hyphens
-        slug = MyRegex1().Replace(slug, "-");
+        slug = WhitespaceRegex().Replace(slug, "-");
 
         // Remove multiple consecutive hyphens
-        slug = MyRegex2().Replace(slug, "-");
+        slug = MultipleHyphensRegex().Replace(slug, "-");
 
         // Trim hyphens from start and end
         slug = slug.Trim('-');
@@ -41,9 +41,9 @@ public static partial class SlugHelper
     }
 
     [GeneratedRegex(@"[^a-z0-9\s-]")]
-    private static partial Regex MyRegex();
+    private static partial Regex NonAlphanumericRegex();
     [GeneratedRegex(@"\s+")]
-    private static partial Regex MyRegex1();
+    private static partial Regex WhitespaceRegex();
     [GeneratedRegex(@"-+")]
-    private static partial Regex MyRegex2();
+    private static partial Regex MultipleHyphensRegex();
 }

@@ -20,6 +20,23 @@
         </div>
     </div>
 
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmModalLabel">Confirm</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="confirmModalBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmModalOk">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
     <div id="trashActions" class="mb-3">
         <button id="emptyTrashBtn" class="btn btn-danger btn-sm">
             <i class="bi bi-trash3-fill me-1"></i>Empty Trash
@@ -54,7 +71,28 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            var currentFilter = 'Active';
+            // --- Confirmation modal helper ---
+            var confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+            var confirmCallback = null;
+            $('#confirmModalOk').on('click', function () {
+                confirmModal.hide();
+                if (typeof confirmCallback === 'function') confirmCallback();
+                confirmCallback = null;
+            });
+            $('#confirmModal').on('hidden.bs.modal', function () {
+                confirmCallback = null;
+            });
+            function showConfirm(message, okLabel, okClass, callback) {
+                $('#confirmModalBody').text(message);
+                $('#confirmModalOk').text(okLabel).removeClass().addClass('btn ' + okClass);
+                confirmCallback = callback;
+                confirmModal.show();
+            }
+
+            // --- Filter persistence via URL query string ---
+            var params = new URLSearchParams(window.location.search);
+            var currentFilter = ['Active', 'Trashed', 'All'].includes(params.get('filter'))
+                ? params.get('filter') : 'Active';
             var table;
 
             function renderStatus(row) {
@@ -68,12 +106,18 @@
             }
 
             // --- Filter button logic ---
-            $('.btn-group button').on('click', function () {
+            function applyFilter(filter) {
+                currentFilter = filter;
                 $('.btn-group button').removeClass('active');
-                $(this).addClass('active');
-                currentFilter = $(this).data('filter');
-                $('#trashActions').toggle(currentFilter === 'Trashed');
-                table.ajax.reload();
+                $('.btn-group button[data-filter="' + filter + '"]').addClass('active');
+                $('#trashActions').toggle(filter === 'Trashed');
+                var url = new URL(window.location.href);
+                url.searchParams.set('filter', filter);
+                history.replaceState(null, '', url.toString());
+                if (table) table.ajax.reload();
+            }
+            $('.btn-group button').on('click', function () {
+                applyFilter($(this).data('filter'));
             });
 
             // --- DataTable Initialization ---
@@ -128,7 +172,7 @@
                                 actionsHtml += `
                                                     <li><form action="/Admin/Post/Restore/${id}" method="post" class="d-inline ajax-form"><input type="hidden" name="__RequestVerificationToken" value="${antiforgeryToken}" /><button type="submit" class="dropdown-item"><i class="bi bi-arrow-counterclockwise me-2"></i>Restore</button></form></li>
                                                     <li><hr class="dropdown-divider"></li>
-                                                    <li><form action="/Admin/Post/Delete/${id}" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to permanently delete this post?');"><input type="hidden" name="__RequestVerificationToken" value="${antiforgeryToken}" /><button type="submit" class="dropdown-item text-danger"><i class="bi bi-trash-fill me-2"></i>Delete Permanently</button></form></li>`;
+                                                    <li><button type="button" class="dropdown-item text-danger js-delete-post" data-post-id="${id}" data-token="${antiforgeryToken}"><i class="bi bi-trash-fill me-2"></i>Delete Permanently</button></li>`;
                             } else {
                                 actionsHtml += `
                                                     <li><a class="dropdown-item" href="/Admin/Post/Edit/${id}"><i class="bi bi-pencil-square me-2"></i>Edit</a></li>
@@ -189,44 +233,79 @@
             });
 
             $('#emptyTrashBtn').on('click', function () {
-                if (confirm('Are you sure you want to permanently delete all posts in the trash? This cannot be undone.')) {
-                    $.ajax({
-                        url: '@Url.Action("EmptyTrash", "Post")',
-                        type: 'POST',
-                        data: { '__RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
-                        success: function (response) {
-                            if (response.success) {
-                                toastr.success('Trash emptied successfully');
-                                table.ajax.reload();
-                            } else {
-                                toastr.error(response.message || 'An error occurred');
-                            }
-                        },
-                        error: function () { toastr.error('An error occurred. Please try again.'); }
-                    });
-                }
+                showConfirm(
+                    'Are you sure you want to permanently delete all posts in the trash? This cannot be undone.',
+                    'Empty Trash', 'btn-danger',
+                    function () {
+                        $.ajax({
+                            url: '@Url.Action("EmptyTrash", "Post")',
+                            type: 'POST',
+                            data: { '__RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                            success: function (response) {
+                                if (response.success) {
+                                    toastr.success('Trash emptied successfully');
+                                    table.ajax.reload();
+                                } else {
+                                    toastr.error(response.message || 'An error occurred');
+                                }
+                            },
+                            error: function () { toastr.error('An error occurred. Please try again.'); }
+                        });
+                    }
+                );
             });
 
             $('#restoreAllBtn').on('click', function () {
-                if (confirm('Are you sure you want to restore all posts from trash?')) {
-                    $.ajax({
-                        url: '@Url.Action("RestoreAll", "Post")',
-                        type: 'POST',
-                        data: { '__RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
-                        success: function (response) {
-                            if (response.success) {
-                                toastr.success('All posts restored successfully');
-                                table.ajax.reload();
-                            } else {
-                                toastr.error(response.message || 'An error occurred');
-                            }
-                        },
-                        error: function () { toastr.error('An error occurred. Please try again.'); }
-                    });
-                }
+                showConfirm(
+                    'Are you sure you want to restore all posts from trash?',
+                    'Restore All', 'btn-success',
+                    function () {
+                        $.ajax({
+                            url: '@Url.Action("RestoreAll", "Post")',
+                            type: 'POST',
+                            data: { '__RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                            success: function (response) {
+                                if (response.success) {
+                                    toastr.success('All posts restored successfully');
+                                    table.ajax.reload();
+                                } else {
+                                    toastr.error(response.message || 'An error occurred');
+                                }
+                            },
+                            error: function () { toastr.error('An error occurred. Please try again.'); }
+                        });
+                    }
+                );
             });
 
-            $('#trashActions').hide();
+            // --- Per-row permanent delete via modal ---
+            $('#postsTable').on('click', '.js-delete-post', function () {
+                var id = $(this).data('post-id');
+                var token = $(this).data('token');
+                showConfirm(
+                    'Are you sure you want to permanently delete this post?',
+                    'Delete Permanently', 'btn-danger',
+                    function () {
+                        $.ajax({
+                            url: '/Admin/Post/Delete/' + id,
+                            type: 'POST',
+                            data: { '__RequestVerificationToken': token },
+                            success: function (response) {
+                                if (response.success) {
+                                    toastr.success(response.message || 'Post deleted.');
+                                    table.ajax.reload();
+                                } else {
+                                    toastr.error(response.message || 'An error occurred.');
+                                }
+                            },
+                            error: function () { toastr.error('A server error occurred. Please try again.'); }
+                        });
+                    }
+                );
+            });
+
+            // Apply persisted filter on initial load
+            applyFilter(currentFilter);
         });
     </script>
 }

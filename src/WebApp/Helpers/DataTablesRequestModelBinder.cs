@@ -4,6 +4,9 @@ namespace WebApp.Helpers;
 
 public class DataTablesRequestModelBinder : IModelBinder
 {
+    private const int DefaultPageSize = 10;
+    private const int MaxPageSize = 100;
+
     public Task BindModelAsync(ModelBindingContext bindingContext)
     {
         ArgumentNullException.ThrowIfNull(bindingContext);
@@ -12,13 +15,13 @@ public class DataTablesRequestModelBinder : IModelBinder
 
         var model = new DataTablesRequest
         {
-            Draw = int.Parse(valueProvider.GetValue("draw").FirstValue ?? "0"),
-            Start = int.Parse(valueProvider.GetValue("start").FirstValue ?? "0"),
-            Length = int.Parse(valueProvider.GetValue("length").FirstValue ?? "10"),
+            Draw = ParseInt(valueProvider.GetValue("draw").FirstValue, 0, min: 0),
+            Start = ParseInt(valueProvider.GetValue("start").FirstValue, 0, min: 0),
+            Length = ParseInt(valueProvider.GetValue("length").FirstValue, DefaultPageSize, min: 1, max: MaxPageSize),
             Search = new Search
             {
                 Value = valueProvider.GetValue("search[value]").FirstValue,
-                Regex = bool.Parse(valueProvider.GetValue("search[regex]").FirstValue ?? "false")
+                Regex = ParseBool(valueProvider.GetValue("search[regex]").FirstValue)
             },
             StatusFilter = valueProvider.GetValue("statusFilter").FirstValue
         };
@@ -30,12 +33,12 @@ public class DataTablesRequestModelBinder : IModelBinder
             {
                 Data = valueProvider.GetValue($"columns[{colIndex}][data]").FirstValue,
                 Name = valueProvider.GetValue($"columns[{colIndex}][name]").FirstValue,
-                Orderable = bool.Parse(valueProvider.GetValue($"columns[{colIndex}][orderable]").FirstValue ?? "false"),
-                Searchable = bool.Parse(valueProvider.GetValue($"columns[{colIndex}][searchable]").FirstValue ?? "false"),
+                Orderable = ParseBool(valueProvider.GetValue($"columns[{colIndex}][orderable]").FirstValue),
+                Searchable = ParseBool(valueProvider.GetValue($"columns[{colIndex}][searchable]").FirstValue),
                 Search = new Search
                 {
                     Value = valueProvider.GetValue($"columns[{colIndex}][search][value]").FirstValue,
-                    Regex = bool.Parse(valueProvider.GetValue($"columns[{colIndex}][search][regex]").FirstValue ?? "false")
+                    Regex = ParseBool(valueProvider.GetValue($"columns[{colIndex}][search][regex]").FirstValue)
                 }
             });
             colIndex++;
@@ -44,10 +47,11 @@ public class DataTablesRequestModelBinder : IModelBinder
         var orderIndex = 0;
         while (valueProvider.GetValue($"order[{orderIndex}][column]").Length != 0)
         {
+            var orderColumn = ParseInt(valueProvider.GetValue($"order[{orderIndex}][column]").FirstValue, 0, min: 0);
             model.Order.Add(new Order
             {
-                Column = int.Parse(valueProvider.GetValue($"order[{orderIndex}][column]").FirstValue ?? "0"),
-                Dir = valueProvider.GetValue($"order[{orderIndex}][dir]").FirstValue
+                Column = orderColumn,
+                Dir = ParseSortDirection(valueProvider.GetValue($"order[{orderIndex}][dir]").FirstValue)
             });
             orderIndex++;
         }
@@ -55,4 +59,30 @@ public class DataTablesRequestModelBinder : IModelBinder
         bindingContext.Result = ModelBindingResult.Success(model);
         return Task.CompletedTask;
     }
+
+    private static int ParseInt(string? value, int fallback, int? min = null, int? max = null)
+    {
+        if (!int.TryParse(value, out var parsed))
+        {
+            return fallback;
+        }
+
+        if (min.HasValue && parsed < min.Value)
+        {
+            return min.Value;
+        }
+
+        if (max.HasValue && parsed > max.Value)
+        {
+            return max.Value;
+        }
+
+        return parsed;
+    }
+
+    private static bool ParseBool(string? value)
+        => bool.TryParse(value, out var parsed) && parsed;
+
+    private static string ParseSortDirection(string? value)
+        => string.Equals(value, "asc", StringComparison.OrdinalIgnoreCase) ? "asc" : "desc";
 }

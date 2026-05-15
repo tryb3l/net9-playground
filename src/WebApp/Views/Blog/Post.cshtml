@@ -1,6 +1,16 @@
 ﻿@model WebApp.Areas.Admin.ViewModels.Post.PostViewModel
 @{
     ViewData["Title"] = Model.Title;
+    bool isPreview = ViewData["IsPreview"] is true;
+}
+
+@if (isPreview)
+{
+    <div class="alert alert-warning text-center mb-0 rounded-0 border-0 border-bottom">
+        <i class="bi bi-eye me-1"></i>
+        <strong>Draft Preview</strong> — this post is not publicly visible.
+        <a href="javascript:window.close()" class="ms-3 btn btn-sm btn-outline-warning">Close preview</a>
+    </div>
 }
 
 <div class="container mt-5">
@@ -10,20 +20,28 @@
                 <header class="post-full-header">
                     <h1 class="post-full-title">@Model.Title</h1>
                     <div class="post-full-meta">
-                        <time datetime="@Model.PublishedDate.ToString("yyyy-MM-dd")">@Model.PublishedDate.ToString("MMMM dd, yyyy")</time>
+                        @if (Model.PublishedDate.HasValue)
+                        {
+                            <time datetime="@Model.PublishedDate.Value.ToString("yyyy-MM-dd")">@Model.PublishedDate.Value.ToString("MMMM dd, yyyy")</time>
+                        }
+                        else
+                        {
+                            <span>Draft</span>
+                        }
                         <span class="bull">&bull;</span> @Model.AuthorName
                     </div>
                 </header>
 
                 @if (!string.IsNullOrEmpty(Model.FeaturedImageUrl))
                 {
-                    <figure class="post-full-image">
-                        <img class="img-fluid rounded post-featured-image" src="@Model.FeaturedImageUrl" alt="@Model.Title">
-                    </figure>
+                    <div class="post-cover-container">
+                        <div class="post-cover-background" style="background-image: url('@Model.FeaturedImageUrl');"></div>
+                        <img class="post-cover-image" src="@Model.FeaturedImageUrl" alt="@(Model.FeaturedImageAlt ?? Model.Title)" />
+                    </div>
                 }
 
                 <section class="post-full-content">
-                    @Html.Raw(Model.Content)
+                    <markdown>@Model.Content</markdown>
                 </section>
 
                 @if (Model.Tags.Any())

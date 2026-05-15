@@ -16,15 +16,23 @@
                 <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
             }
             
-            <form method="post" action="/Admin/Tag/Create">
+            <form method="post" asp-area="Admin" asp-controller="Tag" asp-action="Create">
+                @Html.AntiForgeryToken()
+
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
                 <div class="mb-3">
-                    <label for="Name">Tag Name:</label>
-                    <input type="text" id="Name" name="Name" class="form-control" value="@Model.Name" required />
+                    <label asp-for="Name">Tag Name:</label>
+                    <input asp-for="Name" class="form-control" required />
                     <span asp-validation-for="Name" class="text-danger"></span>
                 </div>
                 <button type="submit" class="btn btn-primary">Create Tag</button>
-                <a href="/Admin/Tag" class="btn btn-secondary">Cancel</a>
+                <a asp-area="Admin" asp-controller="Tag" asp-action="Index" class="btn btn-secondary">Cancel</a>
             </form>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

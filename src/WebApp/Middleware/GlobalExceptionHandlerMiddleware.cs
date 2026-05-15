@@ -1,4 +1,5 @@
 using System.Net;
+using System.Runtime.ExceptionServices;
 using System.Text.Json;
 
 namespace WebApp.Middleware;
@@ -6,6 +7,7 @@ namespace WebApp.Middleware;
 public record ErrorDetails
 {
     public required string Error { get; init; }
+    public string? RequestId { get; init; }
     public string? StackTrace { get; init; }
 }
 
@@ -31,11 +33,29 @@ public class GlobalExceptionHandlerMiddleware(
     
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
+        if (context.Response.HasStarted)
+        {
+            logger.LogWarning("The response has already started, the global exception handler will not modify it.");
+            ExceptionDispatchInfo.Capture(exception).Throw();
+        }
+
+        context.Response.Clear();
+        context.Response.ContentType = "application/json";
+        context.Response.Headers.CacheControl = "no-store, no-cache";
         context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
 
         var response = environment.IsDevelopment()
-            ? new ErrorDetails { Error = exception.Message, StackTrace = exception.StackTrace }
-            : new ErrorDetails { Error = GenericErrorMessage };
+            ? new ErrorDetails
+            {
+                Error = exception.Message,
+                RequestId = context.TraceIdentifier,
+                StackTrace = exception.StackTrace
+            }
+            : new ErrorDetails
+            {
+                Error = GenericErrorMessage,
+                RequestId = context.TraceIdentifier
+            };
 
         await context.Response.WriteAsJsonAsync(response, JsonSerializerOptions);
     }
