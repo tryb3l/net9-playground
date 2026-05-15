@@ -7,38 +7,41 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="AngleSharp" Version="1.4.0" />
       <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
       <PackageReference Include="AspNetCore.HealthChecks.UI" Version="9.0.0" />
       <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
       <PackageReference Include="AspNetCore.HealthChecks.UI.InMemory.Storage" Version="9.0.0" />
-      <PackageReference Include="Markdig" Version="0.44.0" />
-      <PackageReference Include="AutoMapper" Version="16.0.0" />
-      <PackageReference Include="HtmlSanitizer" Version="9.0.889" />
-      <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.1" />
-      <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.1" />
-      <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="10.0.1" />
-      <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.1" />
-      <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="4.14.0" PrivateAssets="all" />
-      <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="10.0.1" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.1">
+      <PackageReference Include="Markdig" Version="1.2.0" />
+      <PackageReference Include="AutoMapper" Version="16.1.1" />
+      <PackageReference Include="HtmlSanitizer" Version="9.1.923-beta" />
+      <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.8" />
+      <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.8" />
+      <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="10.0.8" />
+      <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="5.3.0" PrivateAssets="all" />
+      <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="10.0.8" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.8">
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         <PrivateAssets>all</PrivateAssets>
       </PackageReference>
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.1">
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.8">
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         <PrivateAssets>all</PrivateAssets>
       </PackageReference>
-      <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="10.0.0" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.1" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.1" />
-      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Abstractions" Version="10.0.1" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.1" />
-      <PackageReference Include="Serilog" Version="4.3.0" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.8" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.8" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Abstractions" Version="10.0.8" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.8" />
+      <PackageReference Include="Serilog" Version="4.3.1" />
       <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
       <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
       <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
       <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+      <!-- Force patched version; overrides KubernetesClient 15.0.1 from AspNetCore.HealthChecks.UI (CVE-2025-9708) -->
+      <PackageReference Include="KubernetesClient" Version="17.0.14" />
+      <!-- KubernetesClient 17.x dropped IdentityModel.OidcClient; pin explicitly so HealthChecks.UI 9.0.0 (compiled against 15.x) can find the assembly at runtime -->
+      <PackageReference Include="IdentityModel" Version="5.2.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -48,6 +51,21 @@
       <Content Update="Views/**/*.cshtml">
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       </Content>
+      <Content Remove="wwwroot\uploads\posts\f15a7e2e-db31-4813-af8f-236fe6aa8e28-large.webp" />
+      <Content Remove="wwwroot\uploads\posts\ad4c9416-d815-4a32-9bac-bd60446b087b-original.webp" />
+      <Content Remove="wwwroot\uploads\posts\ad4c9416-d815-4a32-9bac-bd60446b087b-large.webp" />
+      <Content Remove="wwwroot\uploads\posts\9e4ced81-9495-4464-87ee-54e63d4790b5-thumbnail.webp" />
+      <Content Remove="wwwroot\uploads\posts\9e4ced81-9495-4464-87ee-54e63d4790b5-large.webp" />
+      <Content Remove="wwwroot\uploads\posts\9dc8cf70-8a00-4828-b38e-28948ea7f6b5-original.webp" />
+      <Content Remove="wwwroot\uploads\posts\97742680-53b3-4b0d-95c2-ba4ad49e34d1-thumbnail.webp" />
+      <Content Remove="wwwroot\uploads\posts\70c74d37-48ed-46ea-a1ec-fd9ad3ef8ddd-medium.webp" />
+      <Content Remove="wwwroot\uploads\posts\5177b511-84cb-4e36-af3e-1bd8977f32fd-thumbnail.webp" />
+      <Content Remove="wwwroot\uploads\posts\49984b6a-9854-4b87-9235-825795addb34-thumbnail.webp" />
+      <Content Remove="wwwroot\uploads\posts\2ebdf1d6-6a90-4fe2-b651-d7570ae5500b-original.webp" />
+      <Content Remove="wwwroot\uploads\posts\1e61a601-45c0-4cdf-a502-a8c279c88291-thumbnail.webp" />
+      <Content Remove="wwwroot\uploads\posts\1e61a601-45c0-4cdf-a502-a8c279c88291-medium.webp" />
+      <Content Remove="wwwroot\uploads\posts\1e61a601-45c0-4cdf-a502-a8c279c88291-large.webp" />
+      <Content Remove="wwwroot\uploads\posts\17d8dea6-a185-401d-bec4-20195ed90f69-thumbnail.webp" />
     </ItemGroup>
 
     <ItemGroup>

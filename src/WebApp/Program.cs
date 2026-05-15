@@ -2,10 +2,11 @@ using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
+using System.Threading.RateLimiting;
 using WebApp.Data;
 using WebApp.Extensions;
 using WebApp.Middleware;
@@ -30,9 +31,12 @@ try
         .MinimumLevel.Override("HealthChecks.UI", LogEventLevel.Warning)
         .WriteTo.Console());
 
-    var root = Directory.GetCurrentDirectory();
-    var envFile = Path.Combine(root, ".dev.env");
-    DotEnv.Load(envFile);
+    if (builder.Environment.IsDevelopment())
+    {
+        var root = Directory.GetCurrentDirectory();
+        var envFile = Path.Combine(root, ".dev.env");
+        DotEnv.Load(envFile);
+    }
 
     var connectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING") ??
                            throw new InvalidOperationException("CONNECTION_STRING environment variable not found.");
@@ -46,7 +50,18 @@ try
     var healthCheckApiKey = Environment.GetEnvironmentVariable("HEALTHCHECKS_API_KEY") ??
                             throw new InvalidOperationException("HEALTHCHECKS_API_KEY environment variable not found.");
 
-    var mvcBuilder = builder.Services.AddControllersWithViews();
+    var healthCheckSelfEndpoint = builder.Configuration["HealthChecks:UI:SelfEndpoint"];
+    if (string.IsNullOrWhiteSpace(healthCheckSelfEndpoint))
+    {
+        healthCheckSelfEndpoint = builder.Environment.IsDevelopment()
+            ? "https://localhost:7218/health"
+            : "http://localhost/health";
+    }
+
+    var mvcBuilder = builder.Services.AddControllersWithViews(options =>
+    {
+        options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+    });
     builder.Services.AddRazorPages();
 
     if (builder.Environment.IsDevelopment())
@@ -66,6 +81,42 @@ try
     {
         options.LoginPath = "/Identity/Account/Login";
         options.AccessDeniedPath = "/Identity/Account/AccessDenied";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always;
+        options.SlidingExpiration = true;
+        options.Events.OnRedirectToLogin = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/health"))
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Task.CompletedTask;
+            }
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/health"))
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return Task.CompletedTask;
+            }
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+    });
+
+    builder.Services.AddAntiforgery(options =>
+    {
+        options.HeaderName = "RequestVerificationToken";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Strict;
+        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always;
     });
 
     builder.Services.AddAuthentication()
@@ -89,7 +140,7 @@ try
     builder.Services.AddApplicationServices();
 
     builder.Services.AddHttpContextAccessor();
-    
+
     if (Environment.GetEnvironmentVariable("DISABLE_DB_SEEDING") != "true")
     {
         builder.Services.AddHostedService<DbMigrationService>();
@@ -98,15 +149,16 @@ try
         .AddNpgSql(connectionString);
 
     builder.Services.AddHealthChecksUI(setup =>
-    {
-        setup.AddHealthCheckEndpoint("API", "https://web/health");
+        {
+            setup.AddHealthCheckEndpoint("API", healthCheckSelfEndpoint);
 
-        setup.UseApiEndpointHttpMessageHandler(_ => new HealthCheckHttpClientHandler(
-            healthCheckApiKey,
-            builder.Environment.IsDevelopment()
-        ));
-    })
-    .AddInMemoryStorage();
+            setup.ConfigureApiEndpointHttpclient((_, client) =>
+            {
+                client.DefaultRequestHeaders.TryAddWithoutValidation(
+                    AdminOrApiKeyHandler.ApiKeyHeaderName, healthCheckApiKey);
+            });
+        })
+        .AddInMemoryStorage();
 
     builder.Services.AddAutoMapper(cfg =>
     {
@@ -115,17 +167,72 @@ try
 
     builder.Services.AddResponseCaching();
 
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.AddPolicy("upload", context =>
+        {
+            var userId = context.User?.Identity?.Name
+                ?? context.Connection.RemoteIpAddress?.ToString()
+                ?? "anonymous";
+            return RateLimitPartition.GetFixedWindowLimiter(userId, _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            });
+        });
+
+        options.OnRejected = async (context, cancellationToken) =>
+        {
+            context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            await context.HttpContext.Response.WriteAsync(
+                "Upload rate limit exceeded. Try again in a minute.", cancellationToken);
+        };
+    });
+
     var app = builder.Build();
 
     app.UseGlobalExceptionHandler();
 
     if (!app.Environment.IsDevelopment())
     {
-        app.UseExceptionHandler("/Home/Error");
         app.UseHsts();
     }
 
     app.UseHttpsRedirection();
+
+    app.Use(async (context, next) =>
+    {
+        context.Response.OnStarting(() =>
+        {
+            var headers = context.Response.Headers;
+            headers.TryAdd("X-Content-Type-Options", "nosniff");
+            headers.TryAdd("X-Frame-Options", "DENY");
+            headers.TryAdd("Referrer-Policy", "strict-origin-when-cross-origin");
+            headers.TryAdd("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+
+            // CDN hosts used by admin pages (DataTables, Bootstrap Icons,
+            // Toastr, EasyMDE, Choices.js). Public pages only use cdn.jsdelivr.net.
+            const string cdnSources = "cdn.jsdelivr.net cdnjs.cloudflare.com cdn.datatables.net unpkg.com";
+            var csp = string.Join("; ",
+                "default-src 'self'",
+                $"script-src 'self' {cdnSources} 'unsafe-inline'",
+                $"style-src 'self' {cdnSources} 'unsafe-inline'",
+                $"font-src 'self' {cdnSources}",
+                "img-src 'self' data:",
+                "connect-src 'self'",
+                "object-src 'none'",
+                "base-uri 'self'",
+                "frame-ancestors 'none'"
+            );
+            headers.TryAdd("Content-Security-Policy", csp);
+
+            return Task.CompletedTask;
+        });
+
+        await next();
+    });
 
     app.UseResponseCaching();
 
@@ -159,6 +266,8 @@ try
 
     app.UseRouting();
 
+    app.UseRateLimiter();
+
     app.UseSerilogRequestLogging(options =>
     {
         options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
@@ -167,7 +276,7 @@ try
                 diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value);
             diagnosticContext.Set("UserAgent", httpContext.Request.Headers.UserAgent);
         };
-        options.GetLevel = (httpContext, elapsed, ex) =>
+        options.GetLevel = (httpContext, _, ex) =>
         {
             if (ex == null && httpContext.Response.StatusCode == 200 && httpContext.Request.Path.StartsWithSegments("/health"))
             {
@@ -186,6 +295,11 @@ try
         Predicate = _ => true,
         ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
     }).DisableHttpMetrics().RequireAuthorization("Admin");
+
+    app.MapHealthChecks("/health/live", new HealthCheckOptions
+    {
+        Predicate = _ => false
+    }).AllowAnonymous();
 
     app.MapHealthChecksUI(options =>
     {

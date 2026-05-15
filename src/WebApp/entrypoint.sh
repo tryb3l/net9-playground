@@ -1,9 +1,7 @@
 #!/bin/sh
 set -e
 
-# Use environment variables for connection details, with defaults
 DB_HOST="${DB_HOST:-postgres}"
-DB_USER="${DB_USER:-postgres}"
 
 echo "Waiting for PostgreSQL to start at ${DB_HOST}..."
 

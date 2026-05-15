@@ -9,9 +9,16 @@ services:
       - "5008:80"
       - "7024:443"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+      - ASPNETCORE_HTTPS_PORT=7024
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=password
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/WebApp.pfx
+      #- CONNECTION_STRING=Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - CONNECTION_STRING=Host=postgres;Database=${POSTGRES_DB:?missing};Username=${POSTGRES_USER:?missing};Password=${POSTGRES_PASSWORD:?missing}
     volumes:
       - ${HOME}/.aspnet/https:/https:ro
       - dataprotection-keys:/root/.aspnet/DataProtection-Keys
@@ -24,12 +31,15 @@ services:
     restart: unless-stopped
     ports:
       - "5432:5432"
-    environment:
-      POSTGRES_DB: net9playground
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: yourpassword
+    env_file:
+      - ./src/WebApp/.dev.env
     volumes:
       - pgdata:/var/lib/postgresql/18/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]      
+      interval: 5s
+      timeout: 5s
+      retries: 5
     logging:
       driver: "json-file"
 

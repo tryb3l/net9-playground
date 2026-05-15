@@ -4,10 +4,11 @@ WORKDIR /src
 
 # Copy project files and restore as a distinct layer
 COPY ["src/WebApp/WebApp.csproj", "WebApp/"]
+
 COPY ["NuGet.Config", "."]
+
 RUN dotnet restore "WebApp/WebApp.csproj" --configfile NuGet.Config
 
-# Copy the entire source code into the container
 COPY ./src/WebApp ./WebApp
 
 WORKDIR /src/WebApp
@@ -15,20 +16,19 @@ WORKDIR /src/WebApp
 RUN dotnet publish "WebApp.csproj" -c Release -o /app/publish
 
 # Runtime stage
-FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
 
 WORKDIR /app
 
+RUN apk add --no-cache postgresql-client krb5-libs icu-libs libgss gcompat
+
 COPY --from=build /app/publish .
 
-# Copy the entrypoint script
 COPY src/WebApp/entrypoint.sh /app/
+
 RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 80
 EXPOSE 443
-
-ENV ASPNETCORE_URLS=https://+:443;http://+:80
-ENV ASPNETCORE_ENVIRONMENT=Development
 
 ENTRYPOINT ["/app/entrypoint.sh"]
