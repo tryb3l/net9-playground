@@ -1,3 +1,5 @@
+using System;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using WebApp.Models;
 using WebApp.Utils;
@@ -26,7 +28,8 @@ public static class DataSeedingExtensions
             int categoryId,
             bool isPublished = true,
             string? content = null,
-            DateTime? createdAt = null)
+            DateTime? createdAt = null,
+            string? featuredImageUrls = null)
         {
             return await test.ExecuteDbContextAsync(async db =>
             {
@@ -53,7 +56,8 @@ public static class DataSeedingExtensions
                     CreatedAt = createdAt ?? DateTime.UtcNow.AddDays(-2),
                     IsPublished = isPublished,
                     PublishedDate = isPublished ? DateTime.UtcNow : null,
-                    AuthorId = authorId
+                    AuthorId = authorId,
+                    FeaturedImageUrls = featuredImageUrls
                 };
 
                 db.Posts.Add(post);

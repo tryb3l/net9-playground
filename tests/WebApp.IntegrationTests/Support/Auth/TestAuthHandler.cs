@@ -1,5 +1,8 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -28,11 +31,8 @@ public class TestAuthHandler(
             new(ClaimTypes.NameIdentifier, userContext.CurrentUser.Id),
             new(ClaimTypes.Email, userContext.CurrentUser.Email),
         };
-
-        foreach (var role in userContext.CurrentUser.Roles)
-        {
-            claims.Add(new Claim(ClaimTypes.Role, role));
-        }
+        
+        claims.AddRange(userContext.CurrentUser.Roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
         var identity = new ClaimsIdentity(claims, AuthenticationScheme);
         var principal = new ClaimsPrincipal(identity);

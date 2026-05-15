@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
 namespace WebApp.IntegrationTests.Data.Builders;
 
 public sealed class TestUserBuilder
@@ -9,7 +13,7 @@ public sealed class TestUserBuilder
 
     public TestUserBuilder WithId(string id) { _id = id; return this; }
     public TestUserBuilder WithEmail(string email) { _email = email; return this; }
-    public TestUserBuilder WithRole(string role) { _roles.Add(role); return this; }
+    private TestUserBuilder WithRole(string role) { _roles.Add(role); return this; }
     
     public TestUserBuilder AsAdmin() => WithRole("Admin");
     public TestUserBuilder AsUser() => WithRole("User");

@@ -1,3 +1,5 @@
+using System.Net.Http;
+using System.Threading.Tasks;
 using AngleSharp;
 using AngleSharp.Dom;
 

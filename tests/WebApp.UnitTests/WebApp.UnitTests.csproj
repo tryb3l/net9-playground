@@ -10,9 +10,8 @@
 
   <ItemGroup>
     <!-- Core Test SDK -->
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
-    <PackageReference Include="Microsoft.Testing.Platform" Version="2.0.2" />
-    <PackageReference Include="Solid.Testing.AspNetCore.Extensions.XUnit" Version="4.0.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+    <PackageReference Include="Solid.Testing.AspNetCore.Extensions.XUnit" Version="4.0.5" />
 
     <!-- xUnit Framework and Runner for IDE integration -->
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
@@ -21,7 +20,7 @@
     </PackageReference>
 
     <!-- Code Coverage -->
-    <PackageReference Include="coverlet.collector" Version="6.0.4">
+    <PackageReference Include="coverlet.collector" Version="10.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
@@ -29,12 +28,16 @@
     <!-- Mocking and Assertion Libraries -->
     <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="Shouldly" Version="4.3.0" />
-    <PackageReference Include="xunit.v3" Version="3.2.1" />
+    <PackageReference Include="xunit.v3" Version="3.2.2" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- Reference to the main application project -->
     <ProjectReference Include="..\..\src\WebApp\WebApp.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Builders\" />
   </ItemGroup>
 
 </Project>

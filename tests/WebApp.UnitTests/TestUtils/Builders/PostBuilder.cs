@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using WebApp.Models;
 
 namespace WebApp.UnitTests.TestUtils.Builders;
@@ -71,9 +72,9 @@ public class PostBuilder
         return this;
     }
 
-    public PostBuilder WithPostTags(List<PostTag> postTags)
+    public PostBuilder WithPostTags(params PostTag[] postTags)
     {
-        _postTags = postTags;
+        _postTags = postTags.ToList();
         return this;
     }
 

@@ -1,3 +1,5 @@
+using System;
+using System.Threading.Tasks;
 using Shouldly;
 using WebApp.IntegrationTests.Fixtures;
 using WebApp.IntegrationTests.Support;
@@ -6,8 +8,8 @@ using static System.Net.HttpStatusCode;
 
 namespace WebApp.IntegrationTests.Api.Blog;
 
-public class BlogViewTests(IntegrationTestFixture fixture, ITestOutputHelper output)
-    : BaseIntegrationTest(fixture, output)
+public class BlogViewTests(IntegrationTestFixture fixture)
+    : BaseIntegrationTest(fixture)
 {
     [Fact]
     public async Task Index_ReturnsOk_WithPosts()
@@ -35,7 +37,7 @@ public class BlogViewTests(IntegrationTestFixture fixture, ITestOutputHelper out
         await this.GivenAuthenticatedUserAsync();
         var catId = await this.SeedCategoryAsync("Pagination Test");
         
-        // Seed posts with different dates to ensure consistent ordering
+        // Seed posts with different dates
         for (var i = 1; i <= 7; i++)
         {
             await this.SeedPostAsync(

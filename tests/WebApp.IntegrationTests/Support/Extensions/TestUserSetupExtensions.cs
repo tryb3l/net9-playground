@@ -1,3 +1,5 @@
+using System;
+using System.Threading.Tasks;
 using WebApp.IntegrationTests.Data;
 using WebApp.IntegrationTests.Data.Builders;
 

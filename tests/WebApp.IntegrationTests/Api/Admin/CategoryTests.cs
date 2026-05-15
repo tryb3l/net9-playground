@@ -1,4 +1,6 @@
-using System.Net;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Threading.Tasks;
 using Shouldly;
 using WebApp.IntegrationTests.Fixtures;
 using WebApp.IntegrationTests.Support;
@@ -7,8 +9,8 @@ using static System.Net.HttpStatusCode;
 
 namespace WebApp.IntegrationTests.Api.Admin;
 
-public class CategoryTests(IntegrationTestFixture fixture, ITestOutputHelper output)
-    : BaseIntegrationTest(fixture, output)
+public class CategoryTests(IntegrationTestFixture fixture)
+    : BaseIntegrationTest(fixture)
 {
     [Fact]
     public async Task Index_ReturnsOk_ForAdmin()
@@ -29,9 +31,13 @@ public class CategoryTests(IntegrationTestFixture fixture, ITestOutputHelper out
         // Arrange
         await this.GivenAdminUserAsync();
 
+        var createPage = await HttpClient.GetAsync("/Admin/Category/Create", TestContext.Current.CancellationToken);
+        var token = await GetCsrfToken(createPage);
+
         var formData = new Dictionary<string, string>
         {
             ["Name"] = "New Category",
+            ["__RequestVerificationToken"] = token
         };
 
         // Act
@@ -40,9 +46,10 @@ public class CategoryTests(IntegrationTestFixture fixture, ITestOutputHelper out
         // Assert
         response.StatusCode.ShouldBeOneOf(Redirect, SeeOther, MovedPermanently);
 
-        // Verify DB
+        // Assert persisted state
         var exists = await ExecuteDbContextAsync(async db =>
             await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.AnyAsync(db.Categories, c => c.Name == "New Category"));
+
         exists.ShouldBeTrue();
     }
 
@@ -51,7 +58,15 @@ public class CategoryTests(IntegrationTestFixture fixture, ITestOutputHelper out
     {
         // Arrange
         await this.GivenAdminUserAsync();
-        var formData = new Dictionary<string, string> { ["Name"] = "" };
+        
+        var createPage = await HttpClient.GetAsync("/Admin/Category/Create", TestContext.Current.CancellationToken);
+        var token = await GetCsrfToken(createPage);
+
+        var formData = new Dictionary<string, string> 
+        { 
+            ["Name"] = "",
+            ["__RequestVerificationToken"] = token
+        };
 
         // Act
         var response = await HttpClient.PostAsync("/Admin/Category/Create", new FormUrlEncodedContent(formData), TestContext.Current.CancellationToken);

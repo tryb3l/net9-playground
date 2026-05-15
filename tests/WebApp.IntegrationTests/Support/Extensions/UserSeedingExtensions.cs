@@ -1,3 +1,5 @@
+using System;
+using System.Threading.Tasks;
 using WebApp.IntegrationTests.Data;
 using WebApp.Models;
 
@@ -20,6 +22,7 @@ public static class UserSeedingExtensions
                 NormalizedEmail = user.Email.ToUpper(),
                 NormalizedUserName = user.Email.ToUpper(),
                 SecurityStamp = Guid.NewGuid().ToString(),
+                DisplayName = user.Name
             };
             
             db.Users.Add(dbUser);

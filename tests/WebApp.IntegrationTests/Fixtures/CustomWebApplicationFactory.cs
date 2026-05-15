@@ -1,7 +1,8 @@
-using Microsoft.AspNetCore.Antiforgery;
+using System;
+using System.Net.Http;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
@@ -14,15 +15,12 @@ using Respawn;
 using Testcontainers.PostgreSql;
 using WebApp.Data;
 using WebApp.IntegrationTests.Support.Auth;
-using WebApp.IntegrationTests.Support.Logging;
-using Xunit.Sdk;
 
 namespace WebApp.IntegrationTests.Fixtures;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _dbContainer = new PostgreSqlBuilder()
-        .WithImage("postgres:18-alpine")
+    private readonly PostgreSqlContainer _dbContainer = new PostgreSqlBuilder("postgres:18-alpine")
         .WithDatabase("test_db")
         .WithUsername("test")
         .WithPassword("test")
@@ -31,9 +29,6 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
     private NpgsqlConnection? _dbConnection;
     private Respawner? _respawner;
     public HttpClient HttpClient { get; private set; } = null!;
-    private readonly TestOutputHelperAccessor _loggerAccessor = new();
-
-    public void SetMessageSink(IMessageSink? messageSink) => _loggerAccessor.MessageSink = messageSink;
 
     public async ValueTask InitializeAsync()
     {
@@ -46,8 +41,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         Environment.SetEnvironmentVariable("HEALTHCHECKS_API_KEY", "test-key");
         Environment.SetEnvironmentVariable("DISABLE_DB_SEEDING", "true");
 
-        var logger = Services.GetRequiredService<ILogger<LoggingHttpMessageHandler>>();
-        HttpClient = CreateDefaultClient(new LoggingHttpMessageHandler(logger));
+        HttpClient = CreateDefaultClient();
 
         using (var scope = Services.CreateScope())
         {
@@ -80,14 +74,14 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         builder.ConfigureLogging(logging =>
         {
             logging.ClearProviders();
-            logging.AddXUnit(_loggerAccessor);
+            logging.AddConsole();
             logging.SetMinimumLevel(LogLevel.Information);
         });
 
         builder.ConfigureTestServices(services =>
         {
             services.AddSingleton<TestUserContext>();
-            
+
             services.AddAuthentication(options =>
                 {
                     options.DefaultAuthenticateScheme = TestAuthHandler.AuthenticationScheme;
@@ -96,14 +90,13 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
                 })
                 .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
                     TestAuthHandler.AuthenticationScheme, options => { });
-            services.AddSingleton<IAntiforgery, TestAntiforgery>();
             services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
             services.RemoveAll<IHostedService>();
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseNpgsql(_dbContainer.GetConnectionString()));
         });
     }
-    
+
     public TestUserContext UserContext => Services.GetRequiredService<TestUserContext>();
 
     public async Task ResetDatabaseAsync()
@@ -120,33 +113,5 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         await _dbContainer.DisposeAsync();
         GC.SuppressFinalize(this);
         await base.DisposeAsync();
-    }
-}
-
-public class TestAntiforgery : IAntiforgery
-{
-    public AntiforgeryTokenSet GetAndStoreTokens(HttpContext httpContext)
-    {
-        return new AntiforgeryTokenSet(string.Empty, string.Empty, string.Empty, string.Empty);
-    }
-
-    public AntiforgeryTokenSet GetTokens(HttpContext httpContext)
-    {
-        return new AntiforgeryTokenSet(string.Empty, string.Empty, string.Empty, string.Empty);
-    }
-
-    public Task<bool> IsRequestValidAsync(HttpContext httpContext)
-    {
-        return Task.FromResult(true);
-    }
-
-    public Task ValidateRequestAsync(HttpContext httpContext)
-    {
-        return Task.CompletedTask;
-    }
-
-    public void SetCookieTokenAndHeader(HttpContext httpContext)
-    {
-        // Do nothing
     }
 }

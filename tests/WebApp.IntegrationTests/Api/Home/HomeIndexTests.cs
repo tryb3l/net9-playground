@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Shouldly;
 using WebApp.IntegrationTests.Fixtures;
 using WebApp.IntegrationTests.Support;
@@ -6,8 +7,8 @@ using static System.Net.HttpStatusCode;
 
 namespace WebApp.IntegrationTests.Api.Home;
 
-public class HomeIndexTests(IntegrationTestFixture fixture, ITestOutputHelper output)
-    : BaseIntegrationTest(fixture, output)
+public class HomeIndexTests(IntegrationTestFixture fixture)
+    : BaseIntegrationTest(fixture)
 {
     [Fact]
     public async Task ReturnsOk_WhenAnonymous()
