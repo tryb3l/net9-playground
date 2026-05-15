@@ -146,6 +146,7 @@ apple-up: apple-network apple-volumes apple-postgres
 	@set -a && . $(ENV_FILE) && set +a && \
 	container run -d --name web --network $(APPLEC_NETWORK) \
 		-p 5008:80 -p 7024:443 \
+		--cap-add NET_BIND_SERVICE \
 		--env-file $(ENV_FILE) \
 		-e ASPNETCORE_ENVIRONMENT=Development \
 		-e CONNECTION_STRING="Host=postgres;Database=$$POSTGRES_DB;Username=$$POSTGRES_USER;Password=$$POSTGRES_PASSWORD" \
@@ -177,6 +178,11 @@ apple-postgres: apple-network apple-volumes
 		PG_PASS=$$(grep '^POSTGRES_PASSWORD=' $(ENV_FILE) | cut -d '=' -f2- | tr -d '\r'); \
 		container run -d --name postgres --network $(APPLEC_NETWORK) \
 			-p 5432:5432 \
+			--cap-add CHOWN \
+			--cap-add FOWNER \
+			--cap-add SETUID \
+			--cap-add SETGID \
+			--cap-add DAC_OVERRIDE \
 			-e POSTGRES_DB="$$PG_DB" \
 			-e POSTGRES_USER="$$PG_USER" \
 			-e POSTGRES_PASSWORD="$$PG_PASS" \
@@ -193,7 +199,7 @@ apple-network:
 # Set up Apple named volumes
 apple-volumes:
 	@container volume ls | grep -q "apple-pgdata" || \
-		(echo "Creating volume apple-pgdata..." && container volume create apple-pgdata)
+		(echo "Creating volume apple-pgdata..." && container volume create --journal apple-pgdata)
 	@container volume ls | grep -q "dataprotection-keys" || \
 		(echo "Creating volume dataprotection-keys..." && container volume create dataprotection-keys)
 
