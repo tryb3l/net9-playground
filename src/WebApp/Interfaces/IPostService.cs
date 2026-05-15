@@ -27,4 +27,5 @@ public interface IPostService
     Task<DataTablesResponse<PostViewModel>> GetPostListForDataTableAsync(DataTablesRequest request);
     Task EmptyTrashAsync();
     Task RestoreAllPostsAsync();
+    Task<Tag> CreateTagAsync(string name);
 }

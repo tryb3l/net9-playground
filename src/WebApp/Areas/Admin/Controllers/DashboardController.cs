@@ -5,7 +5,7 @@ using WebApp.Interfaces;
 namespace WebApp.Areas.Admin.Controllers;
 
     [Area("Admin")]
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public class DashboardController : Controller
     {
         private readonly IDashboardService _dashboardService;

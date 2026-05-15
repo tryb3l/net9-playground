@@ -1,6 +1,7 @@
+using System.Text.Json;
 using AutoMapper;
-using Ganss.Xss;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 using WebApp.Areas.Admin.ViewModels.Post;
 using WebApp.Helpers;
 using WebApp.Interfaces;
@@ -106,6 +107,7 @@ public class PostService : IPostService
     public async Task<EditPostViewModel?> GetPostForEditAsync(int id)
     {
         var post = await _postRepository.GetPostWithDetailsAsync(id);
+        if (post == null) return null;
 
         var viewModel = _mapper.Map<EditPostViewModel>(post);
 
@@ -118,19 +120,20 @@ public class PostService : IPostService
 
     public async Task<Post> CreatePostAsync(CreatePostViewModel viewModel, string userId)
     {
-        var sanitizedContent = SanitizeContent(viewModel.Content);
         var slug = await EnsureUniqueSlugAsync(SlugHelper.GenerateSlug(viewModel.Title));
 
         var post = new Post
         {
             Title = viewModel.Title,
-            Content = sanitizedContent,
+            Content = viewModel.Content,
             Slug = slug,
             AuthorId = userId,
             CategoryId = viewModel.CategoryId,
             IsPublished = viewModel.PublishNow,
+            CreatedAt = DateTime.UtcNow,
             PublishedDate = viewModel.PublishNow ? DateTime.UtcNow : null,
-            FeaturedImageUrls = viewModel.FeaturedImageUrl
+            FeaturedImageUrls = viewModel.FeaturedImageUrl,
+            FeaturedImageAlt = viewModel.FeaturedImageAlt
         };
 
         await _postRepository.AddAsync(post);
@@ -155,13 +158,24 @@ public class PostService : IPostService
         var wasPublished = post.IsPublished;
 
         _mapper.Map(viewModel, post);
+
+        // 1. Image Logic: Preserve JSON if the image hasn't changed
+        if (viewModel.FeaturedImageUrl != GetStoredLargeUrl(post.FeaturedImageUrls))
+            post.FeaturedImageUrls = viewModel.FeaturedImageUrl;
+
+        // 2. Slug Logic: Protect SEO
         if (originalTitle != viewModel.Title)
         {
-            post.Slug = SlugHelper.GenerateSlug(viewModel.Title);
-            post.Slug = await EnsureUniqueSlugAsync(post.Slug, post.Id);
+            // Only auto-update slug if the post is NOT published yet.
+            // Changing slugs on published posts breaks external links.
+            if (!wasPublished)
+            {
+                post.Slug = SlugHelper.GenerateSlug(viewModel.Title);
+                post.Slug = await EnsureUniqueSlugAsync(post.Slug, post.Id);
+            }
         }
 
-        post.Content = SanitizeContent(viewModel.Content);
+        post.Content = viewModel.Content;
 
         if (!wasPublished && viewModel.PublishNow)
         {
@@ -261,122 +275,136 @@ public class PostService : IPostService
 
     public async Task<DataTablesResponse<PostViewModel>> GetPostListForDataTableAsync(DataTablesRequest request)
     {
-        var searchTerm = request.Search?.Value;
-        var order = request.Order.FirstOrDefault();
-        var sortColumnIndex = order?.Column ?? 2;
-        var sortColumnName = request.Columns.ElementAtOrDefault(sortColumnIndex)?.Name ?? "Created";
-        var orderAsc = (order?.Dir ?? "desc") == "asc";
+        var includeDeleted = request.StatusFilter is "trash" or "Trashed" or "All";
+        var query = _postRepository.GetQueryable(includeDeleted);
 
-        var (posts, filteredCount, totalCount) = await _postRepository.GetPostsForDataTableAsync(
-            request.Start,
-            request.Length,
-            searchTerm,
-            sortColumnName,
-            orderAsc,
-            request.StatusFilter
-        );
-
-        var postViewModels = _mapper.Map<List<PostViewModel>>(posts);
-        var postsById = posts.ToDictionary(p => p.Id);
-
-        var httpContext = _httpContextAccessor.HttpContext;
-
-        foreach (var vm in postViewModels)
+        // Apply status filter
+        query = request.StatusFilter?.ToLower() switch
         {
-            if (!postsById.TryGetValue(vm.Id, out var post))
-            {
-                vm.Actions = string.Empty;
-                continue;
-            }
+            "published" => query.Where(p => p.IsPublished && !p.IsDeleted),
+            "draft" => query.Where(p => !p.IsPublished && !p.IsDeleted),
+            "trash" or "trashed" => query.Where(p => p.IsDeleted),
+            "all" => query,
+            "active" => query.Where(p => !p.IsDeleted),
+            _ => query.Where(p => !p.IsDeleted)
+        };
 
-            vm.Status = post.IsDeleted
-                ? "<span class='badge bg-danger'>In Trash</span>"
-                : post.IsPublished
-                    ? "<span class='badge bg-success'>Published</span>"
-                    : "<span class='badge bg-secondary'>Draft</span>";
+        var totalForStatus = await query.CountAsync();
 
-            if (httpContext == null)
-            {
-                vm.Actions = string.Empty;
-                continue;
-            }
-
-            var editUrl = _linkGenerator.GetPathByAction(
-                httpContext,
-                action: "Edit",
-                controller: "Post",
-                values: new { id = vm.Id, area = "Admin" });
-
-            var deleteUrl = _linkGenerator.GetPathByAction(
-                httpContext,
-                action: "SoftDelete",
-                controller: "Post",
-                values: new { id = vm.Id, area = "Admin" });
-
-            var restoreUrl = _linkGenerator.GetPathByAction(
-                httpContext,
-                action: "Restore",
-                controller: "Post",
-                values: new { id = vm.Id, area = "Admin" });
-
-            var actionsHtml =
-                $"<div class='btn-group' role='group'><a href='{editUrl}' class='btn btn-sm btn-outline-primary' title='Edit'><i class='bi bi-pencil'></i></a>";
-
-            if (post.IsDeleted)
-            {
-                actionsHtml +=
-                    $"<form method='post' action='{restoreUrl}' class='d-inline restore-form'><button type='submit' class='btn btn-sm btn-outline-success' title='Restore'><i class='bi bi-arrow-counterclockwise'></i></button></form>";
-            }
-            else
-            {
-                actionsHtml +=
-                    $"<form method='post' action='{deleteUrl}' class='d-inline delete-form' data-post-title='{post.Title}'><button type='submit' class='btn btn-sm btn-outline-danger' title='Delete'><i class='bi bi-trash'></i></button></form>";
-            }
-
-            actionsHtml += "</div>";
-            vm.Actions = actionsHtml;
+        // Apply search
+        if (!string.IsNullOrWhiteSpace(request.Search?.Value))
+        {
+            var searchTerm = request.Search.Value.ToLower();
+            query = query.Where(p =>
+                p.Title.ToLower().Contains(searchTerm) ||
+                (p.Content != null && p.Content.ToLower().Contains(searchTerm)));
         }
+
+        var filteredCount = await query.CountAsync();
+
+        // Apply ordering
+        if (request.Order.Count > 0 &&
+            request.Order[0].Column >= 0 &&
+            request.Order[0].Column < request.Columns.Count)
+        {
+            var orderColumn = request.Columns[request.Order[0].Column].Data;
+            var orderDir = request.Order[0].Dir == "asc" ? "asc" : "desc";
+
+            query = orderColumn switch
+            {
+                "title" => orderDir == "asc" ? query.OrderBy(p => p.Title) : query.OrderByDescending(p => p.Title),
+                "publishedDate" => orderDir == "asc" ? query.OrderBy(p => p.PublishedDate) : query.OrderByDescending(p => p.PublishedDate),
+                "createdAt" => orderDir == "asc" ? query.OrderBy(p => p.CreatedAt) : query.OrderByDescending(p => p.CreatedAt),
+                _ => query.OrderByDescending(p => p.CreatedAt)
+            };
+        }
+        else
+        {
+            query = query.OrderByDescending(p => p.CreatedAt);
+        }
+
+        // Apply pagination and include related data
+        var posts = await query
+            .Skip(request.Start)
+            .Take(request.Length)
+            .Include(p => p.Category)
+            .Include(p => p.PostTags)
+                .ThenInclude(pt => pt.Tag)
+            .Include(p => p.Author)
+            .ToListAsync();
+
+        var viewModels = posts.Select(post => new PostViewModel
+        {
+            Id = post.Id,
+            Title = post.Title,
+            Slug = post.Slug,
+            Excerpt = GetPlainTextExcerpt(post.Content, 100),
+            CategoryName = post.Category?.Name ?? "Uncategorized",
+            Tags = post.PostTags.Select(pt => pt.Tag?.Name ?? "").Where(n => !string.IsNullOrEmpty(n)).ToList(),
+            AuthorName = post.Author?.UserName ?? "Unknown",
+            PublishedDate = post.PublishedDate,
+            CreatedAt = post.CreatedAt,
+            IsPublished = post.IsPublished,
+            IsDeleted = post.IsDeleted,
+            FeaturedImageUrl = GetThumbnailUrl(post.FeaturedImageUrls)
+        }).ToList();
 
         return new DataTablesResponse<PostViewModel>
         {
             Draw = request.Draw,
-            RecordsTotal = totalCount,
+            RecordsTotal = totalForStatus,
             RecordsFiltered = filteredCount,
-            Data = postViewModels
+            Data = viewModels
         };
     }
 
-    private static string SanitizeContent(string? content)
+    private static string GetPlainTextExcerpt(string? markdown, int maxLength)
     {
-        if (string.IsNullOrEmpty(content))
+        if (string.IsNullOrWhiteSpace(markdown))
             return string.Empty;
 
-        var sanitizer = new HtmlSanitizer();
+        var plainText = Markdig.Markdown.ToPlainText(markdown);
+        plainText = System.Text.RegularExpressions.Regex.Replace(plainText, @"\s+", " ").Trim();
 
-        sanitizer.AllowedTags.Clear();
-        sanitizer.AllowedTags.Add("h1");
-        sanitizer.AllowedTags.Add("h2");
-        sanitizer.AllowedTags.Add("h3");
-        sanitizer.AllowedTags.Add("h4");
-        sanitizer.AllowedTags.Add("p");
-        sanitizer.AllowedTags.Add("a");
-        sanitizer.AllowedTags.Add("ul");
-        sanitizer.AllowedTags.Add("ol");
-        sanitizer.AllowedTags.Add("li");
-        sanitizer.AllowedTags.Add("strong");
-        sanitizer.AllowedTags.Add("em");
-        sanitizer.AllowedTags.Add("blockquote");
-        sanitizer.AllowedTags.Add("code");
-        sanitizer.AllowedTags.Add("img");
-        sanitizer.AllowedTags.Add("br");
+        if (plainText.Length <= maxLength)
+            return plainText;
 
-        sanitizer.AllowedAttributes.Clear();
-        sanitizer.AllowedAttributes.Add("href");
-        sanitizer.AllowedAttributes.Add("src");
-        sanitizer.AllowedAttributes.Add("alt");
-        sanitizer.AllowedAttributes.Add("title");
+        var lastSpace = plainText.LastIndexOf(' ', maxLength);
+        if (lastSpace > maxLength / 2)
+            return plainText[..lastSpace] + "...";
 
-        return sanitizer.Sanitize(content);
+        return plainText[..maxLength] + "...";
+    }
+
+    private static string? GetStoredLargeUrl(string? featuredImageUrls)
+    {
+        if (string.IsNullOrEmpty(featuredImageUrls)) return null;
+        if (!featuredImageUrls.TrimStart().StartsWith('{')) return featuredImageUrls;
+        try
+        {
+            var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(featuredImageUrls);
+            return dict?.GetValueOrDefault("large");
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static string? GetThumbnailUrl(string? featuredImageUrls)
+    {
+        if (string.IsNullOrEmpty(featuredImageUrls))
+            return null;
+
+        try
+        {
+            var urls = JsonSerializer.Deserialize<Dictionary<string, string>>(featuredImageUrls);
+            return urls?.GetValueOrDefault("thumbnail") ?? urls?.Values.FirstOrDefault();
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private async Task<string> EnsureUniqueSlugAsync(string slug, int? postId = null)
@@ -404,7 +432,7 @@ public class PostService : IPostService
         }
         await _postRepository.SaveChangesAsync();
     }
-
+    
     public async Task RestoreAllPostsAsync()
     {
         var trashedPosts = await _postRepository.GetAllTrashedPostsAsync();
@@ -420,5 +448,12 @@ public class PostService : IPostService
     public async Task<Post?> GetPostBySlugAsync(string slug)
     {
         return await _postRepository.GetBySlugAsync(slug);
+    }
+
+    public async Task<Tag> CreateTagAsync(string name)
+    {
+        var tag = new Tag { Name = name.Trim() };
+        await _tagService.CreateTagAsync(tag);
+        return tag;
     }
 }

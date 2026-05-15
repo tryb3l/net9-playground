@@ -306,4 +306,16 @@ public class PostRepository : IPostRepository
             .Include(p => p.PostTags)
             .ToListAsync();
     }
+
+    public IQueryable<Post> GetQueryable(bool includeDeleted = false)
+    {
+        var query = _context.Posts.AsQueryable();
+
+        if (includeDeleted)
+        {
+            query = query.IgnoreQueryFilters();
+        }
+
+        return query;
+    }
 }

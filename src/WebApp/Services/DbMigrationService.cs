@@ -1,7 +1,5 @@
 using System.Diagnostics;
-using System.Reflection;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Migrations;
 using WebApp.Data;
 
 namespace WebApp.Services;
@@ -10,6 +8,7 @@ public class DbMigrationService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<DbMigrationService> _logger;
+    private readonly IHostEnvironment _environment;
     private readonly ActivitySource _activitySource = new("Database.Migrations");
 
     public new Task ExecuteTask => _executeTask?.Task ?? Task.CompletedTask;
@@ -17,19 +16,21 @@ public class DbMigrationService : BackgroundService
 
     public DbMigrationService(
         IServiceProvider serviceProvider,
-        ILogger<DbMigrationService> logger)
+        ILogger<DbMigrationService> logger,
+        IHostEnvironment environment)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
+        _environment = environment;
         _executeTask = new TaskCompletionSource();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        using var activity = _activitySource.StartActivity("Database Migration", ActivityKind.Client);
+
         try
         {
-            await Task.Delay(1000, stoppingToken);
-
             using var scope = _serviceProvider.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
@@ -38,7 +39,7 @@ public class DbMigrationService : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred during database initialization");
+            _logger.LogError(ex, "An error occurred while migrating the database");
             _executeTask?.SetException(ex);
             throw;
         }
@@ -49,95 +50,65 @@ public class DbMigrationService : BackgroundService
         using var activity = _activitySource.StartActivity("Initializing database", ActivityKind.Client);
         var stopwatch = Stopwatch.StartNew();
 
-        try
+        if (!_environment.IsDevelopment())
         {
-            if (await dbContext.Database.CanConnectAsync(stoppingToken))
-            {
-                var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync(stoppingToken);
-                var pendingCount = pendingMigrations.Count();
+            var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync(stoppingToken);
+            var pendingList = pendingMigrations.ToList();
 
-                if (pendingCount > 0)
-                {
-                    _logger.LogInformation("Applying {Count} pending migrations", pendingCount);
-                    await dbContext.Database.MigrateAsync(stoppingToken);
-                }
-                else
-                {
-                    _logger.LogInformation("Database is up to date, no migrations to apply");
-                }
+            if (pendingList.Count > 0)
+            {
+                _logger.LogWarning(
+                    "Database has {Count} pending migrations: {Migrations}. " +
+                    "Auto-migration is disabled in non-development environments. " +
+                    "Run migrations via CI/CD pipeline or manually.",
+                    pendingList.Count,
+                    string.Join(", ", pendingList));
             }
             else
             {
-                _logger.LogInformation("Database does not exist yet, creating and applying migrations");
-                await dbContext.Database.MigrateAsync(stoppingToken);
+                _logger.LogInformation("Database is up to date");
             }
 
             await SeedDataAsync(stoppingToken);
-
-            _logger.LogInformation("Database initialization completed after {ElapsedMilliseconds}ms",
-                stopwatch.ElapsedMilliseconds);
+            return;
         }
-        catch (Exception ex) when (ex.Message.Contains("relation") && ex.Message.Contains("already exists"))
+
+        if (await dbContext.Database.CanConnectAsync(stoppingToken))
         {
-            // This specific exception occurs when tables exist but migration history is missing
-            _logger.LogWarning("Tables already exist but migration history is incomplete. Attempting to repair...");
+            var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync(stoppingToken);
+            var pendingCount = pendingMigrations.Count();
 
-            try
+            if (pendingCount > 0)
             {
-                await RepairMigrationHistoryAsync(dbContext, _logger);
-                await SeedDataAsync(stoppingToken);
-                _logger.LogInformation("Database repair and seeding completed after {ElapsedMilliseconds}ms",
-                    stopwatch.ElapsedMilliseconds);
+                _logger.LogInformation("Applying {Count} pending migrations", pendingCount);
+                await dbContext.Database.MigrateAsync(stoppingToken);
             }
-            catch (Exception repairEx)
+            else
             {
-                _logger.LogError(repairEx, "Failed to repair migration history");
-                throw;
+                _logger.LogInformation("Database is up to date");
             }
         }
+        else
+        {
+            _logger.LogInformation("Database does not exist, creating and applying migrations");
+            await dbContext.Database.MigrateAsync(stoppingToken);
+        }
+
+        await SeedDataAsync(stoppingToken);
+
+        _logger.LogInformation("Database initialization completed in {ElapsedMs}ms", stopwatch.ElapsedMilliseconds);
     }
 
     private async Task SeedDataAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Seeding database");
-        using var scope = _serviceProvider.CreateScope();
-        await SeedData.Initialize(scope.ServiceProvider, stoppingToken);
-    }
-
-    private static async Task RepairMigrationHistoryAsync(ApplicationDbContext context, ILogger logger)
-    {
-        var migrations = context.GetType().Assembly
-            .GetTypes()
-            .Where(t => t.IsClass && t.GetCustomAttribute<MigrationAttribute>() != null)
-            .Select(t => new
-            {
-                Migration = t.GetCustomAttribute<MigrationAttribute>(),
-                Type = t
-            })
-            .OrderBy(m => m.Migration!.Id)
-            .ToList();
-
-        logger.LogInformation("Attempting to mark {Count} migrations as applied", migrations.Count);
-
-        foreach (var migration in migrations)
+        var disableSeeding = Environment.GetEnvironmentVariable("DISABLE_DB_SEEDING");
+        if (disableSeeding == "true")
         {
-            var id = migration.Migration!.Id;
-            var applied = await context.Database.GetAppliedMigrationsAsync();
-
-            if (applied.Contains(id)) continue;
-            logger.LogInformation("Marking migration {Id} as applied", id);
-
-            var version = migration.Type.Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "9.0.0";
-            if (version.Length > 32)
-            {
-                // Only keep the first part without commit hash
-                version = version.Split('+')[0];
-            }
-
-            await context.Database.ExecuteSqlRawAsync(
-                "INSERT INTO \"__EFMigrationsHistory\" (\"MigrationId\", \"ProductVersion\") VALUES ({0}, {1})",
-                id,
-                version);
+            _logger.LogInformation("Database seeding is disabled");
+            return;
         }
+
+        _logger.LogInformation("Seeding database");
+        await SeedData.InitializeAsync(_serviceProvider, stoppingToken);
     }
 }

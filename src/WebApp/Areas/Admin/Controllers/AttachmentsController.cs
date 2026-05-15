@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using WebApp.Interfaces;
 
 namespace WebApp.Areas.Admin.Controllers;
@@ -7,6 +8,7 @@ namespace WebApp.Areas.Admin.Controllers;
 [Area("Admin")]
 [Authorize(Roles = "Admin")]
 [Route("[area]/api/[controller]")]
+[EnableRateLimiting("upload")]
 public class AttachmentsController : Controller
 {
     private readonly IAttachmentService _attachmentService;
@@ -52,5 +54,33 @@ public class AttachmentsController : Controller
             _logger.LogError(ex, "An unexpected error occurred during file upload for {FileName}", file.FileName);
             return StatusCode(500, new { message = "An unexpected server error occurred." });
         }
+    }
+
+    [HttpPost("editor-upload")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditorUpload([FromForm(Name = "image")] IFormFile? image, [FromForm(Name = "file")] IFormFile? file)
+    {
+        var uploadedFile = image ?? file;
+
+        if (uploadedFile == null || uploadedFile.Length == 0)
+            return BadRequest(new { success = 0, message = "No file uploaded." });
+
+        if (uploadedFile.Length > 10 * 1024 * 1024)
+            return BadRequest(new { success = 0, message = "File size exceeds the 10MB limit." });
+
+        if (!AllowedMimeTypes.Contains(uploadedFile.ContentType.ToLowerInvariant()))
+        {
+            return BadRequest(new { success = 0, message = "Invalid file MIME type." });
+        }
+
+        var (urls, errorMessage) = await _attachmentService.ProcessAndSaveImageAsync(uploadedFile, "posts/editor");
+
+        if (errorMessage != null)
+        {
+            return BadRequest(new { success = 0, message = errorMessage });
+        }
+
+        var response = new { success = 1, file = new { url = urls?["large"] } };
+        return Ok(response);
     }
 }

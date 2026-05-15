@@ -33,26 +33,12 @@ public class TagController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CreateTagViewModel viewModel)
     {
-        _logger.LogInformation("Create POST action called. Name received: '{Name}'", viewModel?.Name ?? "NULL");
-        
-        foreach (var key in Request.Form.Keys)
+        if (!ModelState.IsValid)
         {
-            _logger.LogInformation("Form data - Key: {Key}, Value: {Value}", key, Request.Form[key]);
-        }
-
-        if (viewModel == null)
-        {
-            _logger.LogError("ViewModel is null");
-            TempData["ErrorMessage"] = "No data received";
-            return View(new CreateTagViewModel());
-        }
-
-        if (string.IsNullOrWhiteSpace(viewModel.Name))
-        {
-            _logger.LogError("Tag name is null or empty");
-            ModelState.AddModelError("Name", "Tag name is required");
+            _logger.LogWarning("Create tag request failed validation.");
             return View(viewModel);
         }
 
@@ -67,7 +53,7 @@ public class TagController : Controller
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating tag");
-            TempData["ErrorMessage"] = "Error creating tag: " + ex.Message;
+            TempData["ErrorMessage"] = "Error creating tag. Please try again.";
             return View(viewModel);
         }
     }

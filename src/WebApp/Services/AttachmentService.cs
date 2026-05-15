@@ -1,5 +1,4 @@
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
 using WebApp.Interfaces;
 
@@ -8,21 +7,42 @@ namespace WebApp.Services;
 public class AttachmentService : IAttachmentService
 {
     private readonly IWebHostEnvironment _env;
+    private readonly ILogger<AttachmentService> _logger;
     private static readonly string[] AllowedExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
+    
+    private const int MaxImageWidth = 8192;
+    private const int MaxImageHeight = 8192;
+    private const long MaxFileSizeBytes = 10 * 1024 * 1024;
+
     private static readonly Dictionary<string, Size> ImageSizes = new()
     {
-        { "large", new Size(1280, 720) },
+        { "large", new Size(1920, 1080) }, // Increased for better quality on modern screens
         { "medium", new Size(800, 450) },
         { "thumbnail", new Size(400, 225) }
     };
 
-    public AttachmentService(IWebHostEnvironment env)
+    public AttachmentService(IWebHostEnvironment env, ILogger<AttachmentService> logger)
     {
         _env = env;
+        _logger = logger;
     }
 
-    public async Task<(Dictionary<string, string>? Urls, string? ErrorMessage)> ProcessAndSaveImageAsync(IFormFile file, string subfolder)
+    public async Task<(Dictionary<string, string>? Urls, string? ErrorMessage)> ProcessAndSaveImageAsync(
+        IFormFile file, string? subfolder)
     {
+        if (file.Length > MaxFileSizeBytes)
+        {
+            return (null, $"File size exceeds maximum allowed size of {MaxFileSizeBytes / 1024 / 1024}MB.");
+        }
+        
+        subfolder = subfolder?.Trim('/', '\\') ?? string.Empty;
+        
+        if (subfolder.Contains("..") || Path.IsPathRooted(subfolder))
+        {
+            _logger.LogWarning("Potential path traversal attempt: {Subfolder}", subfolder);
+            return (null, "Invalid upload path.");
+        }
+
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (string.IsNullOrEmpty(extension) || !AllowedExtensions.Contains(extension))
         {
@@ -30,57 +50,101 @@ public class AttachmentService : IAttachmentService
         }
 
         var uploadsFolderPath = Path.Combine(_env.WebRootPath, "uploads", subfolder);
-        if (!Directory.Exists(uploadsFolderPath))
-        {
-            Directory.CreateDirectory(uploadsFolderPath);
-        }
+        var createdFilePaths = new List<string>();
 
-        var tempFilePath = Path.GetTempFileName();
         try
         {
-            await using (var stream = new FileStream(tempFilePath, FileMode.Create))
+            if (!Directory.Exists(uploadsFolderPath))
             {
-                await file.CopyToAsync(stream);
+                Directory.CreateDirectory(uploadsFolderPath);
             }
 
-            using var image = await Image.LoadAsync(tempFilePath);
+            await using var stream = file.OpenReadStream();
+            
+            var imageInfo = await Image.IdentifyAsync(stream);
+            if (imageInfo.Width > MaxImageWidth || imageInfo.Height > MaxImageHeight)
+            {
+                return (null, $"Image dimensions ({imageInfo.Width}x{imageInfo.Height}) exceed maximum allowed size of {MaxImageWidth}x{MaxImageHeight} pixels.");
+            }
+            
+            stream.Position = 0;
+            
+            using var image = await Image.LoadAsync(stream);
+            
             var urls = new Dictionary<string, string>();
             var baseFileName = Guid.NewGuid().ToString();
 
-            var originalWebpEncoder = new WebpEncoder { Quality = 90 };
-            var originalWebpFileName = $"{baseFileName}-original.webp";
-            var originalFinalFilePath = Path.Combine(uploadsFolderPath, originalWebpFileName);
-            await image.SaveAsync(originalFinalFilePath, originalWebpEncoder);
-            urls["original"] = $"/uploads/{subfolder}/{originalWebpFileName}";
+            // Check if this is an editor upload (content image) or a featured image
+            bool isEditorUpload = subfolder.Contains("editor", StringComparison.OrdinalIgnoreCase);
 
-
-            foreach (var (key, size) in ImageSizes)
+            if (isEditorUpload)
             {
-                var resizedImage = image.Clone(ctx => ctx.Resize(new ResizeOptions
-                {
-                    Size = size,
-                    Mode = ResizeMode.Pad,
-                    PadColor = Color.Transparent
-                }));
+                using var resizedImage = image.Clone(ctx =>
+                    ctx.Resize(new ResizeOptions
+                    {
+                        Size = new Size(1920, 0), // 0 height means "maintain aspect ratio"
+                        Mode = ResizeMode.Max
+                    }));
 
-                var webpEncoder = new WebpEncoder { Quality = 90 };
-                var webpFileName = $"{baseFileName}-{key}.webp";
-                var finalFilePath = Path.Combine(uploadsFolderPath, webpFileName);
-                await resizedImage.SaveAsync(finalFilePath, webpEncoder);
-                urls[key] = $"/uploads/{subfolder}/{webpFileName}";
+                var fileName = $"{baseFileName}.webp";
+                var filePath = Path.Combine(uploadsFolderPath, fileName);
+                await resizedImage.SaveAsWebpAsync(filePath);
+                createdFilePaths.Add(filePath);
+
+                // Editor expects a single URL usually, we map it to "large" for consistency
+                urls["large"] = $"/uploads/{subfolder}/{fileName}";
+            }
+            else
+            {
+                // For featured images: Generate standard sizes
+                foreach (var (sizeName, targetSize) in ImageSizes)
+                {
+                    using var resizedImage = image.Clone(ctx =>
+                        ctx.Resize(new ResizeOptions
+                        {
+                            Size = targetSize,
+                            Mode = ResizeMode.Max
+                        }));
+
+                    var fileName = $"{baseFileName}-{sizeName}.webp";
+                    var filePath = Path.Combine(uploadsFolderPath, fileName);
+
+                    await resizedImage.SaveAsWebpAsync(filePath);
+                    createdFilePaths.Add(filePath);
+                    
+                    urls[sizeName] = string.IsNullOrEmpty(subfolder) 
+                        ? $"/uploads/{fileName}" 
+                        : $"/uploads/{subfolder}/{fileName}";
+                }
             }
 
             return (urls, null);
         }
-        catch (Exception ex) when (ex is UnknownImageFormatException or NotSupportedException)
+        catch (UnknownImageFormatException)
         {
-            return (null, "Invalid image format. The uploaded file is not a valid image.");
+            CleanupFailedUploads(createdFilePaths);
+            _logger.LogWarning("Failed to identify image format for file: {FileName}", file.FileName);
+            return (null, "The file is not a valid image or is corrupted.");
         }
-        finally
+        catch (Exception ex)
         {
-            if (File.Exists(tempFilePath))
+            CleanupFailedUploads(createdFilePaths);
+            _logger.LogError(ex, "Error processing image {FileName}", file.FileName);
+            return (null, "An error occurred while processing the image.");
+        }
+    }
+
+    private void CleanupFailedUploads(List<string> filePaths)
+    {
+        foreach (var path in filePaths)
+        {
+            try
             {
-                File.Delete(tempFilePath);
+                if (File.Exists(path)) File.Delete(path);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to delete partial upload: {FilePath}", path);
             }
         }
     }

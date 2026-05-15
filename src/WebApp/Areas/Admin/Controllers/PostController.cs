@@ -122,7 +122,8 @@ public class PostController : Controller
             TempData["SuccessMessage"] = $"Post '{createdPost.Title}' created successfully.";
             Debug.Assert(createdPost != null, nameof(createdPost) + " != null");
             _logger.LogInformation("Post created successfully with ID {PostId}", createdPost.Id);
-            return RedirectToAction(nameof(Index));
+            // UX Improvement: Redirect to Edit instead of Index so user can continue working
+            return RedirectToAction(nameof(Edit), new { id = createdPost.Id });
         }
         catch (Exception ex)
         {
@@ -182,7 +183,8 @@ public class PostController : Controller
             }
 
             TempData["SuccessMessage"] = viewModel.PublishNow ? "Post has been published successfully." : "Draft has been saved successfully.";
-            return RedirectToAction(nameof(Index));
+            // UX Improvement: Stay on the Edit page
+            return RedirectToAction(nameof(Edit), new { id });
         }
         catch (KeyNotFoundException)
         {
@@ -393,4 +395,36 @@ public class PostController : Controller
             return Json(new { success = false, message = "An error occurred while restoring posts." });
         }
     }
+
+    [ValidateAntiForgeryToken]
+    [HttpPost("api/tags")]
+    public async Task<IActionResult> CreateTag([FromBody] CreateTagRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name))
+            return BadRequest(new { message = "Tag name is required." });
+
+        try
+        {
+            var tag = await _postService.CreateTagAsync(request.Name);
+            return Ok(new { id = tag.Id, name = tag.Name });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating tag '{TagName}'", request.Name);
+            return StatusCode(500, new { message = "Error creating tag." });
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Preview(int id)
+    {
+        var viewModel = await _postService.GetPostViewModelAsync(id);
+        if (viewModel == null)
+            return NotFound();
+
+        ViewData["IsPreview"] = true;
+        return View("~/Views/Blog/Post.cshtml", viewModel);
+    }
+
+    public record CreateTagRequest(string Name);
 }
