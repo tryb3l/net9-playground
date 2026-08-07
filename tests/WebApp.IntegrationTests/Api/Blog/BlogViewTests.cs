@@ -92,4 +92,38 @@ public class BlogViewTests(IntegrationTestFixture fixture)
         titleElement.ShouldNotBeNull();
         titleElement!.TextContent.ShouldContain(title);
     }
+
+    [Fact]
+    public async Task Index_WithCategoryAndTagFilters_ShowsOnlyMatchingPosts()
+    {
+        // Arrange
+        await this.GivenAuthenticatedUserAsync();
+        var techId = await this.SeedCategoryAsync("Tech");
+        var lifeId = await this.SeedCategoryAsync("Life");
+        var dotnetTagId = await this.SeedTagAsync("dotnet");
+        await this.SeedPostAsync("Tagged DotNet Post", techId, tagIds: [dotnetTagId]);
+        await this.SeedPostAsync("Cooking Post", lifeId);
+        this.GivenAnonymousUser();
+
+        // Act
+        var matchingResponse = await HttpClient.GetAsync("/blog?category=Tech&tag=dotnet", TestContext.Current.CancellationToken);
+        var wrongTagResponse = await HttpClient.GetAsync("/blog?tag=cooking", TestContext.Current.CancellationToken);
+        var otherCategoryResponse = await HttpClient.GetAsync("/blog?category=Life", TestContext.Current.CancellationToken);
+
+        // Assert
+        matchingResponse.StatusCode.ShouldBe(OK);
+        wrongTagResponse.StatusCode.ShouldBe(OK);
+        otherCategoryResponse.StatusCode.ShouldBe(OK);
+
+        var matchingContent = await matchingResponse.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        matchingContent.ShouldContain("Tagged DotNet Post");
+        matchingContent.ShouldNotContain("Cooking Post");
+
+        var wrongTagContent = await wrongTagResponse.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        wrongTagContent.ShouldNotContain("Tagged DotNet Post");
+
+        var otherCategoryContent = await otherCategoryResponse.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        otherCategoryContent.ShouldContain("Cooking Post");
+        otherCategoryContent.ShouldNotContain("Tagged DotNet Post");
+    }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using WebApp.Models;
@@ -24,12 +25,27 @@ public static class DataSeedingExtensions
             });
         }
 
+        public async Task<int> SeedTagAsync(string name)
+        {
+            return await test.ExecuteDbContextAsync(async db =>
+            {
+                var existing = await db.Tags.FirstOrDefaultAsync(t => t.Name == name);
+                if (existing != null) return existing.Id;
+
+                var tag = new Tag { Name = name };
+                db.Tags.Add(tag);
+                await db.SaveChangesAsync();
+                return tag.Id;
+            });
+        }
+
         public async Task<(int Id, string Slug)> SeedPostAsync(string title,
             int categoryId,
             bool isPublished = true,
             string? content = null,
             DateTime? createdAt = null,
-            string? featuredImageUrls = null)
+            string? featuredImageUrls = null,
+            int[]? tagIds = null)
         {
             return await test.ExecuteDbContextAsync(async db =>
             {
@@ -59,6 +75,14 @@ public static class DataSeedingExtensions
                     AuthorId = authorId,
                     FeaturedImageUrls = featuredImageUrls
                 };
+
+                if (tagIds is { Length: > 0 })
+                {
+                    foreach (var tagId in tagIds)
+                    {
+                        post.PostTags.Add(new PostTag { TagId = tagId });
+                    }
+                }
 
                 db.Posts.Add(post);
                 await db.SaveChangesAsync();

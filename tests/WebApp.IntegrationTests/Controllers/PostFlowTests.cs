@@ -105,4 +105,68 @@ public class PostFlowTests : BaseIntegrationTest
             count.ShouldBe(1);
         });
     }
-}
+    [Fact]
+    public async Task Edit_WithUnchangedTags_PreservesTags()
+    {
+        // Arrange
+        await this.GivenAdminUserAsync();
+        var categoryId = await this.SeedCategoryAsync("Tech");
+        var tagId1 = await this.SeedTagAsync("dotnet");
+        var tagId2 = await this.SeedTagAsync("csharp");
+
+        var createPageResponse = await HttpClient.GetAsync("/Admin/Post/Create", TestContext.Current.CancellationToken);
+        createPageResponse.EnsureSuccessStatusCode();
+        var createToken = await GetCsrfToken(createPageResponse);
+
+        // Act: create a post with two tags
+        var createFormData = new List<KeyValuePair<string, string>>
+        {
+            new("Title", "Post With Tags"),
+            new("Content", "Some content for the tag test."),
+            new("PublishNow", "false"),
+            new("CategoryId", categoryId.ToString()),
+            new("SelectedTagIds", tagId1.ToString()),
+            new("SelectedTagIds", tagId2.ToString()),
+            new("__RequestVerificationToken", createToken)
+        };
+
+        var createResponse = await HttpClient.PostAsync("/Admin/Post/Create", new FormUrlEncodedContent(createFormData), TestContext.Current.CancellationToken);
+        createResponse.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        var redirectUrl = createResponse.Headers.Location?.ToString();
+        redirectUrl.ShouldNotBeNull();
+        var postId = int.Parse(redirectUrl.Split('/').Last());
+
+        // Act: edit only the title, resubmitting the same tags
+        var editPageResponse = await HttpClient.GetAsync(redirectUrl, TestContext.Current.CancellationToken);
+        editPageResponse.EnsureSuccessStatusCode();
+        var editToken = await GetCsrfToken(editPageResponse);
+
+        var editFormData = new List<KeyValuePair<string, string>>
+        {
+            new("Id", postId.ToString()),
+            new("Title", "Post With Tags Renamed"),
+            new("Content", "Some content for the tag test."),
+            new("PublishNow", "false"),
+            new("CategoryId", categoryId.ToString()),
+            new("SelectedTagIds", tagId1.ToString()),
+            new("SelectedTagIds", tagId2.ToString()),
+            new("__RequestVerificationToken", editToken)
+        };
+
+        var editResponse = await HttpClient.PostAsync($"/Admin/Post/Edit/{postId}", new FormUrlEncodedContent(editFormData), TestContext.Current.CancellationToken);
+
+        // Assert
+        editResponse.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+
+        await ExecuteDbContextAsync(async db =>
+        {
+            var post = await db.Posts
+                .Include(p => p.PostTags)
+                .FirstOrDefaultAsync(p => p.Id == postId);
+            post.ShouldNotBeNull();
+            post.Title.ShouldBe("Post With Tags Renamed");
+
+            var tagIds = post.PostTags.Select(pt => pt.TagId).OrderBy(id => id).ToArray();
+            tagIds.ShouldBe([tagId1, tagId2]);
+        });
+    }}
