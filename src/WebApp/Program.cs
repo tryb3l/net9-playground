@@ -160,11 +160,6 @@ try
         })
         .AddInMemoryStorage();
 
-    builder.Services.AddAutoMapper(cfg =>
-    {
-        cfg.AddMaps(typeof(Program));
-    });
-
     builder.Services.AddResponseCaching();
 
     builder.Services.AddRateLimiter(options =>
