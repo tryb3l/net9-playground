@@ -51,7 +51,7 @@ public class DashboardService : IDashboardService
             TotalTags = totalTags,
             TotalUsers = totalUsers,
             RecentActivities = recentActivities,
-            RecentPosts = recentPostViewModels
+            RecentPosts = recentPostViewModels 
         };
     }
 }

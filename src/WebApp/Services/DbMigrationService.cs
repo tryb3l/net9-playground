@@ -11,9 +11,6 @@ public class DbMigrationService : BackgroundService
     private readonly IHostEnvironment _environment;
     private readonly ActivitySource _activitySource = new("Database.Migrations");
 
-    public new Task ExecuteTask => _executeTask?.Task ?? Task.CompletedTask;
-    private readonly TaskCompletionSource? _executeTask;
-
     public DbMigrationService(
         IServiceProvider serviceProvider,
         ILogger<DbMigrationService> logger,
@@ -22,7 +19,6 @@ public class DbMigrationService : BackgroundService
         _serviceProvider = serviceProvider;
         _logger = logger;
         _environment = environment;
-        _executeTask = new TaskCompletionSource();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -35,12 +31,10 @@ public class DbMigrationService : BackgroundService
             var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
             await InitializeDatabaseAsync(dbContext, stoppingToken);
-            _executeTask?.SetResult();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while migrating the database");
-            _executeTask?.SetException(ex);
             throw;
         }
     }
@@ -80,7 +74,6 @@ public class DbMigrationService : BackgroundService
 
             if (pendingCount > 0)
             {
-                _logger.LogInformation("Applying {Count} pending migrations", pendingCount);
                 await dbContext.Database.MigrateAsync(stoppingToken);
             }
             else
@@ -95,8 +88,6 @@ public class DbMigrationService : BackgroundService
         }
 
         await SeedDataAsync(stoppingToken);
-
-        _logger.LogInformation("Database initialization completed in {ElapsedMs}ms", stopwatch.ElapsedMilliseconds);
     }
 
     private async Task SeedDataAsync(CancellationToken stoppingToken)

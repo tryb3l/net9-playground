@@ -36,7 +36,6 @@ public class AdminOrApiKeyHandler : AuthorizationHandler<AdminOrApiKeyRequiremen
             if (!string.IsNullOrEmpty(expectedApiKey) && IsValidApiKey(expectedApiKey, providedApiKey))
             {
                 context.Succeed(requirement);
-                return Task.CompletedTask;
             }
         }
 

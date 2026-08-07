@@ -4,6 +4,7 @@ using WebApp.Utils;
 
 namespace WebApp.Data;
 
+// ReSharper disable once UnusedType.Global — discovered by EF Core tooling via reflection
 public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
 {
     public ApplicationDbContext CreateDbContext(string[] args)

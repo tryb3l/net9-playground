@@ -12,10 +12,4 @@ public class ServiceResult
         Succeeded = false,
         Errors = [error]
     };
-
-    public static ServiceResult Failure(List<string> errors) => new()
-    {
-        Succeeded = false,
-        Errors = errors
-    };
 }

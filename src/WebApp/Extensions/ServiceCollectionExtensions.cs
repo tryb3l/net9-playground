@@ -6,7 +6,7 @@ namespace WebApp.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+    public static void AddApplicationServices(this IServiceCollection services)
     {
         // Repository registrations
         services.AddScoped<IPostRepository, PostRepository>();
@@ -21,7 +21,5 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IActivityLogService, ActivityLogService>();
         services.AddScoped<IAttachmentService, AttachmentService>();
-
-        return services;
     }
 }

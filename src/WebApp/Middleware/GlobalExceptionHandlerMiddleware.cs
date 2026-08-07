@@ -63,8 +63,8 @@ public class GlobalExceptionHandlerMiddleware(
 
 public static class GlobalExceptionHandlerMiddlewareExtensions
 {
-    public static IApplicationBuilder UseGlobalExceptionHandler(this IApplicationBuilder app)
+    public static void UseGlobalExceptionHandler(this IApplicationBuilder app)
     {
-        return app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
+        app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
     }
 }
