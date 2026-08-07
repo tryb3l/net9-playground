@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -120,7 +119,6 @@ public class PostController : Controller
 
 
             TempData["SuccessMessage"] = $"Post '{createdPost.Title}' created successfully.";
-            Debug.Assert(createdPost != null, nameof(createdPost) + " != null");
             _logger.LogInformation("Post created successfully with ID {PostId}", createdPost.Id);
             // UX Improvement: Redirect to Edit instead of Index so user can continue working
             return RedirectToAction(nameof(Edit), new { id = createdPost.Id });
@@ -201,23 +199,6 @@ public class PostController : Controller
         }
     }
 
-    [HttpGet]
-    public async Task<IActionResult> Delete(int? id)
-    {
-        if (id == null)
-        {
-            return NotFound();
-        }
-
-        var viewModel = await _postService.GetPostViewModelAsync(id.Value);
-        if (viewModel == null)
-        {
-            return NotFound();
-        }
-
-        return Ok(viewModel);
-    }
-
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
@@ -225,18 +206,17 @@ public class PostController : Controller
         try
         {
             await _postService.DeletePostAsync(id);
-            TempData["SuccessMessage"] = "Post deleted successfully.";
+            return Json(new { success = true, message = "Post deleted permanently." });
         }
         catch (KeyNotFoundException)
         {
-            TempData["ErrorMessage"] = "Post not found.";
+            return Json(new { success = false, message = "Post not found." });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting post with ID {PostId}", id);
-            TempData["ErrorMessage"] = "Error deleting post. Please try again.";
+            return Json(new { success = false, message = "Error deleting post. Please try again." });
         }
-        return RedirectToAction(nameof(Index));
     }
 
     [HttpPost]
@@ -261,8 +241,10 @@ public class PostController : Controller
 
             var currentUser = await _userManager.GetUserAsync(User);
             await _postService.SoftDeletePostAsync(id);
-            Debug.Assert(currentUser != null, nameof(currentUser) + " != null");
-            await _activityLogService.LogActivityAsync(currentUser.Id, "Trashed", "Post", $"Moved post to trash: '{post.Title}'");
+            if (currentUser != null)
+            {
+                await _activityLogService.LogActivityAsync(currentUser.Id, "Trashed", "Post", $"Moved post to trash: '{post.Title}'");
+            }
 
 
             return Json(new { success = true, message = $"Post '{post.Title}' moved to trash successfully." });
@@ -292,8 +274,10 @@ public class PostController : Controller
 
             var currentUser = await _userManager.GetUserAsync(User);
             await _postService.RestorePostAsync(id);
-            Debug.Assert(currentUser != null, nameof(currentUser) + " != null");
-            await _activityLogService.LogActivityAsync(currentUser.Id, "Restored", "Post", $"Restored post: '{post.Title}'");
+            if (currentUser != null)
+            {
+                await _activityLogService.LogActivityAsync(currentUser.Id, "Restored", "Post", $"Restored post: '{post.Title}'");
+            }
 
             return Json(new { success = true, message = $"Post '{post.Title}' restored successfully." });
         }
@@ -319,9 +303,11 @@ public class PostController : Controller
 
             var currentUser = await _userManager.GetUserAsync(User);
             await _postService.PublishPostAsync(id);
-            Debug.Assert(currentUser != null, nameof(currentUser) + " != null");
-            await _activityLogService.LogActivityAsync(currentUser.Id, "Published", "Post",
-                $"Published post: '{post.Title}'");
+            if (currentUser != null)
+            {
+                await _activityLogService.LogActivityAsync(currentUser.Id, "Published", "Post",
+                    $"Published post: '{post.Title}'");
+            }
 
             // Return JSON for AJAX requests
             return Json(new { success = true, message = "Post published successfully." });
@@ -396,25 +382,6 @@ public class PostController : Controller
         }
     }
 
-    [ValidateAntiForgeryToken]
-    [HttpPost("api/tags")]
-    public async Task<IActionResult> CreateTag([FromBody] CreateTagRequest request)
-    {
-        if (string.IsNullOrWhiteSpace(request.Name))
-            return BadRequest(new { message = "Tag name is required." });
-
-        try
-        {
-            var tag = await _postService.CreateTagAsync(request.Name);
-            return Ok(new { id = tag.Id, name = tag.Name });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating tag '{TagName}'", request.Name);
-            return StatusCode(500, new { message = "Error creating tag." });
-        }
-    }
-
     [HttpGet]
     public async Task<IActionResult> Preview(int id)
     {
@@ -425,6 +392,4 @@ public class PostController : Controller
         ViewData["IsPreview"] = true;
         return View("~/Views/Blog/Post.cshtml", viewModel);
     }
-
-    public record CreateTagRequest(string Name);
 }

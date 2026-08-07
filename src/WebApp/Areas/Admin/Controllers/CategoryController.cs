@@ -74,7 +74,7 @@ public class CategoryController : Controller
             return NotFound();
         }
 
-        var category = await _categoryService.GetCategoryByIdAsync(id.Value);
+        var category = await _categoryService.GetCategoryViewModelByIdAsync(id.Value);
         if (category == null)
         {
             return NotFound();
@@ -110,23 +110,6 @@ public class CategoryController : Controller
             return RedirectToAction(nameof(Index));
         }
         return View(viewModel);
-    }
-
-    [HttpGet]
-    public async Task<IActionResult> Delete(int? id)
-    {
-        if (id == null)
-        {
-            return NotFound();
-        }
-
-        var category = await _categoryService.GetCategoryViewModelByIdAsync(id.Value);
-        if (category == null)
-        {
-            return NotFound();
-        }
-
-        return Json(category);
     }
 
     [HttpPost, ActionName("Delete")]
