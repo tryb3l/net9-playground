@@ -165,8 +165,196 @@ public class PostFlowTests : BaseIntegrationTest
                 .FirstOrDefaultAsync(p => p.Id == postId);
             post.ShouldNotBeNull();
             post.Title.ShouldBe("Post With Tags Renamed");
+            post.Slug.ShouldBe("post-with-tags-renamed");
 
             var tagIds = post.PostTags.Select(pt => pt.TagId).OrderBy(id => id).ToArray();
             tagIds.ShouldBe([tagId1, tagId2]);
         });
-    }}
+    }
+
+    [Fact]
+    public async Task Delete_PermanentDelete_ReturnsJsonSuccess_AndRemovesPost()
+    {
+        // Arrange
+        await this.GivenAdminUserAsync();
+        var categoryId = await this.SeedCategoryAsync("Tech");
+        var tagId = await this.SeedTagAsync("dotnet");
+        var (postId, _) = await this.SeedPostAsync("Post To Delete", categoryId, tagIds: [tagId]);
+
+        var createPageResponse = await HttpClient.GetAsync("/Admin/Post/Create", TestContext.Current.CancellationToken);
+        createPageResponse.EnsureSuccessStatusCode();
+        var csrfToken = await GetCsrfToken(createPageResponse);
+
+        // Act
+        var deleteFormData = new Dictionary<string, string>
+        {
+            { "__RequestVerificationToken", csrfToken }
+        };
+        var response = await HttpClient.PostAsync($"/Admin/Post/Delete/{postId}", new FormUrlEncodedContent(deleteFormData), TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        body.ShouldContain("\"success\":true");
+
+        await ExecuteDbContextAsync(async db =>
+        {
+            var post = await db.Posts.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == postId);
+            post.ShouldBeNull();
+
+            var tagLinks = await db.PostTags.IgnoreQueryFilters()
+                .Where(pt => pt.PostId == postId)
+                .ToListAsync();
+            tagLinks.ShouldBeEmpty();
+        });
+    }
+
+    [Fact]
+    public async Task Create_WhenSlugAlreadyExists_AppendsCounter()
+    {
+        // Arrange
+        await this.GivenAdminUserAsync();
+        var categoryId = await this.SeedCategoryAsync("Tech");
+        await this.SeedPostAsync("Hello World", categoryId);
+
+        var createPageResponse = await HttpClient.GetAsync("/Admin/Post/Create", TestContext.Current.CancellationToken);
+        createPageResponse.EnsureSuccessStatusCode();
+        var csrfToken = await GetCsrfToken(createPageResponse);
+
+        // Act
+        var formData = new Dictionary<string, string>
+        {
+            { "Title", "Hello World" },
+            { "Content", "Another post with the same title." },
+            { "PublishNow", "false" },
+            { "__RequestVerificationToken", csrfToken }
+        };
+        var response = await HttpClient.PostAsync("/Admin/Post/Create", new FormUrlEncodedContent(formData), TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        var postId = int.Parse(response.Headers.Location!.ToString().Split('/').Last());
+
+        await ExecuteDbContextAsync(async db =>
+        {
+            var post = await db.Posts.FindAsync(postId);
+            post.ShouldNotBeNull();
+            post.Slug.ShouldBe("hello-world-1");
+        });
+    }
+
+    [Fact]
+    public async Task Edit_PublishedPost_KeepsSlug_WhenTitleChanges()
+    {
+        // Arrange
+        await this.GivenAdminUserAsync();
+        var categoryId = await this.SeedCategoryAsync("Tech");
+        var (postId, slug) = await this.SeedPostAsync("Published Post", categoryId, isPublished: true);
+
+        var (originalCreatedAt, originalAuthorId) = await ExecuteDbContextAsync(async db =>
+        {
+            var seeded = await db.Posts.AsNoTracking().FirstAsync(p => p.Id == postId);
+            return (seeded.CreatedAt, seeded.AuthorId);
+        });
+
+        var editPageResponse = await HttpClient.GetAsync($"/Admin/Post/Edit/{postId}", TestContext.Current.CancellationToken);
+        editPageResponse.EnsureSuccessStatusCode();
+        var csrfToken = await GetCsrfToken(editPageResponse);
+
+        // Act
+        var formData = new Dictionary<string, string>
+        {
+            { "Id", postId.ToString() },
+            { "Title", "Published Post Renamed" },
+            { "Content", "Content" },
+            { "PublishNow", "true" },
+            { "__RequestVerificationToken", csrfToken }
+        };
+        var response = await HttpClient.PostAsync($"/Admin/Post/Edit/{postId}", new FormUrlEncodedContent(formData), TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+
+        await ExecuteDbContextAsync(async db =>
+        {
+            var post = await db.Posts.FindAsync(postId);
+            post.ShouldNotBeNull();
+            post.Title.ShouldBe("Published Post Renamed");
+            post.Slug.ShouldBe(slug);
+            post.CreatedAt.ShouldBe(originalCreatedAt);
+            post.AuthorId.ShouldBe(originalAuthorId);
+        });
+    }
+
+    [Fact]
+    public async Task Edit_WithSameImageUrl_PreservesStoredJson()
+    {
+        // Arrange
+        await this.GivenAdminUserAsync();
+        var categoryId = await this.SeedCategoryAsync("Tech");
+        const string storedJson = """{"large":"/uploads/large.jpg","thumbnail":"/uploads/thumb.jpg"}""";
+        var (postId, _) = await this.SeedPostAsync("Image Post", categoryId, isPublished: false, featuredImageUrls: storedJson);
+
+        var editPageResponse = await HttpClient.GetAsync($"/Admin/Post/Edit/{postId}", TestContext.Current.CancellationToken);
+        editPageResponse.EnsureSuccessStatusCode();
+        var csrfToken = await GetCsrfToken(editPageResponse);
+
+        // Act: resubmit the same large image URL
+        var formData = new Dictionary<string, string>
+        {
+            { "Id", postId.ToString() },
+            { "Title", "Image Post" },
+            { "Content", "Content" },
+            { "PublishNow", "false" },
+            { "FeaturedImageUrl", "/uploads/large.jpg" },
+            { "__RequestVerificationToken", csrfToken }
+        };
+        var response = await HttpClient.PostAsync($"/Admin/Post/Edit/{postId}", new FormUrlEncodedContent(formData), TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+
+        await ExecuteDbContextAsync(async db =>
+        {
+            var post = await db.Posts.FindAsync(postId);
+            post.ShouldNotBeNull();
+            post.FeaturedImageUrls.ShouldBe(storedJson);
+        });
+    }
+
+    [Fact]
+    public async Task Edit_WithNewImageUrl_ReplacesStoredJson()
+    {
+        // Arrange
+        await this.GivenAdminUserAsync();
+        var categoryId = await this.SeedCategoryAsync("Tech");
+        const string storedJson = """{"large":"/uploads/old-large.jpg","thumbnail":"/uploads/old-thumb.jpg"}""";
+        var (postId, _) = await this.SeedPostAsync("Image Post", categoryId, isPublished: false, featuredImageUrls: storedJson);
+
+        var editPageResponse = await HttpClient.GetAsync($"/Admin/Post/Edit/{postId}", TestContext.Current.CancellationToken);
+        editPageResponse.EnsureSuccessStatusCode();
+        var csrfToken = await GetCsrfToken(editPageResponse);
+
+        // Act
+        var formData = new Dictionary<string, string>
+        {
+            { "Id", postId.ToString() },
+            { "Title", "Image Post" },
+            { "Content", "Content" },
+            { "PublishNow", "false" },
+            { "FeaturedImageUrl", "/uploads/new-image.jpg" },
+            { "__RequestVerificationToken", csrfToken }
+        };
+        var response = await HttpClient.PostAsync($"/Admin/Post/Edit/{postId}", new FormUrlEncodedContent(formData), TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+
+        await ExecuteDbContextAsync(async db =>
+        {
+            var post = await db.Posts.FindAsync(postId);
+            post.ShouldNotBeNull();
+            post.FeaturedImageUrls.ShouldBe("/uploads/new-image.jpg");
+        });
+    }
+}

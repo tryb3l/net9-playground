@@ -5,7 +5,7 @@ using WebApp.IntegrationTests.Support;
 using WebApp.IntegrationTests.Support.Extensions;
 using static System.Net.HttpStatusCode;
 
-namespace WebApp.IntegrationTests.Infrastructure;
+namespace WebApp.IntegrationTests.Api;
 
 public class SmokeTests(IntegrationTestFixture fixture)
     : BaseIntegrationTest(fixture)
@@ -28,25 +28,25 @@ public class SmokeTests(IntegrationTestFixture fixture)
     public async Task Database_CanConnect()
     {
         // Act
-        var canConnect = await ExecuteDbContextAsync(db => 
+        var canConnect = await ExecuteDbContextAsync(db =>
             db.Database.CanConnectAsync(TestContext.Current.CancellationToken));
 
         // Assert
         canConnect.ShouldBeTrue();
     }
-    
+
     [Theory]
-    [InlineData("/")]     
-    [InlineData("/Blog")] 
+    [InlineData("/")]
+    [InlineData("/Blog")]
     [InlineData("/About")]
     public async Task PublicPages_ReturnOk(string url)
     {
         // Arrange
         this.GivenAnonymousUser();
-        
+
         // Act
         var response = await HttpClient.GetAsync(url, TestContext.Current.CancellationToken);
-    
+
         // Assert
         response.StatusCode.ShouldBe(OK);
         (response.Content.Headers.ContentLength ?? 0).ShouldBeGreaterThan(0);
