@@ -7,7 +7,6 @@ namespace WebApp.Interfaces;
 public interface ICategoryService
 {
     Task<IEnumerable<CategoryViewModel>?> GetAllCategoriesAsync();
-    Task<Category?> GetCategoryByIdAsync(int id);
     Task<List<SelectListItem>> GetAvailableCategoriesAsync();
     Task<CategoryViewModel?> GetCategoryViewModelByIdAsync(int id);
     Task<ServiceResult> CreateCategoryAsync(CreateCategoryViewModel viewModel);

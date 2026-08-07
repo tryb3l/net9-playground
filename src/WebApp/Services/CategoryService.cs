@@ -1,7 +1,8 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using WebApp.Areas.Admin.ViewModels.Category;
+using WebApp.Data;
 using WebApp.Interfaces;
 using WebApp.Models;
 using WebApp.Utils;
@@ -10,8 +11,7 @@ namespace WebApp.Services;
 
 public class CategoryService : ICategoryService
 {
-    private readonly ICategoryRepository _categoryRepository;
-    private readonly IMapper _mapper;
+    private readonly ApplicationDbContext _db;
     private readonly IMemoryCache _cache;
 
     private static class CacheKeys
@@ -21,10 +21,9 @@ public class CategoryService : ICategoryService
         public static string CategoryById(int id) => $"Category-{id}";
     }
 
-    public CategoryService(ICategoryRepository categoryRepository, IMapper mapper, IMemoryCache cache)
+    public CategoryService(ApplicationDbContext db, IMemoryCache cache)
     {
-        _categoryRepository = categoryRepository;
-        _mapper = mapper;
+        _db = db;
         _cache = cache;
     }
 
@@ -33,38 +32,41 @@ public class CategoryService : ICategoryService
         return await _cache.GetOrCreateAsync(CacheKeys.AllCategories, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
-            var categories = await _categoryRepository.GetAllAsync();
-            return _mapper.Map<List<CategoryViewModel>>(categories);
-        });
-    }
-
-    public async Task<Category?> GetCategoryByIdAsync(int id)
-    {
-        return await _cache.GetOrCreateAsync(CacheKeys.CategoryById(id), async entry =>
-        {
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
-            return await _categoryRepository.GetByIdAsync(id);
+            return await _db.Categories
+                .AsNoTracking()
+                .Select(c => new CategoryViewModel
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Description = c.Description,
+                    PostCount = c.Posts.Count
+                })
+                .ToListAsync();
         });
     }
 
     public async Task<CategoryViewModel?> GetCategoryViewModelByIdAsync(int id)
     {
-        var category = await GetCategoryByIdAsync(id);
-        if (category == null)
+        return await _cache.GetOrCreateAsync(CacheKeys.CategoryById(id), async entry =>
         {
-            return null;
-        }
-        return new CategoryViewModel
-        {
-            Id = category.Id,
-            Name = category.Name,
-            PostCount = category.Posts.Count
-        };
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+            return await _db.Categories
+                .AsNoTracking()
+                .Where(c => c.Id == id)
+                .Select(c => new CategoryViewModel
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Description = c.Description,
+                    PostCount = c.Posts.Count
+                })
+                .FirstOrDefaultAsync();
+        });
     }
 
     public async Task UpdateCategoryAsync(EditCategoryViewModel model)
     {
-        var category = await _categoryRepository.GetByIdAsync(model.Id);
+        var category = await _db.Categories.FirstOrDefaultAsync(c => c.Id == model.Id);
         if (category == null)
         {
             throw new KeyNotFoundException($"Category with ID {model.Id} not found");
@@ -79,29 +81,23 @@ public class CategoryService : ICategoryService
             category.Slug = SlugHelper.GenerateSlug(model.Name);
         }
 
-        await _categoryRepository.UpdateAsync(category);
-        await _categoryRepository.SaveChangesAsync();
+        await _db.SaveChangesAsync();
 
         InvalidateCategoryCache(model.Id);
     }
 
     public async Task DeleteCategoryAsync(int id)
     {
-        var category = await _categoryRepository.GetByIdAsync(id);
+        var category = await _db.Categories.FirstOrDefaultAsync(c => c.Id == id);
         if (category == null)
         {
             throw new KeyNotFoundException($"Category with ID {id} not found");
         }
 
-        await _categoryRepository.DeleteAsync(category);
-        await _categoryRepository.SaveChangesAsync();
+        _db.Categories.Remove(category);
+        await _db.SaveChangesAsync();
 
         InvalidateCategoryCache(id);
-    }
-
-    public async Task<bool> CategoryExistingAsync(int id)
-    {
-        return await GetCategoryByIdAsync(id) != null;
     }
 
     public async Task<ServiceResult> CreateCategoryAsync(CreateCategoryViewModel viewModel)
@@ -115,8 +111,8 @@ public class CategoryService : ICategoryService
                 Slug = SlugHelper.GenerateSlug(viewModel.Name)
             };
 
-            await _categoryRepository.AddAsync(category);
-            await _categoryRepository.SaveChangesAsync();
+            _db.Categories.Add(category);
+            await _db.SaveChangesAsync();
 
             _cache.Remove(CacheKeys.AllCategories);
             _cache.Remove(CacheKeys.AvailableCategoriesSelectList);
@@ -134,13 +130,14 @@ public class CategoryService : ICategoryService
         return await _cache.GetOrCreateAsync(CacheKeys.AvailableCategoriesSelectList, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
-            var categories = await _categoryRepository.GetAllAsync();
-            return categories
+            return await _db.Categories
+                .AsNoTracking()
                 .Select(c => new SelectListItem
                 {
                     Value = c.Id.ToString(),
                     Text = c.Name
-                }).ToList();
+                })
+                .ToListAsync();
         }) ?? [];
     }
 

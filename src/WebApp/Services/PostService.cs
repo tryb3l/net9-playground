@@ -1,10 +1,11 @@
-using System.Text.Json;
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using WebApp.Areas.Admin.ViewModels.Post;
+using WebApp.Data;
+using WebApp.Data.Queries;
 using WebApp.Helpers;
 using WebApp.Interfaces;
+using WebApp.Mapping;
 using WebApp.Models;
 using WebApp.Utils;
 using WebApp.ViewModels;
@@ -13,29 +14,12 @@ namespace WebApp.Services;
 
 public class PostService : IPostService
 {
-    private readonly ICategoryRepository _categoryRepository;
-    private readonly IPostRepository _postRepository;
-    private readonly ITagRepository _tagRepository;
-    private readonly LinkGenerator _linkGenerator;
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly IMapper _mapper;
+    private readonly ApplicationDbContext _db;
     private readonly ITagService _tagService;
 
-    public PostService(
-        IPostRepository postRepository,
-        ICategoryRepository categoryRepository,
-        ITagRepository tagRepository,
-        LinkGenerator linkGenerator,
-        IHttpContextAccessor httpContextAccessor,
-        IMapper mapper,
-        ITagService tagService)
+    public PostService(ApplicationDbContext db, ITagService tagService)
     {
-        _postRepository = postRepository;
-        _categoryRepository = categoryRepository;
-        _tagRepository = tagRepository;
-        _linkGenerator = linkGenerator;
-        _httpContextAccessor = httpContextAccessor;
-        _mapper = mapper;
+        _db = db;
         _tagService = tagService;
     }
 
@@ -44,17 +28,70 @@ public class PostService : IPostService
         const int pageSize = 5;
         var skip = (page - 1) * pageSize;
 
-        var postsData = await _postRepository.GetPublishedPostsWithDetailsAsync(skip, pageSize, category, tag);
-        var totalPosts = await _postRepository.CountPublishedPostsAsync();
+        var postsQuery = _db.Posts
+            .AsNoTracking()
+            .Published()
+            .InCategory(category)
+            .WithTag(tag);
 
-        var categories = await _categoryRepository.GetAllAsync();
-        var popularTags = await _tagRepository.GetPopularTagsAsync(10);
+        var cards = await postsQuery
+            .OrderByDescending(p => p.PublishedDate ?? p.CreatedAt)
+            .Skip(skip)
+            .Take(pageSize)
+            .Select(p => new
+            {
+                p.Id,
+                p.Title,
+                p.Slug,
+                p.Content,
+                p.FeaturedImageUrls,
+                CategoryName = p.Category != null ? p.Category.Name : null,
+                CategorySlug = p.Category != null ? p.Category.Slug : null,
+                p.PublishedDate,
+                p.CreatedAt,
+                TagNames = p.PostTags.Where(pt => pt.Tag != null).Select(pt => pt.Tag!.Name).ToList()
+            })
+            .ToListAsync();
+
+        var totalPosts = await postsQuery.CountAsync();
+
+        var categories = await _db.Categories
+            .AsNoTracking()
+            .Select(c => new CategoryViewModel
+            {
+                Name = c.Name,
+                Slug = c.Slug ?? string.Empty,
+                PostCount = c.Posts.Count
+            })
+            .ToListAsync();
+
+        var popularTags = await _db.Tags
+            .AsNoTracking()
+            .OrderByDescending(t => t.PostTags.Count)
+            .Take(10)
+            .Select(t => new TagViewModel
+            {
+                Name = t.Name,
+                PostCount = t.PostTags.Count
+            })
+            .ToListAsync();
 
         return new BlogIndexViewModel
         {
-            Posts = _mapper.Map<List<PostCardViewModel>>(postsData),
-            Categories = _mapper.Map<List<CategoryViewModel>>(categories),
-            Tags = _mapper.Map<List<TagViewModel>>(popularTags),
+            Posts = cards.Select(c => new PostCardViewModel
+            {
+                Id = c.Id,
+                Title = c.Title,
+                Slug = c.Slug ?? string.Empty,
+                FeaturedImageUrls = FeaturedImage.ParseUrls(c.FeaturedImageUrls),
+                ShortDescription = MarkdownExcerpt.ToPlainText(c.Content, 200),
+                CategoryName = c.CategoryName ?? "Uncategorized",
+                CategorySlug = c.CategorySlug ?? string.Empty,
+                PublishDate = c.PublishedDate ?? c.CreatedAt,
+                Tags = c.TagNames.Select(n => new TagViewModel { Name = n }).ToList()
+            }).ToList(),
+            Categories = categories,
+            Tags = popularTags,
             CurrentPage = page,
             TotalPages = (int)Math.Ceiling(totalPosts / (double)pageSize),
             CurrentCategory = category,
@@ -66,54 +103,55 @@ public class PostService : IPostService
 
     public async Task<Post?> GetPostByIdAsync(int id, bool includeUnpublished = false, bool includeDeleted = false)
     {
-        return await _postRepository.GetByIdAsync(id, includeUnpublished, includeDeleted);
-    }
-
-    public async Task<PostListViewModel> GetPostListAsync(int page, string? searchTerm, string? tagFilter,
-        bool? publishedOnly)
-    {
-        const int pageSize = 10;
-        var skip = (page - 1) * pageSize;
-
-        var posts = await _postRepository.GetPostsWithFiltersAsync(searchTerm, tagFilter, publishedOnly, skip,
-            pageSize);
-        var totalPosts = await _postRepository.CountPostsWithFiltersAsync(searchTerm, tagFilter, publishedOnly);
-
-        var postSummaries = _mapper.Map<List<PostSummaryViewModel>>(posts);
-
-        return new PostListViewModel
+        var query = _db.Posts.AsQueryable();
+        if (includeDeleted)
         {
-            Posts = postSummaries,
-            TotalPosts = totalPosts,
-            CurrentPage = page,
-            PageSize = pageSize,
-            SearchTerm = searchTerm,
-            ShowPublishedOnly = publishedOnly ?? false
-        };
+            query = query.IncludingDeleted();
+        }
+        if (!includeUnpublished)
+        {
+            query = query.Published();
+        }
+        return await query.FirstOrDefaultAsync(p => p.Id == id);
     }
 
     public async Task<PostViewModel?> GetPostViewModelAsync(int id)
     {
-        var post = await _postRepository.GetPostWithDetailsAsync(id);
-        return _mapper.Map<PostViewModel>(post);
+        var post = await _db.Posts
+            .AsNoTracking()
+            .IncludingDeleted()
+            .WithDetails()
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        return post?.ToPostViewModel();
     }
 
     public async Task<PostViewModel?> GetPostViewModelBySlugAsync(string slug)
     {
-        var post = await _postRepository.GetBySlugAsync(slug);
-        return _mapper.Map<PostViewModel>(post);
+        var post = await _db.Posts
+            .AsNoTracking()
+            .Published()
+            .WithDetails()
+            .FirstOrDefaultAsync(p => p.Slug == slug);
+
+        return post?.ToPostViewModel();
     }
 
     public async Task<EditPostViewModel?> GetPostForEditAsync(int id)
     {
-        var post = await _postRepository.GetPostWithDetailsAsync(id);
+        var post = await _db.Posts
+            .IncludingDeleted()
+            .WithDetails()
+            .FirstOrDefaultAsync(p => p.Id == id);
         if (post == null) return null;
 
-        var viewModel = _mapper.Map<EditPostViewModel>(post);
+        var viewModel = post.ToEditPostViewModel();
 
         viewModel.AvailableTags = await GetAvailableTagsAsync();
-        viewModel.AvailableCategories = (await _categoryRepository.GetAllAsync())
-            .Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Name }).ToList();
+        viewModel.AvailableCategories = await _db.Categories
+            .AsNoTracking()
+            .Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Name })
+            .ToListAsync();
 
         return viewModel;
     }
@@ -136,37 +174,35 @@ public class PostService : IPostService
             FeaturedImageAlt = viewModel.FeaturedImageAlt
         };
 
-        await _postRepository.AddAsync(post);
-        await _postRepository.SaveChangesAsync();
-
-        if (viewModel.SelectedTagIds is not { Count: > 0 }) return post;
-        foreach (var tagId in viewModel.SelectedTagIds)
+        if (viewModel.SelectedTagIds is { Count: > 0 })
         {
-            var postTag = new PostTag { PostId = post.Id, TagId = tagId };
-            await _postRepository.AddPostTagAsync(postTag);
+            foreach (var tagId in viewModel.SelectedTagIds)
+            {
+                post.PostTags.Add(new PostTag { TagId = tagId });
+            }
         }
-        await _postRepository.SaveChangesAsync();
+
+        await _db.Posts.AddAsync(post);
+        await _db.SaveChangesAsync();
 
         return post;
     }
 
     public async Task UpdatePostAsync(int id, EditPostViewModel viewModel)
     {
-        var post = await _postRepository.GetPostWithDetailsAsync(id);
+        var post = await GetTrackedPostWithDetailsAsync(id);
 
         var originalTitle = post.Title;
         var wasPublished = post.IsPublished;
 
-        _mapper.Map(viewModel, post);
+        viewModel.ApplyTo(post);
 
-        // 1. Image Logic: Preserve JSON if the image hasn't changed
-        if (viewModel.FeaturedImageUrl != GetStoredLargeUrl(post.FeaturedImageUrls))
+        // Preserve stored JSON if the image hasn't changed
+        if (viewModel.FeaturedImageUrl != FeaturedImage.GetLargeUrl(post.FeaturedImageUrls))
             post.FeaturedImageUrls = viewModel.FeaturedImageUrl;
 
-        // 2. Slug Logic: Protect SEO
         if (originalTitle != viewModel.Title)
         {
-            // Only auto-update slug if the post is NOT published yet.
             // Changing slugs on published posts breaks external links.
             if (!wasPublished)
             {
@@ -175,42 +211,43 @@ public class PostService : IPostService
             }
         }
 
-        post.Content = viewModel.Content;
-
         if (!wasPublished && viewModel.PublishNow)
         {
             post.PublishedDate = DateTime.UtcNow;
         }
-        post.IsPublished = viewModel.PublishNow;
 
-        await _postRepository.DeletePostTagsAsync(post.PostTags);
-        if (viewModel.SelectedTagIds.Count != 0)
+        var desiredTagIds = viewModel.SelectedTagIds.ToHashSet();
+        var currentTagIds = post.PostTags.Select(pt => pt.TagId).ToHashSet();
+
+        _db.PostTags.RemoveRange(post.PostTags.Where(pt => !desiredTagIds.Contains(pt.TagId)));
+        foreach (var tagId in desiredTagIds.Except(currentTagIds))
         {
-            foreach (var tagId in viewModel.SelectedTagIds)
-            {
-                await _postRepository.AddPostTagAsync(new PostTag
-                {
-                    PostId = post.Id,
-                    TagId = tagId
-                });
-            }
+            _db.PostTags.Add(new PostTag { PostId = post.Id, TagId = tagId });
         }
 
-        await _postRepository.UpdateAsync(post);
-        await _postRepository.SaveChangesAsync();
+        await _db.SaveChangesAsync();
+    }
+
+    private async Task<Post> GetTrackedPostWithDetailsAsync(int id)
+    {
+        return await _db.Posts
+            .IncludingDeleted()
+            .WithDetails()
+            .FirstOrDefaultAsync(p => p.Id == id)
+            ?? throw new KeyNotFoundException($"Post with ID {id} not found");
     }
 
     public async Task DeletePostAsync(int id)
     {
-        var post = await _postRepository.GetPostWithDetailsAsync(id);
-        await _postRepository.DeletePostTagsAsync(post.PostTags);
-        await _postRepository.DeleteAsync(post);
-        await _postRepository.SaveChangesAsync();
+        var post = await GetTrackedPostWithDetailsAsync(id);
+        _db.PostTags.RemoveRange(post.PostTags);
+        _db.Posts.Remove(post);
+        await _db.SaveChangesAsync();
     }
 
     public async Task<bool> PostExistsAsync(int id)
     {
-        return await _postRepository.PostExistsAsync(id);
+        return await _db.Posts.AnyAsync(p => p.Id == id);
     }
 
     public async Task<List<SelectListItem>> GetAvailableTagsAsync()
@@ -220,63 +257,51 @@ public class PostService : IPostService
 
     public async Task PublishPostAsync(int id)
     {
-        var post = await _postRepository.GetByIdAsync(id);
-
-        if (post == null)
-            throw new KeyNotFoundException($"Post with ID {id} not found");
+        var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == id)
+            ?? throw new KeyNotFoundException($"Post with ID {id} not found");
 
         post.IsPublished = true;
         post.PublishedDate = DateTime.UtcNow;
 
-        await _postRepository.UpdateAsync(post);
-        await _postRepository.SaveChangesAsync();
+        await _db.SaveChangesAsync();
     }
 
     public async Task UnpublishPostAsync(int id)
     {
-        var post = await _postRepository.GetByIdAsync(id);
-
-        if (post == null)
-            throw new KeyNotFoundException($"Post with ID {id} not found");
+        var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == id)
+            ?? throw new KeyNotFoundException($"Post with ID {id} not found");
 
         post.IsPublished = false;
 
-        await _postRepository.UpdateAsync(post);
-        await _postRepository.SaveChangesAsync();
+        await _db.SaveChangesAsync();
     }
 
     public async Task SoftDeletePostAsync(int id)
     {
-        var post = await _postRepository.GetPostWithDetailsAsync(id);
-
-        if (post == null)
-            throw new KeyNotFoundException($"Post with ID {id} not found");
+        var post = await _db.Posts.IncludingDeleted().FirstOrDefaultAsync(p => p.Id == id)
+            ?? throw new KeyNotFoundException($"Post with ID {id} not found");
 
         post.IsDeleted = true;
         post.DeletedAt = DateTime.UtcNow;
 
-        await _postRepository.UpdateAsync(post);
-        await _postRepository.SaveChangesAsync();
+        await _db.SaveChangesAsync();
     }
 
     public async Task RestorePostAsync(int id)
     {
-        var post = await _postRepository.GetPostWithDetailsAsync(id);
-
-        if (post == null)
-            throw new KeyNotFoundException($"Post with ID {id} not found");
+        var post = await _db.Posts.IncludingDeleted().FirstOrDefaultAsync(p => p.Id == id)
+            ?? throw new KeyNotFoundException($"Post with ID {id} not found");
 
         post.IsDeleted = false;
         post.DeletedAt = null;
 
-        await _postRepository.UpdateAsync(post);
-        await _postRepository.SaveChangesAsync();
+        await _db.SaveChangesAsync();
     }
 
     public async Task<DataTablesResponse<PostViewModel>> GetPostListForDataTableAsync(DataTablesRequest request)
     {
         var includeDeleted = request.StatusFilter is "trash" or "Trashed" or "All";
-        var query = _postRepository.GetQueryable(includeDeleted);
+        IQueryable<Post> query = includeDeleted ? _db.Posts.IncludingDeleted() : _db.Posts;
 
         // Apply status filter
         query = request.StatusFilter?.ToLower() switch
@@ -338,7 +363,7 @@ public class PostService : IPostService
             Id = post.Id,
             Title = post.Title,
             Slug = post.Slug,
-            Excerpt = GetPlainTextExcerpt(post.Content, 100),
+            Excerpt = MarkdownExcerpt.ToPlainText(post.Content, 100),
             CategoryName = post.Category?.Name ?? "Uncategorized",
             Tags = post.PostTags.Select(pt => pt.Tag?.Name ?? "").Where(n => !string.IsNullOrEmpty(n)).ToList(),
             AuthorName = post.Author?.UserName ?? "Unknown",
@@ -346,7 +371,7 @@ public class PostService : IPostService
             CreatedAt = post.CreatedAt,
             IsPublished = post.IsPublished,
             IsDeleted = post.IsDeleted,
-            FeaturedImageUrl = GetThumbnailUrl(post.FeaturedImageUrls)
+            FeaturedImageUrl = FeaturedImage.GetThumbnailUrl(post.FeaturedImageUrls)
         }).ToList();
 
         return new DataTablesResponse<PostViewModel>
@@ -358,62 +383,13 @@ public class PostService : IPostService
         };
     }
 
-    private static string GetPlainTextExcerpt(string? markdown, int maxLength)
-    {
-        if (string.IsNullOrWhiteSpace(markdown))
-            return string.Empty;
-
-        var plainText = Markdig.Markdown.ToPlainText(markdown);
-        plainText = System.Text.RegularExpressions.Regex.Replace(plainText, @"\s+", " ").Trim();
-
-        if (plainText.Length <= maxLength)
-            return plainText;
-
-        var lastSpace = plainText.LastIndexOf(' ', maxLength);
-        if (lastSpace > maxLength / 2)
-            return plainText[..lastSpace] + "...";
-
-        return plainText[..maxLength] + "...";
-    }
-
-    private static string? GetStoredLargeUrl(string? featuredImageUrls)
-    {
-        if (string.IsNullOrEmpty(featuredImageUrls)) return null;
-        if (!featuredImageUrls.TrimStart().StartsWith('{')) return featuredImageUrls;
-        try
-        {
-            var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(featuredImageUrls);
-            return dict?.GetValueOrDefault("large");
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-    }
-
-    private static string? GetThumbnailUrl(string? featuredImageUrls)
-    {
-        if (string.IsNullOrEmpty(featuredImageUrls))
-            return null;
-
-        try
-        {
-            var urls = JsonSerializer.Deserialize<Dictionary<string, string>>(featuredImageUrls);
-            return urls?.GetValueOrDefault("thumbnail") ?? urls?.Values.FirstOrDefault();
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
     private async Task<string> EnsureUniqueSlugAsync(string slug, int? postId = null)
     {
         var originalSlug = slug;
         var currentSlug = slug;
         var counter = 1;
 
-        while (await _postRepository.SlugExistsAsync(currentSlug, postId))
+        while (await _db.Posts.AnyAsync(p => p.Slug == currentSlug && (!postId.HasValue || p.Id != postId.Value)))
         {
             currentSlug = $"{originalSlug}-{counter}";
             counter++;
@@ -424,36 +400,32 @@ public class PostService : IPostService
 
     public async Task EmptyTrashAsync()
     {
-        var trashedPosts = await _postRepository.GetAllTrashedPostsAsync();
+        var trashedPosts = await _db.Posts
+            .IncludingDeleted()
+            .Where(p => p.IsDeleted)
+            .Include(p => p.PostTags)
+            .ToListAsync();
+
         foreach (var post in trashedPosts)
         {
-            await _postRepository.DeletePostTagsAsync(post.PostTags);
-            await _postRepository.DeleteAsync(post);
+            _db.PostTags.RemoveRange(post.PostTags);
         }
-        await _postRepository.SaveChangesAsync();
+        _db.Posts.RemoveRange(trashedPosts);
+        await _db.SaveChangesAsync();
     }
-    
+
     public async Task RestoreAllPostsAsync()
     {
-        var trashedPosts = await _postRepository.GetAllTrashedPostsAsync();
+        var trashedPosts = await _db.Posts
+            .IncludingDeleted()
+            .Where(p => p.IsDeleted)
+            .ToListAsync();
+
         foreach (var post in trashedPosts)
         {
             post.IsDeleted = false;
             post.DeletedAt = null;
-            await _postRepository.UpdateAsync(post);
         }
-        await _postRepository.SaveChangesAsync();
-    }
-
-    public async Task<Post?> GetPostBySlugAsync(string slug)
-    {
-        return await _postRepository.GetBySlugAsync(slug);
-    }
-
-    public async Task<Tag> CreateTagAsync(string name)
-    {
-        var tag = new Tag { Name = name.Trim() };
-        await _tagService.CreateTagAsync(tag);
-        return tag;
+        await _db.SaveChangesAsync();
     }
 }

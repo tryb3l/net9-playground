@@ -1,48 +1,45 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WebApp.Areas.Admin.ViewModels.Dashboard;
+using WebApp.Data;
 using WebApp.Interfaces;
+using WebApp.Mapping;
 using WebApp.Models;
 
 namespace WebApp.Services;
 
 public class DashboardService : IDashboardService
 {
-    private readonly IPostRepository _postRepository;
-    private readonly ICategoryRepository _categoryRepository;
-    private readonly ITagRepository _tagRepository;
+    private readonly ApplicationDbContext _db;
     private readonly UserManager<User> _userManager;
     private readonly IActivityLogService _activityLogService;
-    private readonly IMapper _mapper;
 
     public DashboardService(
-        IPostRepository postRepository,
-        ICategoryRepository categoryRepository,
-        ITagRepository tagRepository,
+        ApplicationDbContext db,
         IActivityLogService activityLogService,
-        UserManager<User> userManager,
-        IMapper mapper)
+        UserManager<User> userManager)
     {
-        _postRepository = postRepository;
-        _categoryRepository = categoryRepository;
-        _tagRepository = tagRepository;
+        _db = db;
         _userManager = userManager;
         _activityLogService = activityLogService;
-        _mapper = mapper;
     }
 
     public async Task<DashboardViewModel> GetDashboardViewModelAsync()
     {
-        var totalPosts = await _postRepository.CountAllAsync(p => !p.IsDeleted);
-        var totalCategories = await _categoryRepository.CountAllAsync();
-        var totalTags = await _tagRepository.CountAllAsync();
+        var totalPosts = await _db.Posts.CountAsync();
+        var totalCategories = await _db.Categories.CountAsync();
+        var totalTags = await _db.Tags.CountAsync();
         var totalUsers = await _userManager.Users.CountAsync();
         var recentActivities = await _activityLogService.GetRecentActivitiesAsync();
-        
-        var recentPosts = await _postRepository.GetRecentPostsAsync(5);
 
-        var recentPostViewModels = _mapper.Map<List<RecentPostViewModel>>(recentPosts);
+        var recentPosts = await _db.Posts
+            .AsNoTracking()
+            .Include(p => p.Author)
+            .OrderByDescending(p => p.CreatedAt)
+            .Take(5)
+            .ToListAsync();
+
+        var recentPostViewModels = recentPosts.Select(p => p.ToRecentPostViewModel()).ToList();
 
         return new DashboardViewModel
         {
@@ -51,7 +48,7 @@ public class DashboardService : IDashboardService
             TotalTags = totalTags,
             TotalUsers = totalUsers,
             RecentActivities = recentActivities,
-            RecentPosts = recentPostViewModels 
+            RecentPosts = recentPostViewModels
         };
     }
 }

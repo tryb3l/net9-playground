@@ -10,8 +10,6 @@ public interface IPostService
 {
     Task<BlogIndexViewModel> GetBlogIndexViewModelAsync(int page, string? category, string? tag);
     Task<Post?> GetPostByIdAsync(int id, bool includeUnpublished = false, bool includeDeleted = false);
-    Task<Post?> GetPostBySlugAsync(string slug);
-    Task<PostListViewModel> GetPostListAsync(int page, string? searchTerm, string? tagFilter, bool? publishedOnly);
     Task<PostViewModel?> GetPostViewModelAsync(int id);
     Task<PostViewModel?> GetPostViewModelBySlugAsync(string slug);
     Task<EditPostViewModel?> GetPostForEditAsync(int id);
@@ -27,5 +25,4 @@ public interface IPostService
     Task<DataTablesResponse<PostViewModel>> GetPostListForDataTableAsync(DataTablesRequest request);
     Task EmptyTrashAsync();
     Task RestoreAllPostsAsync();
-    Task<Tag> CreateTagAsync(string name);
 }
