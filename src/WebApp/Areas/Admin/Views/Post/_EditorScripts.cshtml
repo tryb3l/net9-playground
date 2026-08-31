@@ -1,10 +1,21 @@
+<!-- Pinned with integrity hashes: these URLs previously resolved to "latest", so an
+     upstream release could break the editor with no deploy on our side. -->
+
 <!-- EasyMDE -->
-<link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
-<script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/easymde@2.21.0/dist/easymde.min.css"
+      integrity="sha384-ZoLYv3S+AsZX+zhbN1D1+WPpc8f+DmLfxfgw+qn0Nq8wJPOYQQXEW5ZrRhcGozlG"
+      crossorigin="anonymous">
+<script src="https://unpkg.com/easymde@2.21.0/dist/easymde.min.js"
+        integrity="sha384-mTM6vzy+/UiHrMBClNGViM9qEv0/26iCGqpJKhSzdnjrxbKjO3vkT62ujXQ8B5iv"
+        crossorigin="anonymous"></script>
 
 <!-- Choices.js -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
-<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js@11.2.4/public/assets/styles/choices.min.css"
+      integrity="sha384-uLFsUvpIOC9MdzZeDr7vuIUG6LgTaguBn469csIwzNIG9N9TFVoYgM4Ov5PG1V1l"
+      crossorigin="anonymous" />
+<script src="https://cdn.jsdelivr.net/npm/choices.js@11.2.4/public/assets/scripts/choices.min.js"
+        integrity="sha384-0dGX4oSRqvcKtSNa5YGzTI3pkW4p3uoor1Izx0R5/7emRjiR619oCIBVnvM9k3tj"
+        crossorigin="anonymous"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -29,7 +40,10 @@
     element: document.getElementById('Content'),
     spellChecker: false,
     placeholder: "Start writing your masterpiece...",
-    status: ["autosave", "lines", "words", "cursor"],
+    // No "autosave" here: EasyMDE only autosaves when the `autosave` option below is
+    // configured, and listing it in the status bar without that advertised a safety net
+    // that did not exist. Unsaved work is guarded by the beforeunload handler instead.
+    status: ["lines", "words", "cursor"],
     minHeight: "400px",
     uploadImage: true,
     imageUploadFunction: (file, onSuccess, onError) => {
@@ -163,7 +177,92 @@
     let formDirty = false;
     let formSubmitted = false;
 
-    function markDirty() { formDirty = true; }
+    const previewBtn = document.getElementById('previewBtn');
+    const previewHint = document.getElementById('previewHint');
+
+    function markDirty() {
+    formDirty = true;
+    // Preview renders the last *saved* version, so offering it mid-edit silently shows
+    // stale content (target="_blank" means beforeunload never fires to warn about it).
+    if (previewBtn) {
+    previewBtn.classList.add('disabled');
+    previewBtn.setAttribute('aria-disabled', 'true');
+    }
+    if (previewHint) previewHint.classList.remove('d-none');
+    }
+
+    if (previewBtn) {
+    previewBtn.addEventListener('click', function (e) {
+    if (formDirty) e.preventDefault();
+    });
+    }
+
+    // 5. Inline tag creation
+    const newTagInput = document.getElementById('new-tag-name');
+    const addTagBtn = document.getElementById('add-tag-btn');
+    const newTagError = document.getElementById('new-tag-error');
+
+    function showTagError(message) {
+    if (!newTagError) return;
+    newTagError.textContent = message;
+    newTagError.classList.remove('d-none');
+    }
+
+    function addTag() {
+    const name = (newTagInput.value || '').trim();
+    if (!name) return;
+
+    if (newTagError) newTagError.classList.add('d-none');
+    addTagBtn.disabled = true;
+
+    const body = new FormData();
+    body.append('name', name);
+
+    fetch('/Admin/Tag/QuickCreate', {
+    method: 'POST',
+    body: body,
+    headers: {
+    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+    }
+    })
+    .then(r => r.json())
+    .then(d => {
+    addTagBtn.disabled = false;
+
+    if (!d.success) {
+    showTagError(d.message || 'Could not add the tag.');
+    return;
+    }
+
+    const value = String(d.id);
+    const alreadyListed = tagsSelect.passedElement.element
+    .querySelector('option[value="' + value + '"]');
+
+    if (alreadyListed) {
+    tagsSelect.setChoiceByValue(value);
+    } else {
+    tagsSelect.setChoices([{ value: value, label: d.name, selected: true }], 'value', 'label', false);
+    }
+
+    newTagInput.value = '';
+    markDirty();
+    })
+    .catch(() => {
+    addTagBtn.disabled = false;
+    showTagError('Could not add the tag. Please try again.');
+    });
+    }
+
+    if (addTagBtn && newTagInput) {
+    addTagBtn.addEventListener('click', addTag);
+    newTagInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+    // Otherwise Enter submits the whole post form.
+    e.preventDefault();
+    addTag();
+    }
+    });
+    }
 
     // Capture baselines after full initialization
     const titleInput = document.getElementById('Title');

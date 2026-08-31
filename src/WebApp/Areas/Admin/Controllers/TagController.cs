@@ -64,6 +64,43 @@ public class TagController : Controller
         }
     }
 
+    /// <summary>
+    /// Creates a tag from inside the post editor so writing a post never requires navigating
+    /// away (and losing the draft) just to add a tag.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> QuickCreate(string? name)
+    {
+        var trimmed = name?.Trim();
+
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            return Json(new { success = false, message = "Tag name is required." });
+        }
+
+        if (trimmed.Length > 64)
+        {
+            return Json(new { success = false, message = "Tag name must be 64 characters or fewer." });
+        }
+
+        try
+        {
+            var (tag, created) = await _tagService.GetOrCreateTagAsync(trimmed);
+            if (created)
+            {
+                await _activityLogService.LogActivityAsync("Created", "Tag", $"Created tag: '{tag.Name}'");
+            }
+
+            return Json(new { success = true, id = tag.Id, name = tag.Name, created });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error quick-creating tag {TagName}", trimmed);
+            return Json(new { success = false, message = "Could not add the tag. Please try again." });
+        }
+    }
+
     [HttpGet]
     public async Task<IActionResult> Edit(int? id)
     {

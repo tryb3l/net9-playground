@@ -77,6 +77,14 @@
                         <label asp-for="SelectedTagIds" class="form-label fw-bold">Tags</label>
                         <select asp-for="SelectedTagIds" asp-items="Model.AvailableTags" class="form-select" multiple id="tags-select">
                         </select>
+                        <div class="input-group input-group-sm mt-2">
+                            <input type="text" id="new-tag-name" class="form-control"
+                                   placeholder="Add a new tag" maxlength="64" autocomplete="off" />
+                            <button type="button" id="add-tag-btn" class="btn btn-outline-secondary">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                        <div id="new-tag-error" class="text-danger small mt-1 d-none"></div>
                         <span asp-validation-for="SelectedTagIds" class="text-danger"></span>
                     </div>
                 </div>

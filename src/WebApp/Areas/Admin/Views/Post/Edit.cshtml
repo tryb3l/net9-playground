@@ -20,9 +20,13 @@
                             <i class="bi bi-box-arrow-up-right me-1"></i>View live
                         </a>
                     }
-                    <a asp-action="Preview" asp-route-id="@Model.Id" target="_blank" class="btn btn-sm btn-outline-secondary">
+                    <a asp-action="Preview" asp-route-id="@Model.Id" target="_blank"
+                       id="previewBtn" class="btn btn-sm btn-outline-secondary">
                         <i class="bi bi-eye me-1"></i>Preview
                     </a>
+                    <span id="previewHint" class="text-muted small d-none">
+                        <i class="bi bi-exclamation-triangle me-1"></i>Save to preview your changes
+                    </span>
                 }
             </div>
         </div>
@@ -112,6 +116,14 @@
                         <label asp-for="SelectedTagIds" class="form-label fw-bold">Tags</label>
                         <select asp-for="SelectedTagIds" asp-items="Model.AvailableTags" class="form-select" multiple id="tags-select">
                         </select>
+                        <div class="input-group input-group-sm mt-2">
+                            <input type="text" id="new-tag-name" class="form-control"
+                                   placeholder="Add a new tag" maxlength="64" autocomplete="off" />
+                            <button type="button" id="add-tag-btn" class="btn btn-outline-secondary">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                        <div id="new-tag-error" class="text-danger small mt-1 d-none"></div>
                         <span asp-validation-for="SelectedTagIds" class="text-danger"></span>
                     </div>
                 </div>

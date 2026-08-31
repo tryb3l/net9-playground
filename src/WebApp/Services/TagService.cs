@@ -55,6 +55,25 @@ public class TagService : ITagService
         }
     }
 
+    public async Task<(Tag Tag, bool Created)> GetOrCreateTagAsync(string name)
+    {
+        var trimmed = name.Trim();
+
+        var existing = await _db.Tags
+            .FirstOrDefaultAsync(t => t.Name.ToLower() == trimmed.ToLower());
+        if (existing != null)
+        {
+            return (existing, false);
+        }
+
+        var tag = new Tag { Name = trimmed };
+        _db.Tags.Add(tag);
+        await _db.SaveChangesAsync();
+        InvalidateTagCache();
+
+        return (tag, true);
+    }
+
     public async Task<IEnumerable<TagViewModel>> GetAllTagsWithCountAsync()
     {
         return await _cache.GetOrCreateAsync(CacheKeys.AllTagsWithCount, async entry =>
