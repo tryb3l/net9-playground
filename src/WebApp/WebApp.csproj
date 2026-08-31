@@ -43,21 +43,6 @@
       <Content Update="Views/**/*.cshtml">
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       </Content>
-      <Content Remove="wwwroot\uploads\posts\f15a7e2e-db31-4813-af8f-236fe6aa8e28-large.webp" />
-      <Content Remove="wwwroot\uploads\posts\ad4c9416-d815-4a32-9bac-bd60446b087b-original.webp" />
-      <Content Remove="wwwroot\uploads\posts\ad4c9416-d815-4a32-9bac-bd60446b087b-large.webp" />
-      <Content Remove="wwwroot\uploads\posts\9e4ced81-9495-4464-87ee-54e63d4790b5-thumbnail.webp" />
-      <Content Remove="wwwroot\uploads\posts\9e4ced81-9495-4464-87ee-54e63d4790b5-large.webp" />
-      <Content Remove="wwwroot\uploads\posts\9dc8cf70-8a00-4828-b38e-28948ea7f6b5-original.webp" />
-      <Content Remove="wwwroot\uploads\posts\97742680-53b3-4b0d-95c2-ba4ad49e34d1-thumbnail.webp" />
-      <Content Remove="wwwroot\uploads\posts\70c74d37-48ed-46ea-a1ec-fd9ad3ef8ddd-medium.webp" />
-      <Content Remove="wwwroot\uploads\posts\5177b511-84cb-4e36-af3e-1bd8977f32fd-thumbnail.webp" />
-      <Content Remove="wwwroot\uploads\posts\49984b6a-9854-4b87-9235-825795addb34-thumbnail.webp" />
-      <Content Remove="wwwroot\uploads\posts\2ebdf1d6-6a90-4fe2-b651-d7570ae5500b-original.webp" />
-      <Content Remove="wwwroot\uploads\posts\1e61a601-45c0-4cdf-a502-a8c279c88291-thumbnail.webp" />
-      <Content Remove="wwwroot\uploads\posts\1e61a601-45c0-4cdf-a502-a8c279c88291-medium.webp" />
-      <Content Remove="wwwroot\uploads\posts\1e61a601-45c0-4cdf-a502-a8c279c88291-large.webp" />
-      <Content Remove="wwwroot\uploads\posts\17d8dea6-a185-401d-bec4-20195ed90f69-thumbnail.webp" />
     </ItemGroup>
 
     <ItemGroup>

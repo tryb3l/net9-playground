@@ -373,6 +373,34 @@ public class PostController : Controller
         }
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CleanupImages()
+    {
+        try
+        {
+            var deleted = await _postService.CleanupOrphanedEditorImagesAsync();
+            if (deleted > 0)
+            {
+                await _activityLogService.LogActivityAsync("Deleted", "Attachment",
+                    $"Removed {deleted} unreferenced editor image(s)");
+            }
+
+            return Json(new
+            {
+                success = true,
+                message = deleted == 0
+                    ? "No unused images found."
+                    : $"Removed {deleted} unused image(s)."
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error cleaning up orphaned editor images");
+            return Json(new { success = false, message = "An error occurred while cleaning up images." });
+        }
+    }
+
     [HttpGet]
     public async Task<IActionResult> Preview(int id)
     {

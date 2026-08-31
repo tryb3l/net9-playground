@@ -1,6 +1,7 @@
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using WebApp.Interfaces;
+using WebApp.Utils;
 
 namespace WebApp.Services;
 
@@ -147,5 +148,90 @@ public class AttachmentService : IAttachmentService
                 _logger.LogWarning(ex, "Failed to delete partial upload: {FilePath}", path);
             }
         }
+    }
+
+    public void DeleteStoredImages(string? storedUrls)
+    {
+        foreach (var url in FeaturedImage.ParseUrls(storedUrls).Values.Distinct())
+        {
+            DeleteByUrl(url);
+        }
+    }
+
+    public int DeleteUnreferencedImages(string subfolder, IReadOnlyCollection<string> referencedContent)
+    {
+        var folder = ResolveUploadsPath(subfolder);
+        if (folder == null || !Directory.Exists(folder))
+        {
+            return 0;
+        }
+
+        var deleted = 0;
+        foreach (var path in Directory.EnumerateFiles(folder))
+        {
+            var fileName = Path.GetFileName(path);
+            if (referencedContent.Any(c => c.Contains(fileName, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            try
+            {
+                File.Delete(path);
+                deleted++;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to delete unreferenced upload: {FilePath}", path);
+            }
+        }
+
+        return deleted;
+    }
+
+    private void DeleteByUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url) || !url.StartsWith("/uploads/", StringComparison.Ordinal))
+        {
+            // Anything not served from our own uploads folder is not ours to delete.
+            return;
+        }
+
+        var relative = url.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+        var fullPath = Path.GetFullPath(Path.Combine(_env.WebRootPath, relative));
+
+        if (!IsInsideUploads(fullPath))
+        {
+            _logger.LogWarning("Refusing to delete a path outside the uploads folder: {Url}", url);
+            return;
+        }
+
+        try
+        {
+            if (File.Exists(fullPath)) File.Delete(fullPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to delete image file: {FilePath}", fullPath);
+        }
+    }
+
+    private string? ResolveUploadsPath(string subfolder)
+    {
+        subfolder = subfolder.Trim('/', '\\');
+        if (subfolder.Contains("..") || Path.IsPathRooted(subfolder))
+        {
+            _logger.LogWarning("Refusing to resolve suspicious uploads subfolder: {Subfolder}", subfolder);
+            return null;
+        }
+
+        var fullPath = Path.GetFullPath(Path.Combine(_env.WebRootPath, "uploads", subfolder));
+        return IsInsideUploads(fullPath) ? fullPath : null;
+    }
+
+    private bool IsInsideUploads(string fullPath)
+    {
+        var uploadsRoot = Path.GetFullPath(Path.Combine(_env.WebRootPath, "uploads"));
+        return fullPath.StartsWith(uploadsRoot + Path.DirectorySeparatorChar, StringComparison.Ordinal);
     }
 }

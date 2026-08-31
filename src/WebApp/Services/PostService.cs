@@ -16,11 +16,13 @@ public class PostService : IPostService
 {
     private readonly ApplicationDbContext _db;
     private readonly ITagService _tagService;
+    private readonly IAttachmentService _attachmentService;
 
-    public PostService(ApplicationDbContext db, ITagService tagService)
+    public PostService(ApplicationDbContext db, ITagService tagService, IAttachmentService attachmentService)
     {
         _db = db;
         _tagService = tagService;
+        _attachmentService = attachmentService;
     }
 
     public async Task<BlogIndexViewModel> GetBlogIndexViewModelAsync(int page, string? category, string? tag)
@@ -203,12 +205,11 @@ public class PostService : IPostService
 
         var originalTitle = post.Title;
         var wasPublished = post.IsPublished;
+        var previousImage = post.FeaturedImageUrls;
 
+        // ApplyTo resolves the featured image too - the posted value is the large URL when
+        // untouched and a fresh JSON blob after an upload.
         viewModel.ApplyTo(post);
-
-        // Preserve stored JSON if the image hasn't changed
-        if (viewModel.FeaturedImageUrl != FeaturedImage.GetLargeUrl(post.FeaturedImageUrls))
-            post.FeaturedImageUrls = viewModel.FeaturedImageUrl;
 
         if (originalTitle != viewModel.Title)
         {
@@ -237,6 +238,12 @@ public class PostService : IPostService
         }
 
         await _db.SaveChangesAsync();
+
+        // Only after the row is safely persisted, so a failed save never orphans the live image.
+        if (!string.Equals(previousImage, post.FeaturedImageUrls, StringComparison.Ordinal))
+        {
+            _attachmentService.DeleteStoredImages(previousImage);
+        }
     }
 
     private async Task<Post> GetTrackedPostWithDetailsAsync(int id)
@@ -251,9 +258,13 @@ public class PostService : IPostService
     public async Task DeletePostAsync(int id)
     {
         var post = await GetTrackedPostWithDetailsAsync(id);
+        var image = post.FeaturedImageUrls;
+
         _db.PostTags.RemoveRange(post.PostTags);
         _db.Posts.Remove(post);
         await _db.SaveChangesAsync();
+
+        _attachmentService.DeleteStoredImages(image);
     }
 
     public async Task<bool> PostExistsAsync(int id)
@@ -427,6 +438,8 @@ public class PostService : IPostService
             .Include(p => p.PostTags)
             .ToListAsync();
 
+        var images = trashedPosts.Select(p => p.FeaturedImageUrls).ToList();
+
         foreach (var post in trashedPosts)
         {
             _db.PostTags.RemoveRange(post.PostTags);
@@ -434,7 +447,27 @@ public class PostService : IPostService
         _db.Posts.RemoveRange(trashedPosts);
         await _db.SaveChangesAsync();
 
+        foreach (var image in images)
+        {
+            _attachmentService.DeleteStoredImages(image);
+        }
+
         return trashedPosts.Count;
+    }
+
+    /// <summary>
+    /// Editor uploads are written straight to disk and only ever referenced from post
+    /// markdown, so abandoning a draft leaks them. Sweeps files no post body mentions.
+    /// </summary>
+    public async Task<int> CleanupOrphanedEditorImagesAsync()
+    {
+        var content = await _db.Posts
+            .IgnoreQueryFilters()
+            .Where(p => p.Content != null)
+            .Select(p => p.Content!)
+            .ToListAsync();
+
+        return _attachmentService.DeleteUnreferencedImages("posts/editor", content);
     }
 
     public async Task<int> RestoreAllPostsAsync()

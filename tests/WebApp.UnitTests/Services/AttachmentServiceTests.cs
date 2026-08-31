@@ -204,4 +204,97 @@ public class AttachmentServiceTests : IDisposable
         urls.ShouldContainKey("large");
         urls.Count.ShouldBe(1);
     }
+
+    // ── deletion ────────────────────────────────────────────────────────────
+
+    private string CreateUpload(string relativePath)
+    {
+        var full = Path.Combine(_tempWebRoot, "uploads", relativePath.Replace('/', Path.DirectorySeparatorChar));
+        Directory.CreateDirectory(Path.GetDirectoryName(full)!);
+        File.WriteAllText(full, "x");
+        return full;
+    }
+
+    [Fact]
+    public void DeleteStoredImages_RemovesEverySizeInTheStoredJson()
+    {
+        // Arrange
+        var large = CreateUpload("posts/abc-large.webp");
+        var medium = CreateUpload("posts/abc-medium.webp");
+        var thumb = CreateUpload("posts/abc-thumbnail.webp");
+        var unrelated = CreateUpload("posts/other-large.webp");
+
+        var stored = """{"large":"/uploads/posts/abc-large.webp","medium":"/uploads/posts/abc-medium.webp","thumbnail":"/uploads/posts/abc-thumbnail.webp"}""";
+
+        // Act
+        _service.DeleteStoredImages(stored);
+
+        // Assert
+        File.Exists(large).ShouldBeFalse();
+        File.Exists(medium).ShouldBeFalse();
+        File.Exists(thumb).ShouldBeFalse();
+        File.Exists(unrelated).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void DeleteStoredImages_WithLegacyPlainUrl_RemovesTheFile()
+    {
+        // Older rows stored a bare URL rather than a JSON blob.
+        var file = CreateUpload("posts/legacy.webp");
+
+        _service.DeleteStoredImages("/uploads/posts/legacy.webp");
+
+        File.Exists(file).ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("https://cdn.example.com/remote.png")]
+    public void DeleteStoredImages_IgnoresValuesThatAreNotLocalUploads(string? stored)
+    {
+        var untouched = CreateUpload("posts/keep.webp");
+
+        Should.NotThrow(() => _service.DeleteStoredImages(stored));
+
+        File.Exists(untouched).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void DeleteStoredImages_RefusesToEscapeTheUploadsFolder()
+    {
+        // Arrange: a value crafted to climb out of wwwroot/uploads.
+        var outside = Path.Combine(_tempWebRoot, "appsettings.json");
+        File.WriteAllText(outside, "secret");
+
+        // Act
+        _service.DeleteStoredImages("/uploads/../appsettings.json");
+
+        // Assert
+        File.Exists(outside).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void DeleteUnreferencedImages_KeepsFilesMentionedInPostContent()
+    {
+        // Arrange
+        var referenced = CreateUpload("posts/editor/used.webp");
+        var orphan = CreateUpload("posts/editor/unused.webp");
+
+        var content = new[] { "Intro ![alt](/uploads/posts/editor/used.webp) outro" };
+
+        // Act
+        var deleted = _service.DeleteUnreferencedImages("posts/editor", content);
+
+        // Assert
+        deleted.ShouldBe(1);
+        File.Exists(referenced).ShouldBeTrue();
+        File.Exists(orphan).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void DeleteUnreferencedImages_WhenFolderIsMissing_ReturnsZero()
+    {
+        _service.DeleteUnreferencedImages("posts/editor", []).ShouldBe(0);
+    }
 }

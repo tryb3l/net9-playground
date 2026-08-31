@@ -50,4 +50,14 @@ public static class FeaturedImage
 
     public static string? GetLargeUrl(string? source) => GetUrl(source, "large");
     public static string? GetThumbnailUrl(string? source) => GetUrl(source, "thumbnail");
+    
+    public static string? Resolve(string? posted, string? stored)
+    {
+        if (string.IsNullOrWhiteSpace(posted))
+        {
+            return null;
+        }
+
+        return posted == GetLargeUrl(stored) ? stored : posted;
+    }
 }

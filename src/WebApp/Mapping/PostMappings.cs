@@ -63,5 +63,6 @@ public static class PostMappings
         post.CategoryId = viewModel.CategoryId;
         post.FeaturedImageAlt = viewModel.FeaturedImageAlt;
         post.IsPublished = viewModel.PublishNow;
+        post.FeaturedImageUrls = FeaturedImage.Resolve(viewModel.FeaturedImageUrl, post.FeaturedImageUrls);
     }
 }

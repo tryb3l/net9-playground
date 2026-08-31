@@ -29,4 +29,9 @@ public interface IPostService
 
     /// <summary>Restores every trashed post. Returns how many were restored.</summary>
     Task<int> RestoreAllPostsAsync();
+
+    /// <summary>
+    /// Deletes editor-uploaded images that no post body references. Returns how many went.
+    /// </summary>
+    Task<int> CleanupOrphanedEditorImagesAsync();
 }
