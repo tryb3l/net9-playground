@@ -24,11 +24,33 @@ public class GlobalExceptionHandlerMiddleware(
         {
             await next(context);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (WantsJson(context))
         {
             logger.LogError(ex, "An unhandled exception has occurred while processing the request.");
             await HandleExceptionAsync(context, ex);
         }
+        // Browser requests fall through to UseExceptionHandler, which re-executes the
+        // pipeline into Home/Error and renders a real page instead of a JSON blob.
+    }
+
+    /// <summary>
+    /// True for the admin JSON API and for AJAX calls, which expect a machine-readable body.
+    /// </summary>
+    private static bool WantsJson(HttpContext context)
+    {
+        if (context.Request.Path.StartsWithSegments("/Admin/api"))
+        {
+            return true;
+        }
+
+        if (string.Equals(context.Request.Headers.XRequestedWith, "XMLHttpRequest", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var accept = context.Request.Headers.Accept.ToString();
+        return accept.Contains("application/json", StringComparison.OrdinalIgnoreCase)
+               && !accept.Contains("text/html", StringComparison.OrdinalIgnoreCase);
     }
     
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)

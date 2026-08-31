@@ -14,6 +14,7 @@ public class PostViewModel
     public DateTime CreatedAt { get; set; }
     public bool IsPublished { get; set; }
     public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
 
     public string? FeaturedImageUrl { get; set; }
     public string? FeaturedImageAlt { get; set; }

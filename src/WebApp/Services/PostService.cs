@@ -394,6 +394,7 @@ public class PostService : IPostService
             CreatedAt = post.CreatedAt,
             IsPublished = post.IsPublished,
             IsDeleted = post.IsDeleted,
+            DeletedAt = post.DeletedAt,
             FeaturedImageUrl = FeaturedImage.GetThumbnailUrl(post.FeaturedImageUrls)
         }).ToList();
 

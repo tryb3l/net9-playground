@@ -56,7 +56,14 @@ try
     {
         options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
     });
-    builder.Services.AddRazorPages();
+
+    // Single-author blog: self-registration is closed unless explicitly switched on.
+    var registrationEnabled = builder.Configuration.GetValue("Blog:RegistrationEnabled", false);
+
+    builder.Services.AddRazorPages(options =>
+    {
+        options.Conventions.AuthorizeAreaPage("Identity", "/Account/Register", "RegistrationOpen");
+    });
 
     if (builder.Environment.IsDevelopment())
     {
@@ -125,6 +132,10 @@ try
         .AddPolicy("Admin", policy =>
         {
             policy.AddRequirements(new AdminOrApiKeyRequirement());
+        })
+        .AddPolicy("RegistrationOpen", policy =>
+        {
+            policy.RequireAssertion(_ => registrationEnabled);
         });
 
     builder.Services.AddTransient<GlobalExceptionHandlerMiddleware>();
@@ -170,12 +181,26 @@ try
 
     var app = builder.Build();
 
-    app.UseGlobalExceptionHandler();
-
-    if (!app.Environment.IsDevelopment())
+    // Outermost handler: renders a real HTML page for browser requests. The JSON handler
+    // below only claims API/AJAX requests and lets everything else fall through to here.
+    if (app.Environment.IsDevelopment())
     {
+        app.UseDeveloperExceptionPage();
+    }
+    else
+    {
+        app.UseExceptionHandler("/Home/Error");
         app.UseHsts();
     }
+
+    app.UseGlobalExceptionHandler();
+
+    // 404s and other bare status codes get the same page, except on the JSON endpoints
+    // where an HTML body would be worse than none.
+    app.UseWhen(
+        context => !context.Request.Path.StartsWithSegments("/Admin/api")
+                   && !context.Request.Path.StartsWithSegments("/health"),
+        branch => branch.UseStatusCodePagesWithReExecute("/Home/Error", "?statusCode={0}"));
 
     app.UseHttpsRedirection();
 

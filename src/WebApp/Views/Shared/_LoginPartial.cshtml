@@ -3,6 +3,7 @@
 
 @inject SignInManager<User> SignInManager
 @inject UserManager<User> UserManager
+@inject IConfiguration Configuration
 
 @if (SignInManager.IsSignedIn(User))
 {
@@ -44,10 +45,13 @@
 else
 {
     <div class="nav-auth-links">
-        <a class="nav-link" asp-area="Identity" asp-page="/Account/Register">
-            <i class="bi bi-person-plus me-1"></i>
-            <span>Register</span>
-        </a>
+        @if (Configuration.GetValue("Blog:RegistrationEnabled", false))
+        {
+            <a class="nav-link" asp-area="Identity" asp-page="/Account/Register">
+                <i class="bi bi-person-plus me-1"></i>
+                <span>Register</span>
+            </a>
+        }
         <a class="nav-link" asp-area="Identity" asp-page="/Account/Login">
             <i class="bi bi-box-arrow-in-right me-1"></i>
             <span>Login</span>

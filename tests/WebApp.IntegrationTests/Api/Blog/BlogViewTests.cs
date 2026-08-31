@@ -244,4 +244,74 @@ public class BlogViewTests(IntegrationTestFixture fixture)
         otherCategoryContent.ShouldContain("Cooking Post");
         otherCategoryContent.ShouldNotContain("Tagged DotNet Post");
     }
+
+    [Fact]
+    public async Task Post_UnknownSlug_RendersTheErrorPageNotABlankBody()
+    {
+        // There was no UseStatusCodePages, so a bad slug returned 404 with an empty body.
+
+        // Arrange
+        this.GivenAnonymousUser();
+
+        // Act
+        var response = await HttpClient.GetAsync("/blog/no-such-post", TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(NotFound);
+
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        content.ShouldNotBeNullOrWhiteSpace();
+        content.ShouldContain("Page not found");
+        content.ShouldNotContain("\"error\":");
+    }
+
+    [Fact]
+    public async Task Post_DraftSlug_IsNotPubliclyReachable()
+    {
+        // Arrange
+        await this.GivenAdminUserAsync();
+        var catId = await this.SeedCategoryAsync("Hidden");
+        var (_, slug) = await this.SeedPostAsync("Secret Draft", catId, isPublished: false);
+        this.GivenAnonymousUser();
+
+        // Act
+        var response = await HttpClient.GetAsync($"/blog/{slug}", TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(NotFound);
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        content.ShouldNotContain("Secret Draft");
+    }
+
+    [Fact]
+    public async Task Register_IsClosedByDefault()
+    {
+        // A single-author blog should not expose an open account-creation endpoint.
+
+        // Arrange
+        this.GivenAnonymousUser();
+
+        // Act
+        var response = await HttpClient.GetAsync("/Identity/Account/Register", TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldNotBe(OK);
+    }
+
+    [Fact]
+    public async Task Index_DoesNotLinkToRegistration()
+    {
+        // Arrange
+        this.GivenAnonymousUser();
+
+        // Act
+        var response = await HttpClient.GetAsync("/blog", TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(OK);
+        var document = await response.ParseHtmlAsync();
+        document.QuerySelectorAll("a")
+            .Select(a => a.GetAttribute("href") ?? string.Empty)
+            .ShouldNotContain(href => href.Contains("Account/Register"));
+    }
 }

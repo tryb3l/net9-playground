@@ -103,12 +103,21 @@
 
             function renderStatus(row) {
                 if (row.isDeleted) {
-                    return `<span class="badge bg-danger">Trashed</span>`;
+                    // "Empty Trash" is irreversible, so show how long things have been sitting.
+                    return `<span class="badge bg-danger">Trashed</span>` + renderTrashedAge(row.deletedAt);
                 }
                 if (row.isPublished) {
                     return `<span class="badge bg-success">Published</span>`;
                 }
                 return `<span class="badge bg-secondary">Draft</span>`;
+            }
+
+            function renderTrashedAge(deletedAt) {
+                if (!deletedAt) return '';
+
+                var days = Math.floor((Date.now() - new Date(deletedAt).getTime()) / 86400000);
+                var label = days <= 0 ? 'today' : (days === 1 ? '1 day ago' : days + ' days ago');
+                return ` <span class="text-muted small">${label}</span>`;
             }
 
             // --- Filter button logic ---

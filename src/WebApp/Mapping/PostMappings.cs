@@ -25,6 +25,7 @@ public static class PostMappings
         CreatedAt = post.CreatedAt,
         IsPublished = post.IsPublished,
         IsDeleted = post.IsDeleted,
+        DeletedAt = post.DeletedAt,
         FeaturedImageUrl = FeaturedImage.GetLargeUrl(post.FeaturedImageUrls),
         FeaturedImageAlt = post.FeaturedImageAlt
     };
