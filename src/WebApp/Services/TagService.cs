@@ -5,6 +5,7 @@ using WebApp.Areas.Admin.ViewModels.Tag;
 using WebApp.Data;
 using WebApp.Interfaces;
 using WebApp.Models;
+using WebApp.Utils;
 
 namespace WebApp.Services;
 
@@ -32,6 +33,7 @@ public class TagService : ITagService
 
     public async Task CreateTagAsync(Tag tag)
     {
+        tag.Slug = await EnsureUniqueSlugAsync(SlugHelper.GenerateSlug(tag.Name));
         _db.Tags.Add(tag);
         await _db.SaveChangesAsync();
         InvalidateTagCache();
@@ -39,6 +41,7 @@ public class TagService : ITagService
 
     public async Task UpdateTagAsync(Tag tag)
     {
+        tag.Slug = await EnsureUniqueSlugAsync(SlugHelper.GenerateSlug(tag.Name), tag.Id);
         _db.Tags.Update(tag);
         await _db.SaveChangesAsync();
         InvalidateTagCache();
@@ -67,11 +70,31 @@ public class TagService : ITagService
         }
 
         var tag = new Tag { Name = trimmed };
+        tag.Slug = await EnsureUniqueSlugAsync(SlugHelper.GenerateSlug(trimmed));
         _db.Tags.Add(tag);
         await _db.SaveChangesAsync();
         InvalidateTagCache();
 
         return (tag, true);
+    }
+
+    /// <summary>
+    /// IX_Tags_Slug is unique, so two tags whose names normalise identically would collide.
+    /// </summary>
+    private async Task<string> EnsureUniqueSlugAsync(string slug, int? tagId = null)
+    {
+        var baseSlug = string.IsNullOrEmpty(slug) ? "tag" : slug;
+
+        var candidate = baseSlug;
+        var counter = 1;
+
+        while (await _db.Tags.AnyAsync(t => t.Slug == candidate && (!tagId.HasValue || t.Id != tagId.Value)))
+        {
+            var suffix = $"-{counter++}";
+            candidate = SlugHelper.Truncate(baseSlug, SlugHelper.MaxSlugLength - suffix.Length) + suffix;
+        }
+
+        return candidate;
     }
 
     public async Task<IEnumerable<TagViewModel>> GetAllTagsWithCountAsync()

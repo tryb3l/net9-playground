@@ -11,10 +11,19 @@ public class Post : ISoftDelete
     [MaxLength(64)]
     public string? Slug { get; set; }
     public string? Content { get; set; }
+
+    /// <summary>
+    /// Author-written summary for cards and meta descriptions. Falls back to the first
+    /// couple of hundred characters of Content when empty.
+    /// </summary>
+    [MaxLength(512)]
+    public string? Excerpt { get; set; }
+
     public string? FeaturedImageUrls { get; set; }
     [MaxLength(255)]
     public string? FeaturedImageAlt { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
     public DateTime? PublishedDate { get; set; }
     public bool IsPublished { get; set; } = false;
     public bool IsDeleted { get; set; } = false;

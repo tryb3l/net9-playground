@@ -32,7 +32,7 @@ public static class DataSeedingExtensions
                 var existing = await db.Tags.FirstOrDefaultAsync(t => t.Name == name);
                 if (existing != null) return existing.Id;
 
-                var tag = new Tag { Name = name };
+                var tag = new Tag { Name = name, Slug = SlugHelper.GenerateSlug(name) };
                 db.Tags.Add(tag);
                 await db.SaveChangesAsync();
                 return tag.Id;

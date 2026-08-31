@@ -49,6 +49,11 @@ public class ApplicationDbContext : IdentityDbContext<User>
             .WithMany(c => c.Posts)
             .HasForeignKey(p => p.CategoryId);
 
+        modelBuilder.Entity<Tag>()
+            .HasIndex(t => t.Slug)
+            .IsUnique()
+            .HasFilter("\"Slug\" IS NOT NULL");
+
         modelBuilder.SetQueryFilterOnAllEntities<ISoftDelete>(e => !e.IsDeleted);
     }
 

@@ -1,6 +1,13 @@
 ﻿@model WebApp.Areas.Admin.ViewModels.Post.PostViewModel
 @{
     ViewData["Title"] = Model.Title;
+    ViewData["MetaDescription"] = Model.Excerpt;
+    ViewData["OgType"] = "article";
+    if (!string.IsNullOrEmpty(Model.FeaturedImageUrl))
+    {
+        ViewData["SocialImage"] = $"{Context.Request.Scheme}://{Context.Request.Host}{Model.FeaturedImageUrl}";
+    }
+
     bool isPreview = ViewData["IsPreview"] is true;
 }
 
@@ -48,9 +55,9 @@
                 {
                     <footer class="post-full-footer">
                         <div class="post-tags">
-                            @foreach (var tagName in Model.Tags)
+                            @foreach (var tag in Model.Tags)
                             {
-                                <a href="@Url.Action("Index", "Blog", new { tag = tagName })" class="tag-link">#@tagName</a>
+                                <a href="@Url.Action("Index", "Blog", new { tag = tag.Slug })" class="tag-link">#@tag.Name</a>
                             }
                         </div>
                     </footer>

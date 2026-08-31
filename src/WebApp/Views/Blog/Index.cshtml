@@ -1,7 +1,12 @@
 ﻿@model WebApp.ViewModels.BlogIndexViewModel
 
 @{
-    ViewData["Title"] = "Blog";
+    ViewData["Title"] = Model.CurrentTag is { Length: > 0 } t
+        ? $"Posts tagged #{t}"
+        : Model.CurrentCategory is { Length: > 0 } c
+            ? $"Posts in {c}"
+            : "Blog";
+    ViewData["MetaDescription"] = "Latest posts.";
 }
 
 <div class="blog-page-wrapper">
@@ -33,8 +38,8 @@
             <div class="filter-chip-container">
                 @foreach (var category in Model.Categories)
                 {
-                    <a href="@Url.Action("Index", new { category = category.Name })"
-                       class="filter-chip @(Model.CurrentCategory == category.Name ? "selected" : "")">
+                    <a href="@Url.Action("Index", new { category = category.Slug })"
+                       class="filter-chip @(Model.CurrentCategory == category.Slug ? "selected" : "")">
                         <i class="bi bi-folder chip-icon"></i>
                         <span>@category.Name</span>
                         <span class="chip-count">@category.PostCount</span>
@@ -49,8 +54,8 @@
             <div class="filter-chip-container">
                 @foreach (var tag in Model.Tags)
                 {
-                    <a href="@Url.Action("Index", new { tag = tag.Name })"
-                       class="filter-chip @(Model.CurrentTag == tag.Name ? "selected" : "")">
+                    <a href="@Url.Action("Index", new { tag = tag.Slug })"
+                       class="filter-chip @(Model.CurrentTag == tag.Slug ? "selected" : "")">
                         <i class="bi bi-tag chip-icon"></i>
                         <span>@tag.Name</span>
                         <span class="chip-count">@tag.PostCount</span>
@@ -117,8 +122,8 @@
                 <div class="sidebar-content">
                     @foreach (var category in Model.Categories)
                     {
-                        <a href="@Url.Action("Index", new { category = category.Name })"
-                           class="sidebar-link @(Model.CurrentCategory == category.Name ? "active" : "")">
+                        <a href="@Url.Action("Index", new { category = category.Slug })"
+                           class="sidebar-link @(Model.CurrentCategory == category.Slug ? "active" : "")">
                             <i class="bi bi-folder me-2"></i>@category.Name
                         </a>
                     }
@@ -131,8 +136,8 @@
                     <div class="tag-cloud">
                         @foreach (var tag in Model.Tags)
                         {
-                            <a href="@Url.Action("Index", new { tag = tag.Name })"
-                               class="tag-cloud-item @(Model.CurrentTag == tag.Name ? "active" : "")">
+                            <a href="@Url.Action("Index", new { tag = tag.Slug })"
+                               class="tag-cloud-item @(Model.CurrentTag == tag.Slug ? "active" : "")">
                                 @tag.Name
                             </a>
                         }

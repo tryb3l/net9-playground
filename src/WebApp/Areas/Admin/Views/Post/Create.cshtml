@@ -59,6 +59,13 @@
 
                 <!-- Featured Image Alt Text -->
                 <div class="mb-4">
+                    <label asp-for="Excerpt" class="form-label fw-bold">Excerpt</label>
+                    <textarea asp-for="Excerpt" class="form-control" rows="2"
+                              placeholder="Short summary for post cards, the feed and search results. Leave blank to use the opening of the post."></textarea>
+                    <span asp-validation-for="Excerpt" class="text-danger"></span>
+                </div>
+
+                <div class="mb-4">
                     <label asp-for="FeaturedImageAlt" class="form-label fw-bold">Featured Image Alt Text</label>
                     <input asp-for="FeaturedImageAlt" class="form-control" placeholder="Describe the image for screen readers and SEO" />
                     <span asp-validation-for="FeaturedImageAlt" class="text-danger"></span>

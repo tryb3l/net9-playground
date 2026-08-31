@@ -20,6 +20,68 @@ public class PostFlowTests : BaseIntegrationTest
     }
 
     [Fact]
+    public async Task Create_WithExplicitExcerpt_StoresItSeparatelyFromContent()
+    {
+        // Arrange
+        await this.GivenAdminUserAsync();
+
+        var page = await HttpClient.GetAsync("/Admin/Post/Create", TestContext.Current.CancellationToken);
+        page.EnsureSuccessStatusCode();
+        var csrfToken = await GetCsrfToken(page);
+
+        // Act
+        var formData = new Dictionary<string, string>
+        {
+            { "Title", "Post With A Custom Excerpt" },
+            { "Content", "A very long body that would otherwise be truncated for the card summary." },
+            { "Excerpt", "A short, hand-written summary." },
+            { "PublishNow", "false" },
+            { "__RequestVerificationToken", csrfToken }
+        };
+        var response = await HttpClient.PostAsync("/Admin/Post/Create", new FormUrlEncodedContent(formData), TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        var postId = int.Parse(response.Headers.Location!.ToString().Split('/').Last());
+
+        await ExecuteDbContextAsync(async db =>
+        {
+            var post = await db.Posts.FindAsync(postId);
+            post.ShouldNotBeNull();
+            post.Excerpt.ShouldBe("A short, hand-written summary.");
+        });
+    }
+
+    [Fact]
+    public async Task Create_WithoutAnExcerpt_LeavesItNullSoTheDerivedTextIsUsed()
+    {
+        // Arrange
+        await this.GivenAdminUserAsync();
+
+        var page = await HttpClient.GetAsync("/Admin/Post/Create", TestContext.Current.CancellationToken);
+        var csrfToken = await GetCsrfToken(page);
+
+        // Act
+        var formData = new Dictionary<string, string>
+        {
+            { "Title", "Post Without An Excerpt" },
+            { "Content", "Body content." },
+            { "PublishNow", "false" },
+            { "__RequestVerificationToken", csrfToken }
+        };
+        var response = await HttpClient.PostAsync("/Admin/Post/Create", new FormUrlEncodedContent(formData), TestContext.Current.CancellationToken);
+
+        // Assert
+        var postId = int.Parse(response.Headers.Location!.ToString().Split('/').Last());
+        await ExecuteDbContextAsync(async db =>
+        {
+            var post = await db.Posts.FindAsync(postId);
+            post.ShouldNotBeNull();
+            post.Excerpt.ShouldBeNull();
+        });
+    }
+
+    [Fact]
     public async Task Post_Lifecycle_HappyPath()
     {
         // Setup: Authenticate as Admin using the Support infrastructure

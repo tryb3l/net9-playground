@@ -12,6 +12,10 @@ public class CreatePostViewModel
 
     [Display(Name = "Content")]
     public string? Content { get; init; }
+    [Display(Name = "Excerpt")]
+    [StringLength(512, ErrorMessage = "Excerpt must be 512 characters or fewer")]
+    public string? Excerpt { get; init; }
+
     public string? FeaturedImageUrl { get; set; }
     public string? FeaturedImageAlt { get; set; }
 

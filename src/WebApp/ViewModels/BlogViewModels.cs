@@ -19,7 +19,6 @@ public class TagViewModel
     public string Slug { get; set; } = string.Empty;
     public int PostCount { get; init; } = 0;
 }
-
 public class CategoryViewModel
 {
     public string Name { get; init; } = string.Empty;

@@ -2,9 +2,49 @@
 <html lang="en">
 
 <head>
+    @{
+        var siteName = ViewData["SiteName"] as string ?? "WebApp";
+        var pageTitle = ViewData["Title"] as string;
+        var metaDescription = ViewData["MetaDescription"] as string;
+        var socialImage = ViewData["SocialImage"] as string;
+        var ogType = ViewData["OgType"] as string ?? "website";
+        var canonical = $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}";
+    }
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - WebApp</title>
+    <title>@(string.IsNullOrEmpty(pageTitle) ? siteName : $"{pageTitle} - {siteName}")</title>
+
+    @if (!string.IsNullOrWhiteSpace(metaDescription))
+    {
+        <meta name="description" content="@metaDescription" />
+    }
+    <link rel="canonical" href="@canonical" />
+    <link rel="alternate" type="application/rss+xml" title="@siteName" href="@Url.Action("Rss", "Feed", new { area = "" })" />
+
+    <meta property="og:site_name" content="@siteName" />
+    <meta property="og:type" content="@ogType" />
+    <meta property="og:title" content="@(pageTitle ?? siteName)" />
+    <meta property="og:url" content="@canonical" />
+    @if (!string.IsNullOrWhiteSpace(metaDescription))
+    {
+        <meta property="og:description" content="@metaDescription" />
+    }
+    @if (!string.IsNullOrWhiteSpace(socialImage))
+    {
+        <meta property="og:image" content="@socialImage" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="@socialImage" />
+    }
+    else
+    {
+        <meta name="twitter:card" content="summary" />
+    }
+    <meta name="twitter:title" content="@(pageTitle ?? siteName)" />
+    @if (!string.IsNullOrWhiteSpace(metaDescription))
+    {
+        <meta name="twitter:description" content="@metaDescription" />
+    }
+
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />

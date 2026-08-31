@@ -53,12 +53,15 @@ public class PostService : IPostService
                 p.Title,
                 p.Slug,
                 p.Content,
+                p.Excerpt,
                 p.FeaturedImageUrls,
                 CategoryName = p.Category != null ? p.Category.Name : null,
                 CategorySlug = p.Category != null ? p.Category.Slug : null,
                 p.PublishedDate,
                 p.CreatedAt,
-                TagNames = p.PostTags.Where(pt => pt.Tag != null).Select(pt => pt.Tag!.Name).ToList()
+                Tags = p.PostTags.Where(pt => pt.Tag != null)
+                    .Select(pt => new { pt.Tag!.Name, pt.Tag!.Slug })
+                    .ToList()
             })
             .ToListAsync();
 
@@ -83,6 +86,7 @@ public class PostService : IPostService
             .Select(t => new TagViewModel
             {
                 Name = t.Name,
+                Slug = t.Slug ?? string.Empty,
                 PostCount = t.PostTags.Count(pt => pt.Post != null && pt.Post.IsPublished && !pt.Post.IsDeleted)
             })
             .ToListAsync();
@@ -95,11 +99,11 @@ public class PostService : IPostService
                 Title = c.Title,
                 Slug = c.Slug ?? string.Empty,
                 FeaturedImageUrls = FeaturedImage.ParseUrls(c.FeaturedImageUrls),
-                ShortDescription = MarkdownExcerpt.ToPlainText(c.Content, 200),
+                ShortDescription = PostExcerpt.Resolve(c.Excerpt, c.Content),
                 CategoryName = c.CategoryName ?? "Uncategorized",
                 CategorySlug = c.CategorySlug ?? string.Empty,
                 PublishDate = c.PublishedDate ?? c.CreatedAt,
-                Tags = c.TagNames.Select(n => new TagViewModel { Name = n }).ToList()
+                Tags = c.Tags.Select(t => new TagViewModel { Name = t.Name, Slug = t.Slug ?? string.Empty }).ToList()
             }).ToList(),
             Categories = categories,
             Tags = popularTags,
@@ -181,7 +185,8 @@ public class PostService : IPostService
             IsPublished = viewModel.PublishNow,
             CreatedAt = DateTime.UtcNow,
             PublishedDate = viewModel.PublishNow ? DateTime.UtcNow : null,
-            FeaturedImageUrls = viewModel.FeaturedImageUrl,
+            Excerpt = string.IsNullOrWhiteSpace(viewModel.Excerpt) ? null : viewModel.Excerpt.Trim(),
+            FeaturedImageUrls = string.IsNullOrWhiteSpace(viewModel.FeaturedImageUrl) ? null : viewModel.FeaturedImageUrl,
             FeaturedImageAlt = viewModel.FeaturedImageAlt
         };
 
@@ -237,6 +242,8 @@ public class PostService : IPostService
             _db.PostTags.Add(new PostTag { PostId = post.Id, TagId = tagId });
         }
 
+        post.UpdatedAt = DateTime.UtcNow;
+
         await _db.SaveChangesAsync();
 
         // Only after the row is safely persisted, so a failed save never orphans the live image.
@@ -285,6 +292,7 @@ public class PostService : IPostService
         post.IsPublished = true;
         // Preserve the original publication date across unpublish/republish cycles.
         post.PublishedDate ??= DateTime.UtcNow;
+        post.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
     }
@@ -295,6 +303,7 @@ public class PostService : IPostService
             ?? throw new KeyNotFoundException($"Post with ID {id} not found");
 
         post.IsPublished = false;
+        post.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
     }
@@ -386,9 +395,13 @@ public class PostService : IPostService
             Id = post.Id,
             Title = post.Title,
             Slug = post.Slug,
-            Excerpt = MarkdownExcerpt.ToPlainText(post.Content, 100),
+            Excerpt = PostExcerpt.Resolve(post.Excerpt, post.Content),
             CategoryName = post.Category?.Name ?? "Uncategorized",
-            Tags = post.PostTags.Select(pt => pt.Tag?.Name ?? "").Where(n => !string.IsNullOrEmpty(n)).ToList(),
+            CategorySlug = post.Category?.Slug,
+            Tags = post.PostTags
+                .Where(pt => pt.Tag != null)
+                .Select(pt => new PostTagLinkViewModel { Name = pt.Tag!.Name, Slug = pt.Tag!.Slug ?? string.Empty })
+                .ToList(),
             AuthorName = post.Author?.UserName ?? "Unknown",
             PublishedDate = post.PublishedDate,
             CreatedAt = post.CreatedAt,
@@ -460,6 +473,10 @@ public class PostService : IPostService
     /// Editor uploads are written straight to disk and only ever referenced from post
     /// markdown, so abandoning a draft leaks them. Sweeps files no post body mentions.
     /// </summary>
+    /// <summary>
+    /// Editor uploads are written straight to disk and only ever referenced from post
+    /// markdown, so abandoning a draft leaks them. Sweeps files no post body mentions.
+    /// </summary>
     public async Task<int> CleanupOrphanedEditorImagesAsync()
     {
         var content = await _db.Posts
@@ -469,6 +486,38 @@ public class PostService : IPostService
             .ToListAsync();
 
         return _attachmentService.DeleteUnreferencedImages("posts/editor", content);
+    }
+
+    public async Task<IReadOnlyList<FeedItemViewModel>> GetFeedItemsAsync(int count)
+    {
+        var posts = await _db.Posts
+            .AsNoTracking()
+            .Published()
+            .Where(p => p.Slug != null)
+            .OrderByDescending(p => p.PublishedDate ?? p.CreatedAt)
+            .Take(count)
+            .Select(p => new
+            {
+                p.Title,
+                p.Slug,
+                p.Excerpt,
+                p.Content,
+                p.PublishedDate,
+                p.CreatedAt,
+                p.UpdatedAt,
+                CategoryName = p.Category != null ? p.Category.Name : null
+            })
+            .ToListAsync();
+
+        return posts.Select(p => new FeedItemViewModel
+        {
+            Title = p.Title,
+            Slug = p.Slug!,
+            Summary = PostExcerpt.Resolve(p.Excerpt, p.Content),
+            PublishedAt = p.PublishedDate ?? p.CreatedAt,
+            UpdatedAt = p.UpdatedAt,
+            Categories = p.CategoryName is null ? [] : [p.CategoryName]
+        }).ToList();
     }
 
     public async Task<int> RestoreAllPostsAsync()

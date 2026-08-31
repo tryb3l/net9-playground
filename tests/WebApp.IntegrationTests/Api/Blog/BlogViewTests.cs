@@ -224,9 +224,10 @@ public class BlogViewTests(IntegrationTestFixture fixture)
         this.GivenAnonymousUser();
 
         // Act
-        var matchingResponse = await HttpClient.GetAsync("/blog?category=Tech&tag=dotnet", TestContext.Current.CancellationToken);
+        // Act: filters are keyed on slugs, so renaming a category cannot break saved links.
+        var matchingResponse = await HttpClient.GetAsync("/blog?category=tech&tag=dotnet", TestContext.Current.CancellationToken);
         var wrongTagResponse = await HttpClient.GetAsync("/blog?tag=cooking", TestContext.Current.CancellationToken);
-        var otherCategoryResponse = await HttpClient.GetAsync("/blog?category=Life", TestContext.Current.CancellationToken);
+        var otherCategoryResponse = await HttpClient.GetAsync("/blog?category=life", TestContext.Current.CancellationToken);
 
         // Assert
         matchingResponse.StatusCode.ShouldBe(OK);

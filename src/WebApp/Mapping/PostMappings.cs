@@ -12,13 +12,13 @@ public static class PostMappings
         Id = post.Id,
         Title = post.Title,
         Slug = post.Slug,
-        Excerpt = MarkdownExcerpt.ToPlainText(post.Content, 200),
+        Excerpt = PostExcerpt.Resolve(post.Excerpt, post.Content),
         Content = post.Content,
         CategoryName = post.Category?.Name ?? "Uncategorized",
+        CategorySlug = post.Category?.Slug,
         Tags = post.PostTags
-            .Select(pt => pt.Tag?.Name)
-            .Where(n => !string.IsNullOrEmpty(n))
-            .Select(n => n!)
+            .Where(pt => pt.Tag != null)
+            .Select(pt => new PostTagLinkViewModel { Name = pt.Tag!.Name, Slug = pt.Tag!.Slug ?? string.Empty })
             .ToList(),
         AuthorName = post.Author?.UserName ?? "N/A",
         PublishedDate = post.PublishedDate,
@@ -38,6 +38,7 @@ public static class PostMappings
         Title = post.Title,
         PublishNow = post.IsPublished,
         Content = post.Content,
+        Excerpt = post.Excerpt,
         FeaturedImageUrl = FeaturedImage.GetLargeUrl(post.FeaturedImageUrls),
         FeaturedImageAlt = post.FeaturedImageAlt,
         IsPublished = post.IsPublished,
@@ -52,7 +53,7 @@ public static class PostMappings
         Id = post.Id,
         Title = post.Title,
         CreatedAt = post.CreatedAt,
-        UpdatedAt = post.CreatedAt,
+        UpdatedAt = post.UpdatedAt ?? post.CreatedAt,
         AuthorName = post.Author?.UserName ?? "N/A",
         IsPublished = post.IsPublished
     };
@@ -64,6 +65,7 @@ public static class PostMappings
         post.CategoryId = viewModel.CategoryId;
         post.FeaturedImageAlt = viewModel.FeaturedImageAlt;
         post.IsPublished = viewModel.PublishNow;
+        post.Excerpt = string.IsNullOrWhiteSpace(viewModel.Excerpt) ? null : viewModel.Excerpt.Trim();
         post.FeaturedImageUrls = FeaturedImage.Resolve(viewModel.FeaturedImageUrl, post.FeaturedImageUrls);
     }
 }

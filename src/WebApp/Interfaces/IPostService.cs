@@ -24,9 +24,17 @@ public interface IPostService
     Task RestorePostAsync(int id);
     Task<DataTablesResponse<PostViewModel>> GetPostListForDataTableAsync(DataTablesRequest request);
 
+    /// <summary>Permanently deletes every trashed post. Returns how many were removed.</summary>
     Task<int> EmptyTrashAsync();
 
+    /// <summary>Restores every trashed post. Returns how many were restored.</summary>
     Task<int> RestoreAllPostsAsync();
-    
+
+    /// <summary>
+    /// Deletes editor-uploaded images that no post body references. Returns how many went.
+    /// </summary>
     Task<int> CleanupOrphanedEditorImagesAsync();
+
+    /// <summary>Most recently published posts, newest first, for the public RSS feed.</summary>
+    Task<IReadOnlyList<FeedItemViewModel>> GetFeedItemsAsync(int count);
 }
