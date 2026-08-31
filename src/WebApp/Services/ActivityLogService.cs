@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using WebApp.Data;
 using WebApp.Interfaces;
@@ -8,14 +9,22 @@ namespace WebApp.Services
     public class ActivityLogService : IActivityLogService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public ActivityLogService(ApplicationDbContext context)
+        public ActivityLogService(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task LogActivityAsync(string userId, string actionType, string entityType, string description)
+        public async Task LogActivityAsync(string actionType, string entityType, string description)
         {
+            var userId = _httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return;
+            }
+
             var log = new ActivityLog
             {
                 UserId = userId,

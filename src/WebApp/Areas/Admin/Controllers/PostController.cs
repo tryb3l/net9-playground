@@ -114,9 +114,7 @@ public class PostController : Controller
         try
         {
             var createdPost = await _postService.CreatePostAsync(viewModel, currentUser.Id);
-            await _activityLogService.LogActivityAsync(currentUser.Id, "Created", "Post",
-                $"Created new post: '{createdPost.Title}'");
-
+            await _activityLogService.LogActivityAsync("Created", "Post", $"Created new post: '{createdPost.Title}'");
 
             TempData["SuccessMessage"] = $"Post '{createdPost.Title}' created successfully.";
             _logger.LogInformation("Post created successfully with ID {PostId}", createdPost.Id);
@@ -172,13 +170,8 @@ public class PostController : Controller
 
         try
         {
-            var currentUser = await _userManager.GetUserAsync(User);
             await _postService.UpdatePostAsync(id, viewModel);
-
-            if (currentUser != null)
-            {
-                await _activityLogService.LogActivityAsync(currentUser.Id, "Updated", "Post", $"Updated post: '{viewModel.Title}'");
-            }
+            await _activityLogService.LogActivityAsync("Updated", "Post", $"Updated post: '{viewModel.Title}'");
 
             TempData["SuccessMessage"] = viewModel.PublishNow ? "Post has been published successfully." : "Draft has been saved successfully.";
             // UX Improvement: Stay on the Edit page
@@ -205,7 +198,16 @@ public class PostController : Controller
     {
         try
         {
+            // Captured before the delete so the audit entry can name the post.
+            var post = await _postService.GetPostByIdAsync(id, includeUnpublished: true, includeDeleted: true);
+            if (post == null)
+            {
+                return Json(new { success = false, message = "Post not found." });
+            }
+
             await _postService.DeletePostAsync(id);
+            await _activityLogService.LogActivityAsync("Deleted", "Post", $"Permanently deleted post: '{post.Title}'");
+
             return Json(new { success = true, message = "Post deleted permanently." });
         }
         catch (KeyNotFoundException)
@@ -239,13 +241,8 @@ public class PostController : Controller
                 return Json(new { success = false, message = "Post not found." });
             }
 
-            var currentUser = await _userManager.GetUserAsync(User);
             await _postService.SoftDeletePostAsync(id);
-            if (currentUser != null)
-            {
-                await _activityLogService.LogActivityAsync(currentUser.Id, "Trashed", "Post", $"Moved post to trash: '{post.Title}'");
-            }
-
+            await _activityLogService.LogActivityAsync("Trashed", "Post", $"Moved post to trash: '{post.Title}'");
 
             return Json(new { success = true, message = $"Post '{post.Title}' moved to trash successfully." });
         }
@@ -272,12 +269,8 @@ public class PostController : Controller
                 return Json(new { success = false, message = "Post not found." });
             }
 
-            var currentUser = await _userManager.GetUserAsync(User);
             await _postService.RestorePostAsync(id);
-            if (currentUser != null)
-            {
-                await _activityLogService.LogActivityAsync(currentUser.Id, "Restored", "Post", $"Restored post: '{post.Title}'");
-            }
+            await _activityLogService.LogActivityAsync("Restored", "Post", $"Restored post: '{post.Title}'");
 
             return Json(new { success = true, message = $"Post '{post.Title}' restored successfully." });
         }
@@ -301,13 +294,8 @@ public class PostController : Controller
             var post = await _postService.GetPostByIdAsync(id, includeUnpublished: true);
             if (post == null) return Json(new { success = false, message = "Post not found." });
 
-            var currentUser = await _userManager.GetUserAsync(User);
             await _postService.PublishPostAsync(id);
-            if (currentUser != null)
-            {
-                await _activityLogService.LogActivityAsync(currentUser.Id, "Published", "Post",
-                    $"Published post: '{post.Title}'");
-            }
+            await _activityLogService.LogActivityAsync("Published", "Post", $"Published post: '{post.Title}'");
 
             // Return JSON for AJAX requests
             return Json(new { success = true, message = "Post published successfully." });
@@ -332,11 +320,8 @@ public class PostController : Controller
             var post = await _postService.GetPostByIdAsync(id, includeUnpublished: true);
             if (post == null) return Json(new { success = false, message = "Post not found." });
 
-            var currentUser = await _userManager.GetUserAsync(User);
             await _postService.UnpublishPostAsync(id);
-            if (currentUser != null)
-                await _activityLogService.LogActivityAsync(currentUser.Id, "Unpublished", "Post",
-                    $"Unpublished post: '{post.Title}'");
+            await _activityLogService.LogActivityAsync("Unpublished", "Post", $"Unpublished post: '{post.Title}'");
             return Json(new { success = true, message = "Post unpublished successfully." });
         }
         catch (KeyNotFoundException)
@@ -356,7 +341,10 @@ public class PostController : Controller
     {
         try
         {
-            await _postService.EmptyTrashAsync();
+            var deleted = await _postService.EmptyTrashAsync();
+            await _activityLogService.LogActivityAsync("Deleted", "Post",
+                $"Emptied trash, permanently deleting {deleted} post(s)");
+
             return Json(new { success = true });
         }
         catch (Exception ex)
@@ -372,7 +360,10 @@ public class PostController : Controller
     {
         try
         {
-            await _postService.RestoreAllPostsAsync();
+            var restored = await _postService.RestoreAllPostsAsync();
+            await _activityLogService.LogActivityAsync("Restored", "Post",
+                $"Restored {restored} post(s) from trash");
+
             return Json(new { success = true });
         }
         catch (Exception ex)

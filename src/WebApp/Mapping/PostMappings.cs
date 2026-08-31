@@ -21,7 +21,7 @@ public static class PostMappings
             .Select(n => n!)
             .ToList(),
         AuthorName = post.Author?.UserName ?? "N/A",
-        PublishedDate = post.PublishedDate ?? post.CreatedAt,
+        PublishedDate = post.PublishedDate,
         CreatedAt = post.CreatedAt,
         IsPublished = post.IsPublished,
         IsDeleted = post.IsDeleted,

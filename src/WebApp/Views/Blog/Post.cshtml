@@ -20,13 +20,13 @@
                 <header class="post-full-header">
                     <h1 class="post-full-title">@Model.Title</h1>
                     <div class="post-full-meta">
-                        @if (Model.PublishedDate.HasValue)
+                        @if (!Model.IsPublished)
+                        {
+                            <span class="post-full-draft">Draft</span>
+                        }
+                        else if (Model.PublishedDate.HasValue)
                         {
                             <time datetime="@Model.PublishedDate.Value.ToString("yyyy-MM-dd")">@Model.PublishedDate.Value.ToString("MMMM dd, yyyy")</time>
-                        }
-                        else
-                        {
-                            <span>Draft</span>
                         }
                         <span class="bull">&bull;</span> @Model.AuthorName
                     </div>

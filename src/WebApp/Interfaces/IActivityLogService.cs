@@ -6,7 +6,12 @@ namespace WebApp.Interfaces
 {
     public interface IActivityLogService
     {
-        Task LogActivityAsync(string userId, string actionType, string entityType, string description);
+        /// <summary>
+        /// Records an admin action against the currently signed-in user. No-ops when the
+        /// request is unauthenticated, since an activity row requires a user.
+        /// </summary>
+        Task LogActivityAsync(string actionType, string entityType, string description);
+
         Task<IEnumerable<ActivityLog>> GetRecentActivitiesAsync(int count = 10);
     }
 }

@@ -409,6 +409,120 @@ public class PostFlowTests : BaseIntegrationTest
     }
 
     [Fact]
+    public async Task Republish_AfterUnpublish_KeepsTheOriginalPublicationDate()
+    {
+        // Unpublish, fix a typo, republish - the post must not jump to the top of the blog.
+
+        // Arrange
+        await this.GivenAdminUserAsync();
+        var categoryId = await this.SeedCategoryAsync("Tech");
+        var (postId, _) = await this.SeedPostAsync("Long Lived Post", categoryId, isPublished: true);
+
+        var originalPublishedDate = await ExecuteDbContextAsync(async db =>
+            (await db.Posts.AsNoTracking().FirstAsync(p => p.Id == postId)).PublishedDate);
+        originalPublishedDate.ShouldNotBeNull();
+
+        var page = await HttpClient.GetAsync($"/Admin/Post/Edit/{postId}", TestContext.Current.CancellationToken);
+        var token = await GetCsrfToken(page);
+        var form = new Dictionary<string, string> { ["__RequestVerificationToken"] = token };
+
+        // Act
+        var unpublish = await HttpClient.PostAsync($"/Admin/Post/Unpublish/{postId}", new FormUrlEncodedContent(form), TestContext.Current.CancellationToken);
+        unpublish.EnsureSuccessStatusCode();
+
+        var republish = await HttpClient.PostAsync($"/Admin/Post/Publish/{postId}", new FormUrlEncodedContent(form), TestContext.Current.CancellationToken);
+        republish.EnsureSuccessStatusCode();
+
+        // Assert
+        await ExecuteDbContextAsync(async db =>
+        {
+            var post = await db.Posts.FindAsync(postId);
+            post.ShouldNotBeNull();
+            post.IsPublished.ShouldBeTrue();
+            post.PublishedDate.ShouldBe(originalPublishedDate);
+        });
+    }
+
+    [Fact]
+    public async Task EditRepublish_AfterUnpublish_KeepsTheOriginalPublicationDate()
+    {
+        // Same guarantee via the Edit form's publish switch, not just the quick action.
+
+        // Arrange
+        await this.GivenAdminUserAsync();
+        var categoryId = await this.SeedCategoryAsync("Tech");
+        var (postId, _) = await this.SeedPostAsync("Edited Long Lived Post", categoryId, isPublished: true);
+
+        var originalPublishedDate = await ExecuteDbContextAsync(async db =>
+            (await db.Posts.AsNoTracking().FirstAsync(p => p.Id == postId)).PublishedDate);
+
+        var page = await HttpClient.GetAsync($"/Admin/Post/Edit/{postId}", TestContext.Current.CancellationToken);
+        var token = await GetCsrfToken(page);
+
+        await HttpClient.PostAsync($"/Admin/Post/Unpublish/{postId}",
+            new FormUrlEncodedContent(new Dictionary<string, string> { ["__RequestVerificationToken"] = token }),
+            TestContext.Current.CancellationToken);
+
+        // Act: re-publish through the edit form
+        var editForm = new Dictionary<string, string>
+        {
+            ["Id"] = postId.ToString(),
+            ["Title"] = "Edited Long Lived Post",
+            ["Content"] = "Fixed a typo.",
+            ["PublishNow"] = "true",
+            ["__RequestVerificationToken"] = token
+        };
+        var response = await HttpClient.PostAsync($"/Admin/Post/Edit/{postId}", new FormUrlEncodedContent(editForm), TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+
+        await ExecuteDbContextAsync(async db =>
+        {
+            var post = await db.Posts.FindAsync(postId);
+            post.ShouldNotBeNull();
+            post.IsPublished.ShouldBeTrue();
+            post.PublishedDate.ShouldBe(originalPublishedDate);
+        });
+    }
+
+    [Fact]
+    public async Task DestructiveActions_AreRecordedInTheActivityLog()
+    {
+        // Permanent delete, empty trash and restore all previously logged nothing - the three
+        // irreversible operations were the only ones with no audit record.
+
+        // Arrange
+        await this.GivenAdminUserAsync();
+        var categoryId = await this.SeedCategoryAsync("Audited");
+        var (deletedId, _) = await this.SeedPostAsync("Purged Post", categoryId);
+        var (trashedId, _) = await this.SeedPostAsync("Trashed Then Purged", categoryId);
+
+        var page = await HttpClient.GetAsync("/Admin/Post", TestContext.Current.CancellationToken);
+        var token = await GetCsrfToken(page);
+        var form = () => new FormUrlEncodedContent(new Dictionary<string, string> { ["__RequestVerificationToken"] = token });
+
+        // Act
+        (await HttpClient.PostAsync($"/Admin/Post/Delete/{deletedId}", form(), TestContext.Current.CancellationToken)).EnsureSuccessStatusCode();
+        (await HttpClient.PostAsync($"/Admin/Post/SoftDelete/{trashedId}", form(), TestContext.Current.CancellationToken)).EnsureSuccessStatusCode();
+        (await HttpClient.PostAsync("/Admin/Post/RestoreAll", form(), TestContext.Current.CancellationToken)).EnsureSuccessStatusCode();
+        (await HttpClient.PostAsync($"/Admin/Post/SoftDelete/{trashedId}", form(), TestContext.Current.CancellationToken)).EnsureSuccessStatusCode();
+        (await HttpClient.PostAsync("/Admin/Post/EmptyTrash", form(), TestContext.Current.CancellationToken)).EnsureSuccessStatusCode();
+
+        // Assert
+        await ExecuteDbContextAsync(async db =>
+        {
+            var descriptions = await db.ActivityLogs.Select(a => a.Description).ToListAsync();
+
+            descriptions.ShouldContain(d => d.Contains("Permanently deleted post: 'Purged Post'"));
+            descriptions.ShouldContain(d => d.Contains("Restored 1 post(s) from trash"));
+            descriptions.ShouldContain(d => d.Contains("Emptied trash, permanently deleting 1 post(s)"));
+
+            db.ActivityLogs.All(a => a.UserId != null).ShouldBeTrue();
+        });
+    }
+
+    [Fact]
     public async Task Edit_WithNewImageUrl_ReplacesStoredJson()
     {
         // Arrange

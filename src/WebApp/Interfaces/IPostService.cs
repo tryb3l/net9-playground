@@ -23,6 +23,10 @@ public interface IPostService
     Task SoftDeletePostAsync(int id);
     Task RestorePostAsync(int id);
     Task<DataTablesResponse<PostViewModel>> GetPostListForDataTableAsync(DataTablesRequest request);
-    Task EmptyTrashAsync();
-    Task RestoreAllPostsAsync();
+
+    /// <summary>Permanently deletes every trashed post. Returns how many were removed.</summary>
+    Task<int> EmptyTrashAsync();
+
+    /// <summary>Restores every trashed post. Returns how many were restored.</summary>
+    Task<int> RestoreAllPostsAsync();
 }

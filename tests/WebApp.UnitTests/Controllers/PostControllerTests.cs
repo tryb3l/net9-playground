@@ -51,7 +51,7 @@ public class PostControllerTests
         await sut.Create(viewModel);
 
         // Assert
-        builder.ActivityLogService.Verify(l => l.LogActivityAsync(TestUserId, "Created", "Post", It.IsAny<string>()), Times.Once);
+        builder.ActivityLogService.Verify(l => l.LogActivityAsync("Created", "Post", It.IsAny<string>()), Times.Once);
     }
 
     [Fact]

@@ -11,11 +11,16 @@ public class CategoryController : Controller
 {
     private readonly ICategoryService _categoryService;
     private readonly ILogger<CategoryController> _logger;
+    private readonly IActivityLogService _activityLogService;
 
-    public CategoryController(ICategoryService categoryService, ILogger<CategoryController> logger)
+    public CategoryController(
+        ICategoryService categoryService,
+        ILogger<CategoryController> logger,
+        IActivityLogService activityLogService)
     {
         _categoryService = categoryService;
         _logger = logger;
+        _activityLogService = activityLogService;
     }
 
     [HttpGet]
@@ -53,6 +58,7 @@ public class CategoryController : Controller
         if (result.Succeeded)
         {
             _logger.LogInformation("Category created successfully");
+            await _activityLogService.LogActivityAsync("Created", "Category", $"Created category: '{viewModel.Name}'");
             TempData["SuccessMessage"] = "Category created successfully.";
             return RedirectToAction("Index");
         }
@@ -102,6 +108,7 @@ public class CategoryController : Controller
             try
             {
                 await _categoryService.UpdateCategoryAsync(viewModel);
+                await _activityLogService.LogActivityAsync("Updated", "Category", $"Updated category: '{viewModel.Name}'");
             }
             catch (KeyNotFoundException)
             {
@@ -126,6 +133,8 @@ public class CategoryController : Controller
             }
 
             await _categoryService.DeleteCategoryAsync(id);
+            await _activityLogService.LogActivityAsync("Deleted", "Category",
+                $"Deleted category: '{category.Name}' ({category.PostCount} post(s) left uncategorized)");
             TempData["SuccessMessage"] = $"Category '{category.Name}' has been deleted successfully.";
         }
         catch (KeyNotFoundException)

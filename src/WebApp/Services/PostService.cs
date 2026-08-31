@@ -220,8 +220,10 @@ public class PostService : IPostService
             }
         }
 
-        if (!wasPublished && viewModel.PublishNow)
+        if (viewModel.PublishNow && post.PublishedDate == null)
         {
+            // Only stamp the first publication. Re-publishing after an unpublish must keep
+            // the original date, or an old post jumps back to the top of the blog.
             post.PublishedDate = DateTime.UtcNow;
         }
 
@@ -270,7 +272,8 @@ public class PostService : IPostService
             ?? throw new KeyNotFoundException($"Post with ID {id} not found");
 
         post.IsPublished = true;
-        post.PublishedDate = DateTime.UtcNow;
+        // Preserve the original publication date across unpublish/republish cycles.
+        post.PublishedDate ??= DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
     }
@@ -416,7 +419,7 @@ public class PostService : IPostService
         return candidate;
     }
 
-    public async Task EmptyTrashAsync()
+    public async Task<int> EmptyTrashAsync()
     {
         var trashedPosts = await _db.Posts
             .IncludingDeleted()
@@ -430,9 +433,11 @@ public class PostService : IPostService
         }
         _db.Posts.RemoveRange(trashedPosts);
         await _db.SaveChangesAsync();
+
+        return trashedPosts.Count;
     }
 
-    public async Task RestoreAllPostsAsync()
+    public async Task<int> RestoreAllPostsAsync()
     {
         var trashedPosts = await _db.Posts
             .IncludingDeleted()
@@ -445,5 +450,7 @@ public class PostService : IPostService
             post.DeletedAt = null;
         }
         await _db.SaveChangesAsync();
+
+        return trashedPosts.Count;
     }
 }

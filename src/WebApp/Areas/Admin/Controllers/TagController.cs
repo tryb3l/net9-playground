@@ -12,11 +12,16 @@ public class TagController : Controller
 {
     private readonly ITagService _tagService;
     private readonly ILogger<TagController> _logger;
+    private readonly IActivityLogService _activityLogService;
 
-    public TagController(ITagService tagService, ILogger<TagController> logger)
+    public TagController(
+        ITagService tagService,
+        ILogger<TagController> logger,
+        IActivityLogService activityLogService)
     {
         _tagService = tagService;
         _logger = logger;
+        _activityLogService = activityLogService;
     }
 
     [HttpGet]
@@ -47,6 +52,7 @@ public class TagController : Controller
             var tag = new Tag { Name = viewModel.Name.Trim() };
             await _tagService.CreateTagAsync(tag);
             _logger.LogInformation("Tag created successfully: {TagName}", tag.Name);
+            await _activityLogService.LogActivityAsync("Created", "Tag", $"Created tag: '{tag.Name}'");
             TempData["SuccessMessage"] = $"Tag '{tag.Name}' created successfully";
             return RedirectToAction(nameof(Index));
         }
@@ -81,8 +87,10 @@ public class TagController : Controller
             var tag = await _tagService.GetTagByIdAsync(id);
             if (tag == null) return NotFound();
 
+            var originalName = tag.Name;
             tag.Name = viewModel.Name;
             await _tagService.UpdateTagAsync(tag);
+            await _activityLogService.LogActivityAsync("Updated", "Tag", $"Renamed tag '{originalName}' to '{tag.Name}'");
             TempData["SuccessMessage"] = "Tag updated successfully";
             return RedirectToAction(nameof(Index));
         }
@@ -123,6 +131,7 @@ public class TagController : Controller
 
             await _tagService.DeleteTagAsync(id);
             _logger.LogInformation("Tag '{TagName}' (ID: {TagId}) deleted successfully", tag.Name, id);
+            await _activityLogService.LogActivityAsync("Deleted", "Tag", $"Deleted tag: '{tag.Name}'");
             TempData["SuccessMessage"] = $"Tag '{tag.Name}' deleted successfully";
         }
         catch (Exception ex)
