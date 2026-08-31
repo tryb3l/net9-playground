@@ -26,13 +26,20 @@ public class PostService : IPostService
     public async Task<BlogIndexViewModel> GetBlogIndexViewModelAsync(int page, string? category, string? tag)
     {
         const int pageSize = 5;
-        var skip = (page - 1) * pageSize;
 
         var postsQuery = _db.Posts
             .AsNoTracking()
             .Published()
             .InCategory(category)
             .WithTag(tag);
+
+        var totalPosts = await postsQuery.CountAsync();
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalPosts / (double)pageSize));
+
+        // ?page=0 would otherwise produce a negative OFFSET, which Postgres rejects -
+        // a 500 on a public, crawlable URL.
+        page = Math.Clamp(page, 1, totalPages);
+        var skip = (page - 1) * pageSize;
 
         var cards = await postsQuery
             .OrderByDescending(p => p.PublishedDate ?? p.CreatedAt)
@@ -53,26 +60,28 @@ public class PostService : IPostService
             })
             .ToListAsync();
 
-        var totalPosts = await postsQuery.CountAsync();
-
         var categories = await _db.Categories
             .AsNoTracking()
+            .Where(c => c.Posts.Any(p => p.IsPublished && !p.IsDeleted))
             .Select(c => new CategoryViewModel
             {
                 Name = c.Name,
                 Slug = c.Slug ?? string.Empty,
-                PostCount = c.Posts.Count
+                // Drafts and trashed posts are not visible to readers, so they must not be
+                // counted here or the sidebar promises more posts than the filter returns.
+                PostCount = c.Posts.Count(p => p.IsPublished && !p.IsDeleted)
             })
             .ToListAsync();
 
         var popularTags = await _db.Tags
             .AsNoTracking()
-            .OrderByDescending(t => t.PostTags.Count)
+            .Where(t => t.PostTags.Any(pt => pt.Post != null && pt.Post.IsPublished && !pt.Post.IsDeleted))
+            .OrderByDescending(t => t.PostTags.Count(pt => pt.Post != null && pt.Post.IsPublished && !pt.Post.IsDeleted))
             .Take(10)
             .Select(t => new TagViewModel
             {
                 Name = t.Name,
-                PostCount = t.PostTags.Count
+                PostCount = t.PostTags.Count(pt => pt.Post != null && pt.Post.IsPublished && !pt.Post.IsDeleted)
             })
             .ToListAsync();
 
@@ -93,7 +102,7 @@ public class PostService : IPostService
             Categories = categories,
             Tags = popularTags,
             CurrentPage = page,
-            TotalPages = (int)Math.Ceiling(totalPosts / (double)pageSize),
+            TotalPages = totalPages,
             CurrentCategory = category,
             CurrentTag = tag,
             Category = category,
@@ -385,17 +394,26 @@ public class PostService : IPostService
 
     private async Task<string> EnsureUniqueSlugAsync(string slug, int? postId = null)
     {
-        var originalSlug = slug;
-        var currentSlug = slug;
+        // A title that normalises to nothing (e.g. non-Latin script) yields an empty slug,
+        // which would then collide with every other such post on the unique index.
+        var baseSlug = string.IsNullOrEmpty(slug) ? "post" : slug;
+
+        var candidate = baseSlug;
         var counter = 1;
 
-        while (await _db.Posts.AnyAsync(p => p.Slug == currentSlug && (!postId.HasValue || p.Id != postId.Value)))
+        // IX_Posts_Slug is unique across trashed rows too, but the global soft-delete filter
+        // hides them - so uniqueness has to be checked against unfiltered rows or a trashed
+        // post silently squats its slug and the insert fails with 23505.
+        while (await _db.Posts
+                   .IgnoreQueryFilters()
+                   .AnyAsync(p => p.Slug == candidate && (!postId.HasValue || p.Id != postId.Value)))
         {
-            currentSlug = $"{originalSlug}-{counter}";
-            counter++;
+            var suffix = $"-{counter++}";
+            var trimmed = SlugHelper.Truncate(baseSlug, SlugHelper.MaxSlugLength - suffix.Length);
+            candidate = trimmed + suffix;
         }
 
-        return currentSlug;
+        return candidate;
     }
 
     public async Task EmptyTrashAsync()

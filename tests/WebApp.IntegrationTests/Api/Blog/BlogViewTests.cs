@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Shouldly;
 using WebApp.IntegrationTests.Fixtures;
@@ -91,6 +94,121 @@ public class BlogViewTests(IntegrationTestFixture fixture)
         var titleElement = document.QuerySelector("h1, .post-full-title");
         titleElement.ShouldNotBeNull();
         titleElement!.TextContent.ShouldContain(title);
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("-3")]
+    public async Task Index_WithNonPositivePage_DoesNotError(string page)
+    {
+        // (page - 1) * pageSize produced a negative OFFSET, which Postgres rejects.
+
+        // Arrange
+        await this.GivenAuthenticatedUserAsync();
+        var catId = await this.SeedCategoryAsync("Clamp");
+        await this.SeedPostAsync("Clamped Post", catId);
+        this.GivenAnonymousUser();
+
+        // Act
+        var response = await HttpClient.GetAsync($"/blog?page={page}", TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(OK);
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        content.ShouldContain("Clamped Post");
+    }
+
+    [Fact]
+    public async Task Index_WithPageBeyondTheLastPage_ClampsToTheLastPage()
+    {
+        // Arrange
+        await this.GivenAuthenticatedUserAsync();
+        var catId = await this.SeedCategoryAsync("Clamp High");
+        await this.SeedPostAsync("Only Post", catId);
+        this.GivenAnonymousUser();
+
+        // Act
+        var response = await HttpClient.GetAsync("/blog?page=999", TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(OK);
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        content.ShouldContain("Only Post");
+    }
+
+    [Fact]
+    public async Task Index_SidebarCounts_ExcludeDraftsAndTrashedPosts()
+    {
+        // Post's soft-delete filter hides trashed posts from c.Posts.Count, but nothing hid
+        // drafts - and PostTag.IsDeleted is never written, so tag counts included both.
+
+        // Arrange
+        await this.GivenAdminUserAsync();
+        var catId = await this.SeedCategoryAsync("Counted");
+        var tagId = await this.SeedTagAsync("counted-tag");
+
+        await this.SeedPostAsync("Published Counted", catId, isPublished: true, tagIds: [tagId]);
+        await this.SeedPostAsync("Draft Not Counted", catId, isPublished: false, tagIds: [tagId]);
+        var (trashedId, _) = await this.SeedPostAsync("Trashed Not Counted", catId, isPublished: true, tagIds: [tagId]);
+
+        var page = await HttpClient.GetAsync("/Admin/Post", TestContext.Current.CancellationToken);
+        var token = await GetCsrfToken(page);
+        await HttpClient.PostAsync($"/Admin/Post/SoftDelete/{trashedId}",
+            new FormUrlEncodedContent(new Dictionary<string, string> { ["__RequestVerificationToken"] = token }),
+            TestContext.Current.CancellationToken);
+
+        this.GivenAnonymousUser();
+
+        // Act
+        var response = await HttpClient.GetAsync("/blog", TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(OK);
+        var document = await response.ParseHtmlAsync();
+
+        // Three posts reference the category and the tag; only one is publicly visible.
+        var categoryCounts = document.QuerySelectorAll("#categoryFilter .chip-count")
+            .Select(e => e.TextContent.Trim())
+            .ToArray();
+        categoryCounts.ShouldBe(["1"]);
+
+        var tagCounts = document.QuerySelectorAll("#tagFilter .chip-count")
+            .Select(e => e.TextContent.Trim())
+            .ToArray();
+        tagCounts.ShouldBe(["1"]);
+    }
+
+    [Fact]
+    public async Task Index_SidebarOmitsCategoriesAndTagsWithNoVisiblePosts()
+    {
+        // Arrange
+        await this.GivenAdminUserAsync();
+        var usedCategoryId = await this.SeedCategoryAsync("Used");
+        await this.SeedCategoryAsync("Empty");
+        var usedTagId = await this.SeedTagAsync("used-tag");
+        await this.SeedTagAsync("empty-tag");
+
+        await this.SeedPostAsync("Visible Post", usedCategoryId, isPublished: true, tagIds: [usedTagId]);
+        this.GivenAnonymousUser();
+
+        // Act
+        var response = await HttpClient.GetAsync("/blog", TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(OK);
+        var document = await response.ParseHtmlAsync();
+
+        var categoryNames = document.QuerySelectorAll("#categoryFilter .filter-chip span:not(.chip-count)")
+            .Select(e => e.TextContent.Trim())
+            .ToArray();
+        categoryNames.ShouldContain("Used");
+        categoryNames.ShouldNotContain("Empty");
+
+        var tagNames = document.QuerySelectorAll("#tagFilter .filter-chip span:not(.chip-count)")
+            .Select(e => e.TextContent.Trim())
+            .ToArray();
+        tagNames.ShouldContain("used-tag");
+        tagNames.ShouldNotContain("empty-tag");
     }
 
     [Fact]

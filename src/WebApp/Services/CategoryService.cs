@@ -78,7 +78,7 @@ public class CategoryService : ICategoryService
 
         if (originalName != model.Name)
         {
-            category.Slug = SlugHelper.GenerateSlug(model.Name);
+            category.Slug = await EnsureUniqueSlugAsync(SlugHelper.GenerateSlug(model.Name), category.Id);
         }
 
         await _db.SaveChangesAsync();
@@ -94,8 +94,20 @@ public class CategoryService : ICategoryService
             throw new KeyNotFoundException($"Category with ID {id} not found");
         }
 
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+
+        // FK_Posts_Categories_CategoryId is ON DELETE NO ACTION, so dependent posts have to be
+        // detached explicitly or Postgres rejects the delete. Query filters are ignored so
+        // trashed posts are detached too. They fall back to "Uncategorized" in the mappings.
+        await _db.Posts
+            .IgnoreQueryFilters()
+            .Where(p => p.CategoryId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.CategoryId, (int?)null));
+
         _db.Categories.Remove(category);
         await _db.SaveChangesAsync();
+
+        await transaction.CommitAsync();
 
         InvalidateCategoryCache(id);
     }
@@ -108,7 +120,7 @@ public class CategoryService : ICategoryService
             {
                 Name = viewModel.Name,
                 Description = viewModel.Description,
-                Slug = SlugHelper.GenerateSlug(viewModel.Name)
+                Slug = await EnsureUniqueSlugAsync(SlugHelper.GenerateSlug(viewModel.Name))
             };
 
             _db.Categories.Add(category);
@@ -123,6 +135,27 @@ public class CategoryService : ICategoryService
         {
             return ServiceResult.Failure($"Error creating category: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// IX_Categories_Slug is unique, so two categories whose names normalise to the same slug
+    /// (for example "My Blog" and "My  Blog!") would otherwise collide on save.
+    /// </summary>
+    private async Task<string> EnsureUniqueSlugAsync(string slug, int? categoryId = null)
+    {
+        var baseSlug = string.IsNullOrEmpty(slug) ? "category" : slug;
+
+        var candidate = baseSlug;
+        var counter = 1;
+
+        while (await _db.Categories
+                   .AnyAsync(c => c.Slug == candidate && (!categoryId.HasValue || c.Id != categoryId.Value)))
+        {
+            var suffix = $"-{counter++}";
+            candidate = SlugHelper.Truncate(baseSlug, SlugHelper.MaxSlugLength - suffix.Length) + suffix;
+        }
+
+        return candidate;
     }
 
     public async Task<List<SelectListItem>> GetAvailableCategoriesAsync()

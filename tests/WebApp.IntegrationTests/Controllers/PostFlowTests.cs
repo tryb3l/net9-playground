@@ -323,6 +323,92 @@ public class PostFlowTests : BaseIntegrationTest
     }
 
     [Fact]
+    public async Task Create_WhenSlugIsHeldByATrashedPost_StillSucceeds()
+    {
+        // The unique index on Slug does not exclude soft-deleted rows, so uniqueness has to
+        // be checked with the global filter off - otherwise this insert fails with 23505.
+
+        // Arrange
+        await this.GivenAdminUserAsync();
+        var categoryId = await this.SeedCategoryAsync("Tech");
+        var (trashedPostId, _) = await this.SeedPostAsync("Recycled Title", categoryId);
+
+        var page = await HttpClient.GetAsync("/Admin/Post/Create", TestContext.Current.CancellationToken);
+        page.EnsureSuccessStatusCode();
+        var csrfToken = await GetCsrfToken(page);
+
+        var trashResponse = await HttpClient.PostAsync(
+            $"/Admin/Post/SoftDelete/{trashedPostId}",
+            new FormUrlEncodedContent(new Dictionary<string, string> { { "__RequestVerificationToken", csrfToken } }),
+            TestContext.Current.CancellationToken);
+        trashResponse.EnsureSuccessStatusCode();
+
+        // Act
+        var formData = new Dictionary<string, string>
+        {
+            { "Title", "Recycled Title" },
+            { "Content", "Reusing the title of a trashed post." },
+            { "PublishNow", "false" },
+            { "__RequestVerificationToken", csrfToken }
+        };
+        var response = await HttpClient.PostAsync("/Admin/Post/Create", new FormUrlEncodedContent(formData), TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        var newPostId = int.Parse(response.Headers.Location!.ToString().Split('/').Last());
+
+        await ExecuteDbContextAsync(async db =>
+        {
+            var newPost = await db.Posts.FindAsync(newPostId);
+            newPost.ShouldNotBeNull();
+            newPost.Slug.ShouldBe("recycled-title-1");
+
+            var trashed = await db.Posts.IgnoreQueryFilters().FirstAsync(p => p.Id == trashedPostId);
+            trashed.IsDeleted.ShouldBeTrue();
+            trashed.Slug.ShouldBe("recycled-title");
+        });
+    }
+
+    [Fact]
+    public async Task Create_WithTitleLongerThanTheSlugColumn_TruncatesInsteadOfFailing()
+    {
+        // Title allows 128 characters but Slug is varchar(64).
+
+        // Arrange
+        await this.GivenAdminUserAsync();
+
+        var page = await HttpClient.GetAsync("/Admin/Post/Create", TestContext.Current.CancellationToken);
+        page.EnsureSuccessStatusCode();
+        var csrfToken = await GetCsrfToken(page);
+
+        var longTitle = string.Join(' ', Enumerable.Repeat("elaborate", 12)); // 118 chars
+        longTitle.Length.ShouldBeGreaterThan(64);
+
+        // Act
+        var formData = new Dictionary<string, string>
+        {
+            { "Title", longTitle },
+            { "Content", "A post with a very long title." },
+            { "PublishNow", "false" },
+            { "__RequestVerificationToken", csrfToken }
+        };
+        var response = await HttpClient.PostAsync("/Admin/Post/Create", new FormUrlEncodedContent(formData), TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        var postId = int.Parse(response.Headers.Location!.ToString().Split('/').Last());
+
+        await ExecuteDbContextAsync(async db =>
+        {
+            var post = await db.Posts.FindAsync(postId);
+            post.ShouldNotBeNull();
+            post.Title.ShouldBe(longTitle);
+            post.Slug.ShouldNotBeNullOrEmpty();
+            post.Slug!.Length.ShouldBeLessThanOrEqualTo(64);
+        });
+    }
+
+    [Fact]
     public async Task Edit_WithNewImageUrl_ReplacesStoredJson()
     {
         // Arrange
