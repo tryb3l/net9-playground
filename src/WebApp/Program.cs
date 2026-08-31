@@ -47,16 +47,10 @@ try
     var googleClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET") ??
                              throw new InvalidOperationException("GOOGLE_CLIENT_SECRET environment variable not found.");
 
-    var healthCheckApiKey = Environment.GetEnvironmentVariable("HEALTHCHECKS_API_KEY") ??
-                            throw new InvalidOperationException("HEALTHCHECKS_API_KEY environment variable not found.");
-
-    var healthCheckSelfEndpoint = builder.Configuration["HealthChecks:UI:SelfEndpoint"];
-    if (string.IsNullOrWhiteSpace(healthCheckSelfEndpoint))
-    {
-        healthCheckSelfEndpoint = builder.Environment.IsDevelopment()
-            ? "https://localhost:7218/health"
-            : "http://localhost/health";
-    }
+    // Not consumed here: AdminOrApiKeyHandler reads it per-request. Validated at startup so a
+    // missing key fails fast instead of silently locking /health to interactive admins only.
+    _ = Environment.GetEnvironmentVariable("HEALTHCHECKS_API_KEY") ??
+        throw new InvalidOperationException("HEALTHCHECKS_API_KEY environment variable not found.");
 
     var mvcBuilder = builder.Services.AddControllersWithViews(options =>
     {
@@ -147,18 +141,6 @@ try
     }
     builder.Services.AddHealthChecks()
         .AddNpgSql(connectionString);
-
-    builder.Services.AddHealthChecksUI(setup =>
-        {
-            setup.AddHealthCheckEndpoint("API", healthCheckSelfEndpoint);
-
-            setup.ConfigureApiEndpointHttpclient((_, client) =>
-            {
-                client.DefaultRequestHeaders.TryAddWithoutValidation(
-                    AdminOrApiKeyHandler.ApiKeyHeaderName, healthCheckApiKey);
-            });
-        })
-        .AddInMemoryStorage();
 
     builder.Services.AddResponseCaching();
 
@@ -295,12 +277,6 @@ try
     {
         Predicate = _ => false
     }).AllowAnonymous();
-
-    app.MapHealthChecksUI(options =>
-    {
-        options.UIPath = "/health-ui";
-        options.ApiPath = "/health-api";
-    }).RequireAuthorization("Admin");
 
     app.MapControllerRoute(
         name: "admin",

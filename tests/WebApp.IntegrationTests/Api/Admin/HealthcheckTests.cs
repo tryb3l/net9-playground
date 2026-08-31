@@ -12,13 +12,13 @@ public class HealthcheckTests(IntegrationTestFixture fixture)
     : BaseIntegrationTest(fixture)
 {
     [Fact]
-    public async Task HealthUI_WhenAdmin_ReturnsOk()
+    public async Task HealthEndpoint_WhenAdmin_ReturnsOk()
     {
         // Arrange
         await this.GivenAdminUserAsync();
 
         // Act
-        var response = await HttpClient.GetAsync("/health-ui", TestContext.Current.CancellationToken);
+        var response = await HttpClient.GetAsync("/health", TestContext.Current.CancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(OK);
@@ -31,22 +31,6 @@ public class HealthcheckTests(IntegrationTestFixture fixture)
         this.GivenAnonymousUser();
 
         var request = new HttpRequestMessage(HttpMethod.Get, "/health");
-        request.Headers.Add("X-Api-Key", "test-key");
-
-        // Act
-        var response = await HttpClient.SendAsync(request, TestContext.Current.CancellationToken);
-
-        // Assert
-        response.StatusCode.ShouldBe(OK);
-    }
-
-    [Fact]
-    public async Task HealthUI_WhenAnonymous_WithValidApiKey_ReturnsOk()
-    {
-        // Arrange
-        this.GivenAnonymousUser();
-
-        var request = new HttpRequestMessage(HttpMethod.Get, "/health-ui");
         request.Headers.Add("X-Api-Key", "test-key");
 
         // Act
@@ -70,16 +54,19 @@ public class HealthcheckTests(IntegrationTestFixture fixture)
     }
 
     [Fact]
-    public async Task HealthUI_WhenAnonymous_NoKey_ReturnsForbiddenOrUnauthorized()
+    public async Task HealthUI_IsNotMapped()
     {
+        // The HealthChecks.UI dashboard was removed along with its KubernetesClient
+        // dependency chain; only the plain /health JSON endpoint remains.
+
         // Arrange
-        this.GivenAnonymousUser();
+        await this.GivenAdminUserAsync();
 
         // Act
         var response = await HttpClient.GetAsync("/health-ui", TestContext.Current.CancellationToken);
 
         // Assert
-        response.StatusCode.ShouldBeOneOf(Forbidden, Unauthorized);
+        response.StatusCode.ShouldBe(NotFound);
     }
 
     [Fact]
