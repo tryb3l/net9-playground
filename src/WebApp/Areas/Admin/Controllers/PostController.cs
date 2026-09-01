@@ -47,15 +47,11 @@ public class PostController : Controller
             return NotFound();
         }
 
-        var post = await _postService.GetPostByIdAsync(id.Value, includeUnpublished: true);
-        if (post == null)
-        {
-            return NotFound();
-        }
-
         var viewModel = await _postService.GetPostViewModelAsync(id.Value);
-        if (viewModel == null)
+        if (viewModel == null || viewModel.IsDeleted)
         {
+            // Trashed posts aren't linked to Details from the list (Restore/Delete only),
+            // so treat one reached by a stale or hand-typed URL the same as missing.
             return NotFound();
         }
 

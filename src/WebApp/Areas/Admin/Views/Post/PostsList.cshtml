@@ -21,6 +21,8 @@
     <div class="mb-3">
         <div class="btn-group" role="group" aria-label="Status filter">
             <button type="button" class="btn btn-outline-secondary active" data-filter="Active">Active</button>
+            <button type="button" class="btn btn-outline-secondary" data-filter="Published">Published</button>
+            <button type="button" class="btn btn-outline-secondary" data-filter="Draft">Draft</button>
             <button type="button" class="btn btn-outline-secondary" data-filter="Trashed">Trash</button>
             <button type="button" class="btn btn-outline-secondary" data-filter="All">All</button>
         </div>
@@ -97,7 +99,7 @@
 
             // --- Filter persistence via URL query string ---
             var params = new URLSearchParams(window.location.search);
-            var currentFilter = ['Active', 'Trashed', 'All'].includes(params.get('filter'))
+            var currentFilter = ['Active', 'Published', 'Draft', 'Trashed', 'All'].includes(params.get('filter'))
                 ? params.get('filter') : 'Active';
             var table;
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -385,6 +386,57 @@ public class PostTests(IntegrationTestFixture fixture)
         var root = doc.RootElement;
         root.GetProperty("recordsTotal").GetInt32().ShouldBe(3);   // all active posts
         root.GetProperty("recordsFiltered").GetInt32().ShouldBe(1); // only "Alpha Post" matches
+    }
+
+    [Fact]
+    public async Task GetPostsData_DraftAndPublishedFilters_ReturnOnlyMatchingActivePosts()
+    {
+        // These filters were already implemented in PostService but not reachable from the
+        // Active/Trashed/All buttons in PostsList.cshtml, so a "Drafts" view didn't exist.
+
+        // Arrange
+        await this.GivenAdminUserAsync();
+        var catId = await this.SeedCategoryAsync("Status Filter Test");
+        await this.SeedPostAsync("A Published One", catId, isPublished: true);
+        await this.SeedPostAsync("A Draft One", catId, isPublished: false);
+
+        var createPageResponse = await HttpClient.GetAsync("/Admin/Post/Create", TestContext.Current.CancellationToken);
+        var csrfToken = await GetCsrfToken(createPageResponse);
+
+        async Task<JsonDocument> QueryStatus(string statusFilter)
+        {
+            var formData = new Dictionary<string, string>
+            {
+                ["draw"] = "1",
+                ["start"] = "0",
+                ["length"] = "10",
+                ["statusFilter"] = statusFilter,
+                ["__RequestVerificationToken"] = csrfToken
+            };
+            var response = await HttpClient.PostAsync(
+                "/Admin/Post/GetPostsData",
+                new FormUrlEncodedContent(formData),
+                TestContext.Current.CancellationToken);
+            response.StatusCode.ShouldBe(OK);
+            return JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        }
+
+        // Act & Assert
+        using (var published = await QueryStatus("Published"))
+        {
+            var titles = published.RootElement.GetProperty("data").EnumerateArray()
+                .Select(e => e.GetProperty("title").GetString()).ToList();
+            titles.ShouldContain("A Published One");
+            titles.ShouldNotContain("A Draft One");
+        }
+
+        using (var draft = await QueryStatus("Draft"))
+        {
+            var titles = draft.RootElement.GetProperty("data").EnumerateArray()
+                .Select(e => e.GetProperty("title").GetString()).ToList();
+            titles.ShouldContain("A Draft One");
+            titles.ShouldNotContain("A Published One");
+        }
     }
 
     [Fact]

@@ -64,8 +64,6 @@ public sealed class BlogIndexViewModelBuilder
         CurrentPage = _currentPage,
         TotalPages = _totalPages,
         CurrentCategory = _currentCategory,
-        CurrentTag = _currentTag,
-        Category = _currentCategory,
-        Tag = _currentTag
+        CurrentTag = _currentTag
     };
 }

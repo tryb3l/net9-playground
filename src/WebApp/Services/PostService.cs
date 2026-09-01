@@ -110,9 +110,7 @@ public class PostService : IPostService
             CurrentPage = page,
             TotalPages = totalPages,
             CurrentCategory = category,
-            CurrentTag = tag,
-            Category = category,
-            Tag = tag
+            CurrentTag = tag
         };
     }
 

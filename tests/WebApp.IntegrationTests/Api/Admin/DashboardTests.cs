@@ -28,4 +28,23 @@ public class DashboardTests(IntegrationTestFixture fixture)
         var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         content.ShouldContain("Total Posts");
     }
+
+    [Fact]
+    public async Task BareAdminArea_DefaultsToDashboard()
+    {
+        // The area route used to default to a nonexistent Home controller (a leftover,
+        // unrelated AdminController/Admin/Index stub was the only thing living there), so
+        // /Admin was an unreachable 404 with no real content behind it.
+
+        // Arrange
+        await this.GivenAdminUserAsync();
+
+        // Act
+        var response = await HttpClient.GetAsync("/Admin", TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(OK);
+        var content = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        content.ShouldContain("Total Posts");
+    }
 }

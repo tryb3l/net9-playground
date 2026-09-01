@@ -3,7 +3,7 @@ using Markdig;
 
 namespace WebApp.Utils;
 
-public static class MarkdownExcerpt
+public static partial class MarkdownExcerpt
 {
     public static string ToPlainText(string? markdown, int maxLength)
     {
@@ -11,7 +11,7 @@ public static class MarkdownExcerpt
             return string.Empty;
 
         var plainText = Markdown.ToPlainText(markdown);
-        plainText = Regex.Replace(plainText, @"\s+", " ").Trim();
+        plainText = WhitespaceRegex().Replace(plainText, " ").Trim();
 
         if (plainText.Length <= maxLength)
             return plainText;
@@ -22,4 +22,7 @@ public static class MarkdownExcerpt
 
         return plainText[..maxLength] + "...";
     }
+
+    [GeneratedRegex(@"\s+")]
+    private static partial Regex WhitespaceRegex();
 }
