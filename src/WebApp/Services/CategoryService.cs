@@ -16,9 +16,7 @@ public class CategoryService : ICategoryService
 
     private static class CacheKeys
     {
-        public static string AllCategories => "AllCategories";
         public static string AvailableCategoriesSelectList => "AvailableCategoriesSelectList";
-        public static string CategoryById(int id) => $"Category-{id}";
     }
 
     public CategoryService(ApplicationDbContext db, IMemoryCache cache)
@@ -29,39 +27,34 @@ public class CategoryService : ICategoryService
 
     public async Task<IEnumerable<CategoryViewModel>?> GetAllCategoriesAsync()
     {
-        return await _cache.GetOrCreateAsync(CacheKeys.AllCategories, async entry =>
-        {
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
-            return await _db.Categories
-                .AsNoTracking()
-                .Select(c => new CategoryViewModel
-                {
-                    Id = c.Id,
-                    Name = c.Name,
-                    Description = c.Description,
-                    PostCount = c.Posts.Count
-                })
-                .ToListAsync();
-        });
+        // Not cached: PostCount depends on live Post state, and CategoryService has no
+        // visibility into post writes. Caching this previously left stale counts after every
+        // publish or trash action. The query itself is trivial at personal-blog scale.
+        return await _db.Categories
+            .AsNoTracking()
+            .Select(c => new CategoryViewModel
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Description = c.Description,
+                PostCount = c.Posts.Count
+            })
+            .ToListAsync();
     }
 
     public async Task<CategoryViewModel?> GetCategoryViewModelByIdAsync(int id)
     {
-        return await _cache.GetOrCreateAsync(CacheKeys.CategoryById(id), async entry =>
-        {
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
-            return await _db.Categories
-                .AsNoTracking()
-                .Where(c => c.Id == id)
-                .Select(c => new CategoryViewModel
-                {
-                    Id = c.Id,
-                    Name = c.Name,
-                    Description = c.Description,
-                    PostCount = c.Posts.Count
-                })
-                .FirstOrDefaultAsync();
-        });
+        return await _db.Categories
+            .AsNoTracking()
+            .Where(c => c.Id == id)
+            .Select(c => new CategoryViewModel
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Description = c.Description,
+                PostCount = c.Posts.Count
+            })
+            .FirstOrDefaultAsync();
     }
 
     public async Task UpdateCategoryAsync(EditCategoryViewModel model)
@@ -83,7 +76,7 @@ public class CategoryService : ICategoryService
 
         await _db.SaveChangesAsync();
 
-        InvalidateCategoryCache(model.Id);
+        InvalidateCategoryCache();
     }
 
     public async Task DeleteCategoryAsync(int id)
@@ -109,7 +102,7 @@ public class CategoryService : ICategoryService
 
         await transaction.CommitAsync();
 
-        InvalidateCategoryCache(id);
+        InvalidateCategoryCache();
     }
 
     public async Task<ServiceResult> CreateCategoryAsync(CreateCategoryViewModel viewModel)
@@ -126,7 +119,6 @@ public class CategoryService : ICategoryService
             _db.Categories.Add(category);
             await _db.SaveChangesAsync();
 
-            _cache.Remove(CacheKeys.AllCategories);
             _cache.Remove(CacheKeys.AvailableCategoriesSelectList);
 
             return ServiceResult.Success();
@@ -174,10 +166,8 @@ public class CategoryService : ICategoryService
         }) ?? [];
     }
 
-    private void InvalidateCategoryCache(int id)
+    private void InvalidateCategoryCache()
     {
-        _cache.Remove(CacheKeys.CategoryById(id));
-        _cache.Remove(CacheKeys.AllCategories);
         _cache.Remove(CacheKeys.AvailableCategoriesSelectList);
     }
 }

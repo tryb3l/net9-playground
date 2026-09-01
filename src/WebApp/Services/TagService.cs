@@ -16,7 +16,6 @@ public class TagService : ITagService
 
     private static class CacheKeys
     {
-        public static string AllTagsWithCount => "AllTagsWithCount";
         public static string AvailableTagsSelectList => "AvailableTagsSelectList";
     }
 
@@ -99,20 +98,19 @@ public class TagService : ITagService
 
     public async Task<IEnumerable<TagViewModel>> GetAllTagsWithCountAsync()
     {
-        return await _cache.GetOrCreateAsync(CacheKeys.AllTagsWithCount, async entry =>
-        {
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
-            return await _db.Tags
-                .AsNoTracking()
-                .Select(t => new TagViewModel
-                {
-                    Id = t.Id,
-                    Name = t.Name,
-                    PostCount = t.PostTags.Count
-                })
-                .OrderByDescending(t => t.PostCount)
-                .ToListAsync();
-        }) ?? [];
+        // Not cached: PostCount depends on live Post state, and TagService has no visibility
+        // into post writes. Caching this previously left stale counts after every publish or
+        // trash action. The query itself is trivial at personal-blog scale.
+        return await _db.Tags
+            .AsNoTracking()
+            .Select(t => new TagViewModel
+            {
+                Id = t.Id,
+                Name = t.Name,
+                PostCount = t.PostTags.Count
+            })
+            .OrderByDescending(t => t.PostCount)
+            .ToListAsync();
     }
 
     public async Task<List<SelectListItem>> GetAvailableTagsAsync()
@@ -133,7 +131,6 @@ public class TagService : ITagService
 
     private void InvalidateTagCache()
     {
-        _cache.Remove(CacheKeys.AllTagsWithCount);
         _cache.Remove(CacheKeys.AvailableTagsSelectList);
     }
 }

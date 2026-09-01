@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -167,6 +168,34 @@ public class TagTests(IntegrationTestFixture fixture)
         var exists = await ExecuteDbContextAsync(db =>
             db.Tags.AnyAsync(t => t.Name == "sneaky", TestContext.Current.CancellationToken));
         exists.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Index_PostCount_ReflectsRecentPostChanges_NotStaleCache()
+    {
+        // GetAllTagsWithCountAsync used to be cached for an hour with no invalidation from
+        // post writes, so this count could lag behind reality for the whole cache lifetime.
+
+        // Arrange
+        await this.GivenAdminUserAsync();
+        var categoryId = await this.SeedCategoryAsync("Cache");
+        var tagId = await this.SeedTagAsync("cache-check");
+
+        // Warm any cache the tag list might build.
+        (await HttpClient.GetAsync("/Admin/Tag", TestContext.Current.CancellationToken)).EnsureSuccessStatusCode();
+
+        // Act: a post referencing the tag is created after the list was first read.
+        await this.SeedPostAsync("Freshly Tagged", categoryId, tagIds: [tagId]);
+        var response = await HttpClient.GetAsync("/Admin/Tag", TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(OK);
+        var document = await response.ParseHtmlAsync();
+        var row = document.QuerySelectorAll("tbody tr")
+            .FirstOrDefault(r => r.TextContent.Contains("cache-check"));
+
+        row.ShouldNotBeNull();
+        row!.TextContent.ShouldContain("1");
     }
 }
 

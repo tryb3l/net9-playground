@@ -7,7 +7,16 @@ namespace WebApp.Areas.Admin.ViewModels.Post;
 public class EditPostViewModel
 {
     public int Id { get; init; }
-    public string? Slug { get; init; }
+
+    /// <summary>
+    /// Editable while the post is still a draft. Once published, PostController/PostService
+    /// ignore this value - changing the slug on a live post would break external links.
+    /// </summary>
+    [Display(Name = "URL slug")]
+    [StringLength(64, ErrorMessage = "Slug must be 64 characters or fewer")]
+    [RegularExpression("^[a-z0-9]+(-[a-z0-9]+)*$", ErrorMessage = "Slug may only contain lowercase letters, numbers and hyphens")]
+    public string? Slug { get; set; }
+
     public bool IsDeleted { get; init; }
 
     [Required(ErrorMessage = "Title is required")]

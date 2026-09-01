@@ -266,10 +266,14 @@
 
     // Capture baselines after full initialization
     const titleInput = document.getElementById('Title');
+    const slugInput = document.getElementById('Slug');
+    const excerptInput = document.getElementById('Excerpt');
     const publishSwitch = document.getElementById('publishSwitch');
     const altInput = document.getElementById('FeaturedImageAlt');
 
     if (titleInput) titleInput.addEventListener('input', markDirty);
+    if (slugInput) slugInput.addEventListener('input', markDirty);
+    if (excerptInput) excerptInput.addEventListener('input', markDirty);
     if (publishSwitch) publishSwitch.addEventListener('change', markDirty);
     if (altInput) altInput.addEventListener('input', markDirty);
 

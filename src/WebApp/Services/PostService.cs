@@ -216,13 +216,20 @@ public class PostService : IPostService
         // untouched and a fresh JSON blob after an upload.
         viewModel.ApplyTo(post);
 
-        if (originalTitle != viewModel.Title)
+        if (!wasPublished)
         {
-            // Changing slugs on published posts breaks external links.
-            if (!wasPublished)
+            var manualSlug = viewModel.Slug?.Trim();
+
+            if (!string.IsNullOrEmpty(manualSlug) && manualSlug != post.Slug)
             {
-                post.Slug = SlugHelper.GenerateSlug(viewModel.Title);
-                post.Slug = await EnsureUniqueSlugAsync(post.Slug, post.Id);
+                // The editor typed a new slug directly - normalise defensively (the view
+                // model's regex already restricts the charset) and de-duplicate.
+                post.Slug = await EnsureUniqueSlugAsync(SlugHelper.GenerateSlug(manualSlug), post.Id);
+            }
+            else if (originalTitle != viewModel.Title)
+            {
+                // Slug untouched but the title changed - keep the old auto-derive behaviour.
+                post.Slug = await EnsureUniqueSlugAsync(SlugHelper.GenerateSlug(viewModel.Title), post.Id);
             }
         }
 

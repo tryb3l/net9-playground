@@ -306,6 +306,115 @@ public class PostFlowTests : BaseIntegrationTest
     }
 
     [Fact]
+    public async Task Edit_DraftPost_AllowsManualSlugEdit()
+    {
+        // Arrange
+        await this.GivenAdminUserAsync();
+        var categoryId = await this.SeedCategoryAsync("Tech");
+        var (postId, originalSlug) = await this.SeedPostAsync("Draft Post", categoryId, isPublished: false);
+
+        var editPageResponse = await HttpClient.GetAsync($"/Admin/Post/Edit/{postId}", TestContext.Current.CancellationToken);
+        editPageResponse.EnsureSuccessStatusCode();
+        var csrfToken = await GetCsrfToken(editPageResponse);
+
+        // Act
+        var formData = new Dictionary<string, string>
+        {
+            { "Id", postId.ToString() },
+            { "Title", "Draft Post" },
+            { "Slug", "my-custom-slug" },
+            { "Content", "Content" },
+            { "PublishNow", "false" },
+            { "__RequestVerificationToken", csrfToken }
+        };
+        var response = await HttpClient.PostAsync($"/Admin/Post/Edit/{postId}", new FormUrlEncodedContent(formData), TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+
+        await ExecuteDbContextAsync(async db =>
+        {
+            var post = await db.Posts.FindAsync(postId);
+            post.ShouldNotBeNull();
+            post.Slug.ShouldBe("my-custom-slug");
+            post.Slug.ShouldNotBe(originalSlug);
+        });
+    }
+
+    [Fact]
+    public async Task Edit_DraftPost_WithSlugCollidingWithAnotherPost_DeDuplicates()
+    {
+        // Arrange
+        await this.GivenAdminUserAsync();
+        var categoryId = await this.SeedCategoryAsync("Tech");
+        await this.SeedPostAsync("Taken Slug", categoryId);
+        var (postId, _) = await this.SeedPostAsync("Draft Two", categoryId, isPublished: false);
+
+        var editPageResponse = await HttpClient.GetAsync($"/Admin/Post/Edit/{postId}", TestContext.Current.CancellationToken);
+        var csrfToken = await GetCsrfToken(editPageResponse);
+
+        // Act
+        var formData = new Dictionary<string, string>
+        {
+            { "Id", postId.ToString() },
+            { "Title", "Draft Two" },
+            { "Slug", "taken-slug" },
+            { "Content", "Content" },
+            { "PublishNow", "false" },
+            { "__RequestVerificationToken", csrfToken }
+        };
+        var response = await HttpClient.PostAsync($"/Admin/Post/Edit/{postId}", new FormUrlEncodedContent(formData), TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+
+        await ExecuteDbContextAsync(async db =>
+        {
+            var post = await db.Posts.FindAsync(postId);
+            post.ShouldNotBeNull();
+            post.Slug.ShouldBe("taken-slug-1");
+        });
+    }
+
+    [Fact]
+    public async Task Edit_PublishedPost_IgnoresAnyPostedSlugChange()
+    {
+        // Published posts must keep their slug regardless of what the form posts, since the
+        // Slug input is rendered as a hidden field once published (no user-facing way to
+        // trigger this), but the server-side guarantee must hold either way.
+
+        // Arrange
+        await this.GivenAdminUserAsync();
+        var categoryId = await this.SeedCategoryAsync("Tech");
+        var (postId, originalSlug) = await this.SeedPostAsync("Live Post", categoryId, isPublished: true);
+
+        var editPageResponse = await HttpClient.GetAsync($"/Admin/Post/Edit/{postId}", TestContext.Current.CancellationToken);
+        var csrfToken = await GetCsrfToken(editPageResponse);
+
+        // Act
+        var formData = new Dictionary<string, string>
+        {
+            { "Id", postId.ToString() },
+            { "Title", "Live Post" },
+            { "Slug", "attempted-override" },
+            { "Content", "Content" },
+            { "PublishNow", "true" },
+            { "__RequestVerificationToken", csrfToken }
+        };
+        var response = await HttpClient.PostAsync($"/Admin/Post/Edit/{postId}", new FormUrlEncodedContent(formData), TestContext.Current.CancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+
+        await ExecuteDbContextAsync(async db =>
+        {
+            var post = await db.Posts.FindAsync(postId);
+            post.ShouldNotBeNull();
+            post.Slug.ShouldBe(originalSlug);
+        });
+    }
+
+    [Fact]
     public async Task Edit_PublishedPost_KeepsSlug_WhenTitleChanges()
     {
         // Arrange
