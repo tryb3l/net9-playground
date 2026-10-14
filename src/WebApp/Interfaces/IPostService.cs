@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Mvc.Rendering;
 using WebApp.Areas.Admin.ViewModels.Post;
 using WebApp.Helpers;
 using WebApp.Models;
@@ -16,8 +15,6 @@ public interface IPostService
     Task<Post> CreatePostAsync(CreatePostViewModel viewModel, string userId);
     Task UpdatePostAsync(int id, EditPostViewModel viewModel);
     Task DeletePostAsync(int id);
-    Task<bool> PostExistsAsync(int id);
-    Task<List<SelectListItem>> GetAvailableTagsAsync();
     Task PublishPostAsync(int id);
     Task UnpublishPostAsync(int id);
     Task SoftDeletePostAsync(int id);

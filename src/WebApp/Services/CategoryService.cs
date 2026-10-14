@@ -105,28 +105,19 @@ public class CategoryService : ICategoryService
         InvalidateCategoryCache();
     }
 
-    public async Task<ServiceResult> CreateCategoryAsync(CreateCategoryViewModel viewModel)
+    public async Task CreateCategoryAsync(CreateCategoryViewModel viewModel)
     {
-        try
+        var category = new Category
         {
-            var category = new Category
-            {
-                Name = viewModel.Name,
-                Description = viewModel.Description,
-                Slug = await EnsureUniqueSlugAsync(SlugHelper.GenerateSlug(viewModel.Name))
-            };
+            Name = viewModel.Name,
+            Description = viewModel.Description,
+            Slug = await EnsureUniqueSlugAsync(SlugHelper.GenerateSlug(viewModel.Name))
+        };
 
-            _db.Categories.Add(category);
-            await _db.SaveChangesAsync();
+        _db.Categories.Add(category);
+        await _db.SaveChangesAsync();
 
-            _cache.Remove(CacheKeys.AvailableCategoriesSelectList);
-
-            return ServiceResult.Success();
-        }
-        catch (Exception ex)
-        {
-            return ServiceResult.Failure($"Error creating category: {ex.Message}");
-        }
+        InvalidateCategoryCache();
     }
 
     /// <summary>

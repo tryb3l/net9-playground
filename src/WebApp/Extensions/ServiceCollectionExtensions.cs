@@ -10,7 +10,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPostService, PostService>();
         services.AddScoped<ITagService, TagService>();
         services.AddScoped<ICategoryService, CategoryService>();
-        services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IActivityLogService, ActivityLogService>();
         services.AddScoped<IAttachmentService, AttachmentService>();

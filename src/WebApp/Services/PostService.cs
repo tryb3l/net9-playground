@@ -160,7 +160,7 @@ public class PostService : IPostService
 
         var viewModel = post.ToEditPostViewModel();
 
-        viewModel.AvailableTags = await GetAvailableTagsAsync();
+        viewModel.AvailableTags = await _tagService.GetAvailableTagsAsync();
         viewModel.AvailableCategories = await _db.Categories
             .AsNoTracking()
             .Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Name })
@@ -277,16 +277,6 @@ public class PostService : IPostService
         await _db.SaveChangesAsync();
 
         _attachmentService.DeleteStoredImages(image);
-    }
-
-    public async Task<bool> PostExistsAsync(int id)
-    {
-        return await _db.Posts.AnyAsync(p => p.Id == id);
-    }
-
-    public async Task<List<SelectListItem>> GetAvailableTagsAsync()
-    {
-        return await _tagService.GetAvailableTagsAsync();
     }
 
     public async Task PublishPostAsync(int id)

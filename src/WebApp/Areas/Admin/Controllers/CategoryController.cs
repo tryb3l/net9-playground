@@ -54,22 +54,20 @@ public class CategoryController : Controller
             return View(viewModel);
         }
 
-        var result = await _categoryService.CreateCategoryAsync(viewModel);
-        if (result.Succeeded)
+        try
         {
+            await _categoryService.CreateCategoryAsync(viewModel);
             _logger.LogInformation("Category created successfully");
             await _activityLogService.LogActivityAsync("Created", "Category", $"Created category: '{viewModel.Name}'");
             TempData["SuccessMessage"] = "Category created successfully.";
             return RedirectToAction("Index");
         }
-
-        _logger.LogWarning("Category creation failed: {Errors}", string.Join(", ", result.Errors));
-        foreach (var error in result.Errors)
+        catch (Exception ex)
         {
-            ModelState.AddModelError("", error);
+            _logger.LogError(ex, "Category creation failed");
+            ModelState.AddModelError("", $"Error creating category: {ex.Message}");
+            return View(viewModel);
         }
-
-        return View(viewModel);
     }
 
     [HttpGet]
