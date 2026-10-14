@@ -1,4 +1,4 @@
-.PHONY: all run dev build clean publish help docker-up docker-down docker-prune docker-postgres-local migrate-local add-migration reset-db drop-database update-ef-tools apple-up apple-run apple-postgres apple-network apple-volumes apple-down
+.PHONY: all run dev build clean publish help ensure-certs ensure-docker docker-up docker-down docker-prune docker-postgres-local migrate-local add-migration reset-db drop-database update-ef-tools apple-up apple-run apple-postgres apple-network apple-volumes apple-down
 
 # --- Configuration ---
 
@@ -20,18 +20,16 @@ all: build test
 build:
 	dotnet build $(SOLUTION_FILE)
 
-# Run the project
-run:
-	dotnet run --project $(APP_PROJECT)
-
-# Start local postgres then run the app
-dev: docker-postgres-local
+# Start local postgres then run the project over HTTPS
+run: ensure-certs docker-postgres-local
 	@echo "Waiting for PostgreSQL to be ready..."
 	@until docker-compose --env-file $(ENV_FILE) -f $(COMPOSE_FILE) exec -T postgres pg_isready -U postgres > /dev/null 2>&1; do \
 		printf '.'; sleep 1; \
 	done
 	@echo " PostgreSQL is ready."
-	dotnet run --project $(APP_PROJECT)
+	dotnet run --launch-profile "https" --project $(APP_PROJECT)
+
+dev: run
 
 # Run all tests
 test:
@@ -53,8 +51,8 @@ help:
 	@echo "Main targets:"
 	@echo "  all                     Build solution and run all tests"
 	@echo "  build                   Build the solution"
-	@echo "  run                     Run the app (requires postgres already running)"
-	@echo "  dev                     Start local postgres, then run the app"
+	@echo "  run                     Start local postgres, then run the app"
+	@echo "  dev                     Alias for 'make run'"
 	@echo "  test                    Run all tests"
 	@echo "  clean                   Clean build outputs"
 	@echo "  publish                 Publish in Release mode"
@@ -81,9 +79,42 @@ help:
 	@echo "  apple-down              Stop and delete all Apple containers"
 	@echo ""
 
-# --- Docker Targets ---
+# --- Certificates & Docker Targets ---
 
-docker-up du:
+CERT_DIR := $(HOME)/.aspnet/https
+CERT_FILE := $(CERT_DIR)/WebApp.pfx
+
+ensure-certs:
+	@mkdir -p "$(CERT_DIR)"
+	@if ! dotnet dev-certs https --check --trust > /dev/null 2>&1 || [ ! -f "$(CERT_FILE)" ]; then \
+		echo "Generating and trusting local HTTPS development certificate..."; \
+		dotnet dev-certs https -ep "$(CERT_FILE)" -p password --trust || \
+		dotnet dev-certs https -ep "$(CERT_FILE)" -p password; \
+	fi
+
+ensure-docker:
+	@if ! command -v docker > /dev/null 2>&1; then \
+		echo "Error: Docker is not installed. Please install Docker Desktop (https://www.docker.com/products/docker-desktop) and try again."; \
+		exit 1; \
+	fi
+	@if ! docker info > /dev/null 2>&1; then \
+		echo "Docker daemon is not running. Starting Docker..."; \
+		if [ "$$(uname -s)" = "Darwin" ]; then \
+			open -a Docker || { echo "Error: Could not launch Docker.app. Please start Docker manually."; exit 1; }; \
+		elif command -v systemctl > /dev/null 2>&1; then \
+			sudo systemctl start docker || { echo "Error: Could not start docker service. Please start Docker manually."; exit 1; }; \
+		else \
+			echo "Error: Docker daemon is not running. Please start Docker manually."; \
+			exit 1; \
+		fi; \
+		printf "Waiting for Docker daemon to be ready"; \
+		until docker info > /dev/null 2>&1; do \
+			printf '.'; sleep 2; \
+		done; \
+		echo " Docker is ready."; \
+	fi
+
+docker-up du: ensure-certs ensure-docker
 	docker-compose --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up --build
 
 docker-down dd:
@@ -93,7 +124,7 @@ docker-prune drm:
 	docker system prune -a --volumes
 
 # Start postgres with port mapping to localhost
-docker-postgres-local:
+docker-postgres-local: ensure-docker
 	docker-compose --env-file $(ENV_FILE) -f $(COMPOSE_FILE) up -d postgres
 	@echo "PostgreSQL is available at localhost:5432"
 
@@ -133,7 +164,7 @@ update-ef-tools:
 # --- Apple Containers Targets (macOS Only) ---
 
 # Starts BOTH the .NET App and Postgres natively isolated. (For simulating full deployment)
-apple-up: apple-network apple-volumes apple-postgres
+apple-up: ensure-certs apple-network apple-volumes apple-postgres
 	@echo "Waiting for Postgres to initialize..."
 	@sleep 3
 	@echo "Building WebApp natively..."
@@ -157,7 +188,7 @@ apple-up: apple-network apple-volumes apple-postgres
 	@echo "Apple native containers are UP!"
 
 # Start Apple Postgres container, then run the .NET app locally
-apple-run: apple-postgres
+apple-run: ensure-certs apple-postgres
 	@echo "Waiting for Postgres to accept connections..."
 	@until container exec postgres pg_isready -U postgres > /dev/null 2>&1; do \
 		printf '.'; sleep 1; \

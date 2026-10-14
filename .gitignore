@@ -55,3 +55,8 @@ packages/
 *.exe
 *.pdb
 *.idb
+
+# User uploads and test artifacts
+src/WebApp/wwwroot/uploads/
+TestResults/
+*.lscache
