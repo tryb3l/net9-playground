@@ -27,6 +27,8 @@ public static class PostMappings
         IsDeleted = post.IsDeleted,
         DeletedAt = post.DeletedAt,
         FeaturedImageUrl = FeaturedImage.GetLargeUrl(post.FeaturedImageUrls),
+        FeaturedImageThumbnailUrl = FeaturedImage.GetThumbnailUrl(post.FeaturedImageUrls),
+        FeaturedImageSrcSet = FeaturedImage.BuildSrcSet(post.FeaturedImageUrls),
         FeaturedImageAlt = post.FeaturedImageAlt
     };
 

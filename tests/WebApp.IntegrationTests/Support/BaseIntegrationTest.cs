@@ -17,6 +17,7 @@ public abstract class BaseIntegrationTest : IAsyncLifetime
     protected readonly HttpClient HttpClient;
     private readonly CustomWebApplicationFactory _factory;
     public TestUserContext UserContext => _factory.UserContext;
+    protected IServiceProvider Services => _factory.Services;
     
     protected BaseIntegrationTest(IntegrationTestFixture fixture)
     {
@@ -45,7 +46,7 @@ public abstract class BaseIntegrationTest : IAsyncLifetime
 
     public ValueTask InitializeAsync() => ValueTask.CompletedTask;
 
-    public async ValueTask DisposeAsync()
+    public virtual async ValueTask DisposeAsync()
     {
         await _factory.ResetDatabaseAsync();
     }

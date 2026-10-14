@@ -3,9 +3,12 @@
 <article class="post-card">
     <a asp-controller="Blog" asp-action="Post" asp-route-slug="@Model.Slug" class="post-card-link">
         <div class="post-card-image-container">
-            @if (Model.FeaturedImageUrls.TryGetValue("medium", out var imageUrl))
+            @if (Model.FeaturedImageUrls.TryGetValue("medium", out var imageUrl)
+                 || Model.FeaturedImageUrls.TryGetValue("large", out imageUrl))
             {
-                <img src="@imageUrl" class="post-card-image" alt="@Model.Title" loading="lazy">
+                @* Image = grid track - 34px. From 1096px there are two equal tracks (~368-402px wide), so 402px keeps cards on the 800w variant. *@
+                <img src="@imageUrl" class="post-card-image" alt="@Model.Title" loading="lazy" decoding="async"
+                     srcset="@Model.FeaturedImageSrcSet" sizes="@(Model.FeaturedImageSrcSet != null ? "(min-width: 1096px) 402px, (min-width: 769px) calc(100vw - 398px), calc(100vw - 66px)" : null)">
             }
             else
             {

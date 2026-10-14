@@ -38,6 +38,13 @@
         </small>
     </div>
     <div class="card-body">
+        @if (!string.IsNullOrEmpty(Model.FeaturedImageUrl))
+        {
+            <div class="mb-4 text-center bg-light rounded p-3">
+                <img src="@Model.FeaturedImageUrl" alt="@(Model.FeaturedImageAlt ?? Model.Title)"
+                     class="admin-image-preview rounded" decoding="async" />
+            </div>
+        }
         <div class="post-content">
             @* This is where the magic happens. The Tag Helper converts the Markdown to HTML. *@
             <markdown>@Model.Content</markdown>

@@ -88,4 +88,34 @@ public class MarkdownTagHelperTests
         result.ShouldContain("<strong>");
         result.ShouldContain("bold");
     }
+
+    [Fact]
+    public async Task ProcessAsync_MarkdownImage_GetsLazyLoadingAndAsyncDecoding()
+    {
+        var result = await RenderAsync("![a](/uploads/x.webp)");
+
+        result.ShouldContain("<img");
+        result.ShouldContain("src=\"/uploads/x.webp\"");
+        result.ShouldContain("loading=\"lazy\"");
+        result.ShouldContain("decoding=\"async\"");
+    }
+
+    [Fact]
+    public async Task ProcessAsync_AuthorWrittenImgWithOnerror_StillStripsOnerror()
+    {
+        var result = await RenderAsync("<img src=\"/uploads/x.webp\" onerror=\"alert(1)\">");
+
+        result.ShouldNotContain("onerror");
+        result.ShouldNotContain("alert(1)");
+        result.ShouldContain("loading=\"lazy\"");
+    }
+
+    [Fact]
+    public async Task ProcessAsync_AuthorSuppliedLoadingAttribute_IsNotTrustedOrDuplicated()
+    {
+        var result = await RenderAsync("<img src=\"/uploads/x.webp\" loading=\"eager\" fetchpriority=\"high\">");
+
+        result.ShouldNotContain("eager");
+        result.ShouldNotContain("fetchpriority");
+    }
 }

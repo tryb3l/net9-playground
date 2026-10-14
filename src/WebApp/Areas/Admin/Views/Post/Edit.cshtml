@@ -94,8 +94,8 @@
                         </div>
 
                         <!-- Preview: Show if image EXISTS -->
-                        <div class="card-body text-center position-relative p-0 @(string.IsNullOrEmpty(Model.FeaturedImageUrl) ? "d-none" : "")" id="upload-preview-container">
-                            <img id="image-preview" src="@Model.FeaturedImageUrl" class="img-fluid rounded" style="max-height: 400px; width: 100%; object-fit: cover;">
+                        <div class="card-body text-center position-relative p-3 @(string.IsNullOrEmpty(Model.FeaturedImageUrl) ? "d-none" : "")" id="upload-preview-container">
+                            <img id="image-preview" src="@Model.FeaturedImageUrl" alt="Featured image preview" class="admin-image-preview rounded">
                             <div class="position-absolute top-0 end-0 p-3">
                                 <button type="button" class="btn btn-light btn-sm shadow-sm text-danger" id="remove-image-btn" title="Remove Image">
                                     <i class="bi bi-trash"></i>

@@ -1,3 +1,5 @@
+using WebApp.Utils;
+
 namespace WebApp.ViewModels;
 
 public class PostCardViewModel
@@ -6,6 +8,7 @@ public class PostCardViewModel
     public string Title { get; init; } = string.Empty;
     public string Slug { get; init; } = string.Empty;
     public Dictionary<string, string> FeaturedImageUrls { get; init; } = [];
+    public string? FeaturedImageSrcSet => FeaturedImage.BuildSrcSet(FeaturedImageUrls);
     public string ShortDescription { get; init; } = string.Empty;
     public string CategoryName { get; init; } = string.Empty;
     public string CategorySlug { get; init; } = string.Empty;

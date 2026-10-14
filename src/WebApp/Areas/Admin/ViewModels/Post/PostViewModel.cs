@@ -24,5 +24,7 @@ public class PostViewModel
     public DateTime? DeletedAt { get; set; }
 
     public string? FeaturedImageUrl { get; set; }
+    public string? FeaturedImageThumbnailUrl { get; set; }
+    public string? FeaturedImageSrcSet { get; set; }
     public string? FeaturedImageAlt { get; set; }
 }

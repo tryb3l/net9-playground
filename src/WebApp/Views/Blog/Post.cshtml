@@ -42,8 +42,10 @@
                 @if (!string.IsNullOrEmpty(Model.FeaturedImageUrl))
                 {
                     <div class="post-cover-container">
-                        <div class="post-cover-background" style="background-image: url('@Model.FeaturedImageUrl');"></div>
-                        <img class="post-cover-image" src="@Model.FeaturedImageUrl" alt="@(Model.FeaturedImageAlt ?? Model.Title)" />
+                        <div class="post-cover-background" style="background-image: url('@(Model.FeaturedImageThumbnailUrl ?? Model.FeaturedImageUrl)');"></div>
+                        <img class="post-cover-image" src="@Model.FeaturedImageUrl" alt="@(Model.FeaturedImageAlt ?? Model.Title)"
+                             fetchpriority="high" decoding="async"
+                             srcset="@Model.FeaturedImageSrcSet" sizes="@(Model.FeaturedImageSrcSet != null ? "(min-width: 992px) 760px, 100vw" : null)" />
                     </div>
                 }
 

@@ -47,8 +47,6 @@ try
     var googleClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET") ??
                              throw new InvalidOperationException("GOOGLE_CLIENT_SECRET environment variable not found.");
 
-    // Not consumed here: AdminOrApiKeyHandler reads it per-request. Validated at startup so a
-    // missing key fails fast instead of silently locking /health to interactive admins only.
     _ = Environment.GetEnvironmentVariable("HEALTHCHECKS_API_KEY") ??
         throw new InvalidOperationException("HEALTHCHECKS_API_KEY environment variable not found.");
 
@@ -144,6 +142,8 @@ try
 
     builder.Services.AddApplicationServices();
 
+    builder.Services.AddImageProcessing();
+
     builder.Services.AddHttpContextAccessor();
 
     if (Environment.GetEnvironmentVariable("DISABLE_DB_SEEDING") != "true")
@@ -181,8 +181,6 @@ try
 
     var app = builder.Build();
 
-    // Outermost handler: renders a real HTML page for browser requests. The JSON handler
-    // below only claims API/AJAX requests and lets everything else fall through to here.
     if (app.Environment.IsDevelopment())
     {
         app.UseDeveloperExceptionPage();
@@ -195,8 +193,6 @@ try
 
     app.UseGlobalExceptionHandler();
 
-    // 404s and other bare status codes get the same page, except on the JSON endpoints
-    // where an HTML body would be worse than none.
     app.UseWhen(
         context => !context.Request.Path.StartsWithSegments("/Admin/api")
                    && !context.Request.Path.StartsWithSegments("/health"),
@@ -214,8 +210,6 @@ try
             headers.TryAdd("Referrer-Policy", "strict-origin-when-cross-origin");
             headers.TryAdd("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
 
-            // CDN hosts used by admin pages (DataTables, Bootstrap Icons,
-            // Toastr, EasyMDE, Choices.js). Public pages only use cdn.jsdelivr.net.
             const string cdnSources = "cdn.jsdelivr.net cdnjs.cloudflare.com cdn.datatables.net unpkg.com";
             var csp = string.Join("; ",
                 "default-src 'self'",
@@ -259,7 +253,6 @@ try
                 if (ctx.Context.Request.Path.StartsWithSegments("/uploads"))
                 {
                     var headers = ctx.Context.Response.Headers;
-                    // Cache for 1 year
                     headers.CacheControl = "public,max-age=31536000,immutable";
                 }
             }

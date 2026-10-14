@@ -1,6 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
@@ -8,8 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shouldly;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+using NetVips;
 using WebApp.Services;
 using Xunit;
 
@@ -49,12 +48,13 @@ public class AttachmentServiceTests : IDisposable
         };
     }
 
-    private static async Task<byte[]> CreateValidJpegBytesAsync(int width = 10, int height = 10)
+    private static Task<byte[]> CreateValidJpegBytesAsync(int width = 10, int height = 10) =>
+        Task.FromResult(CreateImageBytes(width, height, ".jpg"));
+
+    private static byte[] CreateImageBytes(int width, int height, string suffix)
     {
-        using var image = new Image<Rgba32>(width, height);
-        using var ms = new MemoryStream();
-        await image.SaveAsJpegAsync(ms);
-        return ms.ToArray();
+        using var image = Image.Black(width, height, bands: 3);
+        return image.WriteToBuffer(suffix);
     }
 
     // ── invalid extension ────────────────────────────────────────────────────
@@ -203,6 +203,239 @@ public class AttachmentServiceTests : IDisposable
         urls.ShouldNotBeNull();
         urls.ShouldContainKey("large");
         urls.Count.ShouldBe(1);
+    }
+
+    // ── decoding / variants ──────────────────────────────────────────────────
+
+    private string DiskPath(string url) =>
+        Path.Combine(_tempWebRoot, url.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+
+    private static byte[] CreateNoisyJpegBytes(int width, int height)
+    {
+        using var noise = Image.Gaussnoise(width, height, sigma: 40, mean: 128).Cast(Enums.BandFormat.Uchar);
+        return noise.WriteToBuffer(".jpg");
+    }
+
+    private static int PageCount(Image image) =>
+        image.Contains("n-pages") ? (int)image.Get("n-pages") : 1;
+
+    private static byte[] CreateAnimatedGifBytes(int width, int height, int frames)
+    {
+        var pages = Enumerable.Range(0, frames)
+            .Select(i => Image.Black(width, height, bands: 3).Linear([1.0], [i * 25.0]).Cast(Enums.BandFormat.Uchar))
+            .ToArray();
+        using var joined = Image.Arrayjoin(pages, across: 1);
+        using var tagged = joined.Mutate(m =>
+        {
+            m.Set(GValue.GIntType, "page-height", height);
+            m.Set(GValue.ArrayIntType, "delay", Enumerable.Repeat(100, frames).ToArray());
+        });
+        return tagged.WriteToBuffer(".gif");
+    }
+
+    [Fact]
+    public async Task ProcessAndSaveImageAsync_ShouldRejectTiffDisguisedAsJpg()
+    {
+        var file = CreateFormFile(CreateImageBytes(20, 20, ".tif"), "photo.jpg", "image/jpeg");
+
+        var (urls, error) = await _service.ProcessAndSaveImageAsync(file, "posts");
+
+        urls.ShouldBeNull();
+        error.ShouldNotBeNull();
+        error.ShouldContain("not a valid image");
+    }
+
+    [Fact]
+    public async Task ProcessAndSaveImageAsync_ShouldAcceptUltraHdrJpeg_FromModernPhones()
+    {
+        // Ultra HDR is the default JPEG flavour on recent Android phones (JPEG + gain map).
+        byte[] input;
+        using (var sdr = Image.Black(3000, 1500, bands: 3).Linear([1.0], [90.0]).Cast(Enums.BandFormat.Uchar))
+        using (var hdr = sdr.Colourspace(Enums.Interpretation.Scrgb))
+        {
+            input = (byte[])Operation.Call("uhdrsave_buffer", null, hdr);
+        }
+        Image.FindLoadBuffer(input).ShouldBe("VipsForeignLoadUhdrBuffer");
+        var file = CreateFormFile(input, "PXL_20261011.jpg", "image/jpeg");
+
+        var (urls, error) = await _service.ProcessAndSaveImageAsync(file, "posts");
+
+        error.ShouldBeNull();
+        using var large = Image.NewFromFile(DiskPath(urls!["large"]));
+        using var medium = Image.NewFromFile(DiskPath(urls["medium"]));
+        using var thumb = Image.NewFromFile(DiskPath(urls["thumbnail"]));
+        large.Width.ShouldBe(1920);
+        medium.Width.ShouldBe(800);
+        thumb.Width.ShouldBe(400);
+    }
+
+    [Fact]
+    public async Task ProcessAndSaveImageAsync_ShouldBoundByWidthOnly_ForPortraitImages()
+    {
+        var file = CreateFormFile(CreateImageBytes(1200, 2400, ".jpg"), "tall.jpg", "image/jpeg");
+
+        var (urls, error) = await _service.ProcessAndSaveImageAsync(file, "posts");
+
+        error.ShouldBeNull();
+        using var large = Image.NewFromFile(DiskPath(urls!["large"]));
+        using var medium = Image.NewFromFile(DiskPath(urls["medium"]));
+        using var thumb = Image.NewFromFile(DiskPath(urls["thumbnail"]));
+        large.Width.ShouldBe(1200);
+        medium.Width.ShouldBe(800);
+        thumb.Width.ShouldBe(400);
+    }
+
+    [Fact]
+    public async Task ProcessAndSaveImageAsync_ShouldNeverUpscale()
+    {
+        var file = CreateFormFile(CreateImageBytes(300, 200, ".png"), "small.png", "image/png");
+
+        var (urls, error) = await _service.ProcessAndSaveImageAsync(file, "posts");
+
+        error.ShouldBeNull();
+        foreach (var key in new[] { "large", "medium", "thumbnail" })
+        {
+            using var variant = Image.NewFromFile(DiskPath(urls![key]));
+            variant.Width.ShouldBe(300);
+            variant.Height.ShouldBe(200);
+        }
+    }
+
+    [Fact]
+    public async Task ProcessAndSaveImageAsync_ShouldDownscaleWideImages_ToLiteralWidths()
+    {
+        var file = CreateFormFile(CreateImageBytes(3000, 1500, ".jpg"), "wide.jpg", "image/jpeg");
+
+        var (urls, error) = await _service.ProcessAndSaveImageAsync(file, "posts");
+
+        error.ShouldBeNull();
+        using var large = Image.NewFromFile(DiskPath(urls!["large"]));
+        using var medium = Image.NewFromFile(DiskPath(urls["medium"]));
+        using var thumb = Image.NewFromFile(DiskPath(urls["thumbnail"]));
+        large.Width.ShouldBe(1920);
+        large.Height.ShouldBe(960);
+        medium.Width.ShouldBe(800);
+        thumb.Width.ShouldBe(400);
+    }
+
+    [Fact]
+    public async Task ProcessAndSaveImageAsync_ShouldWriteWebpFiles()
+    {
+        var file = CreateFormFile(CreateImageBytes(100, 100, ".png"), "a.png", "image/png");
+
+        var (urls, _) = await _service.ProcessAndSaveImageAsync(file, "posts");
+
+        foreach (var url in urls!.Values)
+        {
+            var header = (await File.ReadAllBytesAsync(DiskPath(url), TestContext.Current.CancellationToken)).Take(12).ToArray();
+            Encoding.ASCII.GetString(header, 0, 4).ShouldBe("RIFF");
+            Encoding.ASCII.GetString(header, 8, 4).ShouldBe("WEBP");
+        }
+    }
+
+    [Fact]
+    public async Task ProcessAndSaveImageAsync_ShouldStripExifAndGps()
+    {
+        byte[] input;
+        using (var source = Image.Black(100, 100, bands: 3).Mutate(m =>
+               {
+                   m.Set(GValue.GIntType, "orientation", 1);
+                   m.Set(GValue.GStrType, "exif-ifd0-Make", "SecretCameraMaker");
+               }))
+        {
+            input = source.WriteToBuffer(".jpg");
+        }
+        using (var check = Image.NewFromBuffer(input))
+        {
+            check.GetFields().ShouldContain("exif-data");
+        }
+        var file = CreateFormFile(input, "geo.jpg", "image/jpeg");
+
+        var (urls, error) = await _service.ProcessAndSaveImageAsync(file, "posts");
+
+        error.ShouldBeNull();
+        foreach (var url in urls!.Values)
+        {
+            using var output = Image.NewFromFile(DiskPath(url));
+            var fields = output.GetFields();
+            fields.ShouldNotContain("exif-data");
+            fields.ShouldNotContain(f => f.StartsWith("exif-"));
+        }
+    }
+
+    [Fact]
+    public async Task ProcessAndSaveImageAsync_ShouldAutoRotateByExifOrientation()
+    {
+        byte[] input;
+        using (var source = Image.Black(800, 400, bands: 3).Mutate(m => m.Set(GValue.GIntType, "orientation", 6)))
+        {
+            input = source.WriteToBuffer(".jpg");
+        }
+        var file = CreateFormFile(input, "rot.jpg", "image/jpeg");
+
+        var (urls, error) = await _service.ProcessAndSaveImageAsync(file, "posts");
+
+        error.ShouldBeNull();
+        using var large = Image.NewFromFile(DiskPath(urls!["large"]));
+        large.Width.ShouldBe(400);
+        large.Height.ShouldBe(800);
+    }
+
+    [Fact]
+    public async Task ProcessAndSaveImageAsync_ShouldRejectTruncatedJpeg_AndLeaveNoFiles()
+    {
+        var full = CreateNoisyJpegBytes(800, 600);
+        var truncated = full.Take(full.Length / 2).ToArray();
+        var file = CreateFormFile(truncated, "cut.jpg", "image/jpeg");
+
+        var (urls, error) = await _service.ProcessAndSaveImageAsync(file, "posts");
+
+        urls.ShouldBeNull();
+        error.ShouldNotBeNull();
+        error.ShouldContain("not a valid image");
+        var dir = Path.Combine(_tempWebRoot, "uploads", "posts");
+        if (Directory.Exists(dir))
+            Directory.GetFiles(dir).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task ProcessAndSaveImageAsync_ShouldKeepAnimation_ForEditorUploads()
+    {
+        var file = CreateFormFile(CreateAnimatedGifBytes(40, 30, 3), "anim.gif", "image/gif");
+
+        var (urls, error) = await _service.ProcessAndSaveImageAsync(file, "posts/editor");
+
+        error.ShouldBeNull();
+        using var output = Image.NewFromFile(DiskPath(urls!["large"]), kwargs: new VOption { { "n", -1 } });
+        PageCount(output).ShouldBe(3);
+    }
+
+    [Fact]
+    public async Task ProcessAndSaveImageAsync_ShouldFlattenAnimation_ForFeaturedUploads()
+    {
+        var file = CreateFormFile(CreateAnimatedGifBytes(40, 30, 3), "anim.gif", "image/gif");
+
+        var (urls, error) = await _service.ProcessAndSaveImageAsync(file, "posts");
+
+        error.ShouldBeNull();
+        foreach (var url in urls!.Values)
+        {
+            using var output = Image.NewFromFile(DiskPath(url), kwargs: new VOption { { "n", -1 } });
+            PageCount(output).ShouldBe(1);
+            output.Height.ShouldBe(30);
+        }
+    }
+
+    [Fact]
+    public async Task ProcessAndSaveImageAsync_ShouldRejectAnimationExceedingTotalPixelCap()
+    {
+        // 9 frames of 8000x1000 = 72M pixels, above the 8192x8192 (67M) cap, while each frame is within limits
+        var file = CreateFormFile(CreateAnimatedGifBytes(8000, 1000, 9), "huge.gif", "image/gif");
+
+        var (urls, error) = await _service.ProcessAndSaveImageAsync(file, "posts/editor");
+
+        urls.ShouldBeNull();
+        error.ShouldNotBeNull();
     }
 
     // ── deletion ────────────────────────────────────────────────────────────

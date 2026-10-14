@@ -48,6 +48,23 @@ public static class FeaturedImage
         }
     }
 
+    // Nominal widths of the stored variants, so srcset descriptors match what AttachmentService writes.
+    // Null when there is nothing to choose between (legacy single URL, external image or a single variant).
+    public static string? BuildSrcSet(IReadOnlyDictionary<string, string> urls)
+    {
+        var candidates = ImageVariants.Featured
+            .OrderBy(v => v.Width)
+            .Where(v => urls.TryGetValue(v.Name, out var url) && !string.IsNullOrWhiteSpace(url))
+            .Select(v => (Url: urls[v.Name], v.Width))
+            .ToList();
+
+        return candidates.Select(c => c.Url).Distinct().Count() < 2
+            ? null
+            : string.Join(", ", candidates.Select(c => $"{c.Url} {c.Width}w"));
+    }
+
+    public static string? BuildSrcSet(string? source) => BuildSrcSet(ParseUrls(source));
+
     public static string? GetLargeUrl(string? source) => GetUrl(source, "large");
     public static string? GetThumbnailUrl(string? source) => GetUrl(source, "thumbnail");
     

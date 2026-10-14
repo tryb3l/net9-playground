@@ -1,6 +1,11 @@
 <!-- Pinned with integrity hashes: these URLs previously resolved to "latest", so an
      upstream release could break the editor with no deploy on our side. -->
 
+<!-- Font Awesome 4 (used by EasyMDE toolbar icons; loaded from jsDelivr to satisfy CSP) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css"
+      integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN"
+      crossorigin="anonymous">
+
 <!-- EasyMDE -->
 <link rel="stylesheet" href="https://unpkg.com/easymde@2.21.0/dist/easymde.min.css"
       integrity="sha384-ZoLYv3S+AsZX+zhbN1D1+WPpc8f+DmLfxfgw+qn0Nq8wJPOYQQXEW5ZrRhcGozlG"
@@ -38,6 +43,7 @@
     // 2. Initialize EasyMDE
     const easyMDE = new EasyMDE({
     element: document.getElementById('Content'),
+    autoDownloadFontAwesome: false,
     spellChecker: false,
     placeholder: "Start writing your masterpiece...",
     // No "autosave" here: EasyMDE only autosaves when the `autosave` option below is

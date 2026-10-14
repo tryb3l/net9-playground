@@ -1,4 +1,5 @@
 using System.Net;
+using AngleSharp.Html.Dom;
 using Ganss.Xss;
 using Markdig;
 using Microsoft.AspNetCore.Razor.TagHelpers;
@@ -51,6 +52,16 @@ public class MarkdownTagHelper : TagHelper
         Sanitizer.AllowedSchemes.Add("https");
         Sanitizer.AllowedSchemes.Add("http");
         Sanitizer.AllowedSchemes.Add("mailto");
+
+        // Set after sanitising so the allowlist stays narrow and authors cannot override the values.
+        Sanitizer.PostProcessNode += (_, e) =>
+        {
+            if (e.Node is IHtmlImageElement image)
+            {
+                image.SetAttribute("loading", "lazy");
+                image.SetAttribute("decoding", "async");
+            }
+        };
     }
 
     public override async Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
