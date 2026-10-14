@@ -9,7 +9,6 @@ public class AttachmentService : IAttachmentService
     private readonly IWebHostEnvironment _env;
     private readonly ILogger<AttachmentService> _logger;
     private static readonly string[] AllowedExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
-    // Exact libvips loader names; Uhdr is the Ultra HDR JPEG flavour recent Android phones produce.
     private static readonly HashSet<string> AllowedLoaders =
     [
         "VipsForeignLoadJpegBuffer",
