@@ -38,8 +38,4 @@
     <ProjectReference Include="..\..\src\WebApp\WebApp.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Builders\" />
-  </ItemGroup>
-
 </Project>
